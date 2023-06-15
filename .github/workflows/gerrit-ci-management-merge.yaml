@@ -1,0 +1,96 @@
+---
+name: Gerrit ci-management Merge
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+    secrets:
+      JOBBUILDER_PROD_PSW:
+        description: "Jenkins admin user account token"
+        required: true
+
+concurrency:
+  group: ${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  jjb-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lfit/checkout-gerrit-change-action@v0.3
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.11"
+      - name: Clone git submodules
+        run: git submodule update --init
+      - name: Run JJB Merge
+        env:
+          JJB_WORKERS: ${{ vars.JJB_WORKERS }}
+        # yamllint disable rule:line-length
+        run: |
+          python -m pip install --upgrade pip
+          pip install jenkins-job-builder
+          mkdir -p "${GITHUB_WORKSPACE}/.config/jenkins_jobs"
+          cat << EOF > "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini"
+          [job_builder]
+          ignore_cache=True
+          keep_descriptions=False
+          include_path=.
+          recursive=True
+          query_plugins_info=False
+          config-xml=True
+
+          [jenkins]
+          user=${{ vars.JOBBUILDER_PROD_USR }}
+          password=${{ secrets.JOBBUILDER_PROD_PSW }}
+          url=${{ vars.JENKINS_URL }}
+          EOF
+          workers="${JJB_WORKERS:-0}"
+          jenkins-jobs update --recursive --delete-old --workers "$workers" jjb/
+      - name: clean up temp files
+        # yamllint enable rule:line-length
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -f ${{ github.run_id }}.properties
+          rm "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini"
