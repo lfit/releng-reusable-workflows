@@ -72,6 +72,6 @@ repos:
         files: "\\.(rst|md|markdown|mdown|mkdn)$"
 
   - repo: https://github.com/rhysd/actionlint
-    rev: fd7ba3c382e13dcc0248e425b4cbc3f1185fa3ee  # frozen: v1.6.24
+    rev: 7b75d16d41920ec126e6f3269db0c6f3ab613c38  # frozen: v1.6.25
     hooks:
       - id: actionlint
