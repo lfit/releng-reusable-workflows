@@ -54,9 +54,9 @@ jobs:
   jjb-merge:
     runs-on: ubuntu-latest
     steps:
-      - uses: lfit/checkout-gerrit-change-action@v0.3
+      - uses: uses actions/checkout@v3
         with:
-          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          ref: ${{ inputs.GERRIT_BRANCH }}
       - uses: actions/setup-python@v4
         id: setup-python
         with:
