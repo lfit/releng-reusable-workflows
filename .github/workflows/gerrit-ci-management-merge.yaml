@@ -88,7 +88,7 @@ jobs:
           url=${{ vars.JENKINS_URL }}
           EOF
           workers="${JJB_WORKERS:-0}"
-          jenkins-jobs update --recursive --delete-old --workers "$workers" jjb/
+          jenkins-jobs --conf "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini" update --recursive --delete-old --workers "$workers" jjb/
       - name: clean up temp files
         # yamllint enable rule:line-length
         if: ${{ always() }}
