@@ -45,14 +45,36 @@ on:
       JOBBUILDER_PROD_PSW:
         description: "Jenkins admin user account token"
         required: true
+      GERRIT_SSH_PRIVKEY:
+        description: "Private SSH key used for leaving comments in Gerrit"
+        required: true
 
 concurrency:
   group: ${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify job start
+        # yamllint disable-line rule:line-length
+        uses: lfit/gerrit-review-action@6ac4c2322b68c0120a9b516eb0421491ee1b3fdf  # v0.4
+        with:
+          host: ${{ vars.GERRIT_SERVER }}
+          username: ${{ vars.GERRIT_SSH_USER }}
+          key: ${{ secrets.GERRIT_SSH_PRIVKEY }}
+          known_hosts: ${{ vars.GERRIT_KNOWN_HOSTS }}
+          gerrit-change-number: ${{ inputs.GERRIT_CHANGE_NUMBER }}
+          gerrit-patchset-number: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
+          vote-type: clear
+          comment-only: true
+      - name: Allow replication
+        run: sleep 10s
+
   jjb-merge:
     runs-on: ubuntu-latest
+    needs: notify
     steps:
       - uses: actions/checkout@v3
         with:
@@ -96,3 +118,23 @@ jobs:
         run: |
           rm -f ${{ github.run_id }}.properties
           rm "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini"
+
+  report-status:
+    if: ${{ always() }}
+    needs: [notify, jjb-merge]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get workflow conclusion
+        uses: technote-space/workflow-conclusion-action@v3
+      - name: Report workflow conclusion
+        # yamllint disable-line rule:line-length
+        uses: lfit/gerrit-review-action@6ac4c2322b68c0120a9b516eb0421491ee1b3fdf  # v0.4
+        with:
+          host: ${{ vars.GERRIT_SERVER }}
+          username: ${{ vars.GERRIT_SSH_USER }}
+          key: ${{ secrets.GERRIT_SSH_PRIVKEY }}
+          known_hosts: ${{ vars.GERRIT_KNOWN_HOSTS }}
+          gerrit-change-number: ${{ inputs.GERRIT_CHANGE_NUMBER }}
+          gerrit-patchset-number: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
+          vote-type: ${{ env.WORKFLOW_CONCLUSION }}
+          comment-only: true
