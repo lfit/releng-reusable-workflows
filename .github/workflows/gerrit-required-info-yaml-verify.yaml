@@ -93,17 +93,25 @@ jobs:
           set -e -o pipefail
           set +u
           MODIFIED_FILES=$(git diff --name-only HEAD~1)
-          if [ "$MODIFIED_FILES" != "INFO.yaml" ]; then
-              echo "ERROR: Do not combine INFO.yaml file changes with other files."
-              echo "Please isolate INFO.yaml changes."
-              exit 1
+          if [[ "$MODIFIED_FILES" != *"INFO.yaml"* ]]; then
+            echo "No INFO.yaml found. Passing"
+            echo "SCAN=false" >> "$GITHUB_ENV"
+            exit 0
+          elif [[ $(echo "$MODIFIED_FILES" | wc -l) -gt 1 ]]; then
+            echo "ERROR: Do not combine INFO.yaml file changes with other files."
+            echo "Please isolate INFO.yaml changes."
+            echo "SCAN=false" >> "$GITHUB_ENV"
+            exit 1
           fi
+          echo "SCAN=true" >> "$GITHUB_ENV"
       - name: Download Valid Schema
+        if: env.SCAN == 'true'
         # Download info-schema.yaml and yaml-verfy-schema.py
         run: |
           wget -q https://raw.githubusercontent.com/lfit/releng-global-jjb/master/schema/info-schema.yaml \
           https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
       - name: Info File Validation
+        if: env.SCAN == 'true'
         run: |
           set -e -o pipefail
           PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
