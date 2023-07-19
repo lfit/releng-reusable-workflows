@@ -121,7 +121,7 @@ jobs:
         if: env.SCAN == 'true'
         run: |
           set -e -o pipefail
-          PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
+          PROJECT_INPUT=${{ inputs.GERRIT_PROJECT }}
           yamllint INFO.yaml
           python yaml-verify-schema.py \
               -s info-schema.yaml \
