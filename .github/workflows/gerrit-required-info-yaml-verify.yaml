@@ -57,7 +57,8 @@ on:
         required: true
 
 concurrency:
-  group: ${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  # yamllint disable-line rule:line-length
+  group: reusable-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
