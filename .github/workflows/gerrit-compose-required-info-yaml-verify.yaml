@@ -1,0 +1,118 @@
+---
+name: Gerrit Required INFO Yaml Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: true
+        type: string
+    secrets:
+      GERRIT_SSH_REQUIRED_PRIVKEY:
+        description: "SSH Key for the authorized user account"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-required-info-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  info-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lfit/checkout-gerrit-change-action@v0.4
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          delay: "0s"
+          repository: ${{ inputs.TARGET_REPO }}
+          ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.11"
+      - name: Verify Change Isolation
+        # yamllint disable rule:line-length
+        # INFO.yaml file creation or moddifications should be kept in its own separate change.
+        run: |
+          set -e -o pipefail
+          set +u
+          MODIFIED_FILES=$(git diff --name-only HEAD~1)
+          if [[ "$MODIFIED_FILES" != *"INFO.yaml"* ]]; then
+            echo "No INFO.yaml found. Passing"
+            echo "SCAN=false" >> "$GITHUB_ENV"
+            exit 0
+          elif [[ $(echo "$MODIFIED_FILES" | wc -l) -gt 1 ]]; then
+            echo "ERROR: Do not combine INFO.yaml file changes with other files."
+            echo "Please isolate INFO.yaml changes."
+            echo "SCAN=false" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          echo "SCAN=true" >> "$GITHUB_ENV"
+      - name: Download Valid Schema
+        if: env.SCAN == 'true'
+        # Download info-schema.yaml and yaml-verfy-schema.py
+        run: |
+          wget -q https://raw.githubusercontent.com/lfit/releng-global-jjb/master/schema/info-schema.yaml \
+          https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
+      - name: Info File Validation
+        if: env.SCAN == 'true'
+        run: |
+          set -e -o pipefail
+          pip install jsonschema yq
+          PROJECT_INPUT=${{ inputs.GERRIT_PROJECT }}
+          yamllint INFO.yaml
+          python yaml-verify-schema.py \
+              -s info-schema.yaml \
+              -y INFO.yaml
+          # Verfiy that there is only one repository and that it matches $PROJECT
+          REPO_LIST="$(yq -r '.repositories[]' INFO.yaml)"
+          while IFS= read -r project; do
+              if [[ "$project" == "$PROJECT_INPUT" ]]; then
+                  echo "$project is valid"
+              else
+                  echo "ERROR: $project is invalid"
+                  echo "INFO.yaml file may only list one repository"
+                  echo "Repository must match $PROJECT_INPUT"
+                  exit 1
+              fi
+          done <<< "$REPO_LIST"
