@@ -1,5 +1,5 @@
 ---
-name: Gerrit Required INFO Yaml Verify
+name: Gerrit Compose Required INFO Yaml Verify
 
 # yamllint disable-line rule:truthy
 on:

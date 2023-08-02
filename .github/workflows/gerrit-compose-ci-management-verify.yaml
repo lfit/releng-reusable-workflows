@@ -1,5 +1,5 @@
 ---
-name: Gerrit ci-management Verify
+name: Gerrit Compose ci-management Verify
 
 # yamllint disable-line rule:truthy
 on:
