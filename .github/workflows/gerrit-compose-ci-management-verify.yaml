@@ -1,0 +1,112 @@
+---
+name: Gerrit Compose ci-management Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+    secrets:
+      GERRIT_SSH_PRIVKEY:
+        description: "SSH Key for the authorized user account"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-ci-management-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lfit/checkout-gerrit-change-action@v0.4
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          delay: "0s"
+      - name: Download actionlint
+        id: get_actionlint
+        # yamllint disable-line rule:line-length
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+        shell: bash
+      - name: Check workflow files
+        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        shell: bash
+
+  # run pre-commit tox env separately to get use of more parallel processing
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lfit/checkout-gerrit-change-action@v0.4
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          delay: "0s"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Run static analysis and format checkers
+        run: pipx run pre-commit run --all-files --show-diff-on-failure
+
+  jjb-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lfit/checkout-gerrit-change-action@v0.4
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          delay: "0s"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.11"
+      - name: Clone git submodules
+        run: git submodule update --init
+      - name: Run JJB Verify
+        run: |
+          python -m pip install --upgrade pip
+          pip install jenkins-job-builder
+          mkdir -p "${HOME}/.config/jenkins_jobs"
+          cat << EOF > "${HOME}/.config/jenkins_jobs/jenkins_jobs.ini"
+          [job_builder]
+          ignore_cache=True
+          keep_descriptions=False
+          include_path=.
+          recursive=True
+          query_plugins_info=False
+          config-xml=True
+          EOF
+          jenkins-jobs test -o archives/job-configs jjb/
