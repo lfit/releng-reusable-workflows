@@ -140,6 +140,7 @@ jobs:
                   continue
               fi
 
+              echo "::group::$varfile"
               echo "-----> Test var: $varfile"
               for template in "${templates[@]}"; do
                   if [[ "$template" == *"variables.pkr.hcl"* ]] || \
@@ -164,4 +165,5 @@ jobs:
                       exit 1
                   fi
               done
+              echo "::endgroup::"
           done
