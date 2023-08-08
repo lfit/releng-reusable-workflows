@@ -84,7 +84,8 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     steps:
-      - uses: lfit/checkout-gerrit-change-action@v0.4
+      # yamllint disable-line rule:line-length
+      - uses: lfit/checkout-gerrit-change-action@c70c41f86f57a62ae26ac17b4f16516212c46222  # v0.5
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           delay: "0s"

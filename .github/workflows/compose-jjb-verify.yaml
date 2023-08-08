@@ -55,17 +55,16 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@70360ca2f8bee3e6a15224d8a03f8e017b1ac91f  # v0.4
+        uses: lfit/checkout-gerrit-change-action@c70c41f86f57a62ae26ac17b4f16516212c46222  # v0.5
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           delay: "0s"
+          submodules: "true"
       - name: Setup Python
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1  # v4.7.0
         with:
           python-version: "3.11"
-      - name: Clone git submodules
-        run: git submodule update --init
       - name: Run JJB Verify
         run: |
           python -m pip install --upgrade pip
