@@ -62,8 +62,6 @@ concurrency:
   group: composed-ci-management-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
-permissions: read-all
-
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -122,7 +120,7 @@ jobs:
     # use compose-packer-verify from the v0.4 series of
     # releng-reusable-workflows
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@a6a2a15aec107524e6b13ae2122c0678cafc0402
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@main
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
