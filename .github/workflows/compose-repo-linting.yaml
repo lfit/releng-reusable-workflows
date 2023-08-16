@@ -54,8 +54,6 @@ concurrency:
   group: compose-repo-linting-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
-permissions: read-all
-
 jobs:
   actionlint:
     runs-on: ubuntu-latest
