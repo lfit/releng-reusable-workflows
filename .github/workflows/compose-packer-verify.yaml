@@ -58,21 +58,17 @@ concurrency:
   group: compose-packer-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
-permissions: read-all
-
 jobs:
   packer-validator:
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@70360ca2f8bee3e6a15224d8a03f8e017b1ac91f  # v0.4
+        uses: lfit/checkout-gerrit-change-action@c70c41f86f57a62ae26ac17b4f16516212c46222  # v0.5
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           delay: "0s"
-      - name: Clone git submodules
-        shell: bash
-        run: git submodule update --init
+          submodules: "true"
       - name: Check for changes
         # yamllint disable-line rule:line-length
         uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
