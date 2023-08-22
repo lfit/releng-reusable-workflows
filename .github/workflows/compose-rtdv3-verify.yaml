@@ -89,7 +89,7 @@ jobs:
           pip install lftools 'niet~=1.4.2' 'cryptography<3.4' yq tox
           # urllib3 needs to be pinned to avoid timeouts
           pip install --upgrade urllib3~=1.26.15
-          mkdir -p "${GITHUB_WORKSPACE}/.config/lftools/lftools.ini"
+          mkdir -p "${GITHUB_WORKSPACE}/.config/lftools"
           cat << EOF > "${GITHUB_WORKSPACE}/.config/lftools/lftools.ini"
           [rtd]
           endpoint=https://readthedocs.org/api/v3/
