@@ -78,7 +78,7 @@ jobs:
       - name: Verify If readthedocs Config exists
         run: |
           echo "Verifying if readthedocs.yaml config file exists"
-          if [ ! -d .readthedocs.yaml ] ; then
+          if [ ! -f .readthedocs.yaml ] ; then
             echo "INFO Config file not found. Skipping further checks."
             echo "READTHEDOCS_FOUND=false" >> "$GITHUB_ENV"
           fi
