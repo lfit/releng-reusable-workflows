@@ -158,7 +158,8 @@ jobs:
               done
               echo "INFO: read the docs build completed with status: $result"
           }
-          project_dashed="${${{ inputs.GERRIT_PROJECT }}////-}"
+          project_original=${{ inputs.GERRIT_PROJECT }}
+          project_dashed="${project_original////-}"
           umbrella=$(echo ${{ inputs.GERRIT_CHANGE_URL }} | awk -F'.' '{print $2}')
           rtdproject="$umbrella-$project_dashed"
           masterproject=${umbrella}-${{ env.MASTER_RTD_PROJECT }}
