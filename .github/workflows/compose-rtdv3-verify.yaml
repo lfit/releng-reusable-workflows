@@ -89,12 +89,6 @@ jobs:
           pip install lftools 'niet~=1.4.2' 'cryptography<3.4' yq tox
           # urllib3 needs to be pinned to avoid timeouts
           pip install --upgrade urllib3~=1.26.15
-          mkdir -p "${GITHUB_WORKSPACE}/.config/lftools"
-          cat << EOF > "${GITHUB_WORKSPACE}/.config/lftools/lftools.ini"
-          [rtd]
-          endpoint=https://readthedocs.org/api/v3/
-          token=${{ secrets.RTD_TOKEN }}
-          EOF
       - name: Running tox
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
@@ -139,6 +133,14 @@ jobs:
         run: |
           echo "---> Running rtdv3"
           set -euo pipefail
+
+          # Creating lftools config file
+          mkdir -p "${GITHUB_WORKSPACE}/.config/lftools"
+          cat << EOF > "${GITHUB_WORKSPACE}/.config/lftools/lftools.ini"
+          [rtd]
+          endpoint=https://readthedocs.org/api/v3/
+          token=${{ secrets.RTD_TOKEN }}
+          EOF
 
           watchbuild(){
               echo "INFO: Running build against branch $1"
