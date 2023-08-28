@@ -135,8 +135,8 @@ jobs:
           set -euo pipefail
 
           # Creating lftools config file
-          mkdir -p "${GITHUB_WORKSPACE}/.config/lftools"
-          cat << EOF > "${GITHUB_WORKSPACE}/.config/lftools/lftools.ini"
+          mkdir -p "${HOME}/.config/lftools"
+          cat << EOF > "${HOME}/.config/lftools/lftools.ini"
           [rtd]
           endpoint=https://readthedocs.org/api/v3/
           token=${{ secrets.RTD_TOKEN }}
