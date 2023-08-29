@@ -1,0 +1,248 @@
+---
+name: Compose rtdv3 Merge
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+    secrets:
+      RTD_TOKEN:
+        description: "RTD API user token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-rtdv3-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  READTHEDOCS_FOUND: true
+  TOX_ENVS: docs,docs-linkcheck
+  TOX_DIR: docs/
+  DOC_DIR: _build/html
+  PARALLEL: true
+  DEFAULT_VERSION: latest
+  MASTER_RTD_PROJECT: doc
+
+jobs:
+  rtd-verify:
+    # yamllint disable-line rule:line-length
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-rtdv3-verify.yaml@main
+    with:
+      GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
+      GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
+      GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
+      GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
+      GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
+      GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
+      GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
+      GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+      GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
+    secrets:
+      RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+
+  rtd-merge:
+    runs-on: ubuntu-latest
+    needs: rtd-verify
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Verify If readthedocs Config exists
+        run: |
+          echo "Verifying if readthedocs.yaml config file exists"
+          if [ ! -f .readthedocs.yaml ] ; then
+            echo "INFO Config file not found. Skipping further checks."
+            echo "READTHEDOCS_FOUND=false" >> "$GITHUB_ENV"
+          fi
+      - name: Installing dependencies
+        if: ${{ env.READTHEDOCS_FOUND == 'true' }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install lftools 'niet~=1.4.2' 'cryptography<3.4' yq tox
+          # urllib3 needs to be pinned to avoid timeouts
+          pip install --upgrade urllib3~=1.26.15
+      - name: Running rtdv3
+        # yamllint disable rule:line-length
+        if: ${{ env.READTHEDOCS_FOUND == 'true' }}
+        run: |
+          echo "---> Running rtdv3"
+          set -euo pipefail
+
+          # Creating lftools config file
+          mkdir -p "${HOME}/.config/lftools"
+          cat << EOF > "${HOME}/.config/lftools/lftools.ini"
+          [rtd]
+          endpoint=https://readthedocs.org/api/v3/
+          token=${{ secrets.RTD_TOKEN }}
+          EOF
+
+          watchbuild(){
+              echo "INFO: Running build against branch $1"
+              local buildid
+              local result
+              buildid=$(lftools rtd project-build-trigger "$rtdproject" "$1" | jq '.build.id')
+
+              result=null
+              while [[ "$result" == null ]]; do
+                  sleep 10
+                  result=$(lftools rtd project-build-details "$rtdproject" "$buildid"  | jq '.success')
+                  echo "INFO Current result of running build $result"
+                  if [[ $result == failed ]]; then
+                      echo "INFO: read the docs build completed with status: $result"
+                      exit 1
+                  fi
+              done
+              echo "INFO: read the docs build completed with status: $result"
+          }
+
+          project_original=${{ inputs.GERRIT_PROJECT }}
+          project_dashed="${project_original////-}"
+          umbrella=$(echo ${{ inputs.GERRIT_CHANGE_URL }} | awk -F'.' '{print $2}')
+          rtdproject="$umbrella-$project_dashed"
+          masterproject=${umbrella}-${{ env.MASTER_RTD_PROJECT }}
+          #Exceptions needed for onap, due to importing their old docs.
+          if [[ $masterproject == "onap-doc" ]]; then
+              masterproject="onap"
+          fi
+          if [[ $rtdproject == "onap-doc" ]]; then
+              rtdproject="onap"
+          fi
+          echo "INFO:"
+          echo "INFO: Project: ${{ inputs.GERRIT_PROJECT }}"
+          echo "INFO: Read the Docs Sub Project: https://$rtdproject.readthedocs.io"
+          echo "INFO: Read the Docs Master Project: https://$masterproject.readthedocs.io"
+
+          echo "INFO: Performing merge action"
+
+          # This retuns null if project exists.
+          project_exists=false
+          project_created=false
+
+          declare -i cnt=0
+          while [[ $project_exists == "false" ]]; do
+              if [[ "$(lftools rtd project-details "$rtdproject" | yq -r '.detail')" == "Not found." ]]; then
+                  echo "INFO: Project not found"
+                  if [[ $project_created == "false" ]]; then
+                      echo "INFO: Creating project https://$rtdproject.readthedocs.io"
+                      lftools rtd project-create "$rtdproject" "${{ inputs.GERRIT_CHANGE_URL }}/${{ inputs.GERRIT_PROJECT }}" \
+                          git "https://$rtdproject.readthedocs.io" py en
+                      project_created="true"
+                  fi
+                  echo "INFO sleeping for 30 seconds $cnt times"
+                  sleep 30
+                  cnt=$((cnt+1))
+                  if (( cnt >= 20 )); then
+                      echo "INFO: Job has timed out"
+                      exit 1
+                  fi
+              else
+                  echo "INFO: Project exists in read the docs as https://$rtdproject.readthedocs.io"
+                  project_exists="true"
+              fi
+          done
+
+          if [[ "$rtdproject" != "$masterproject" ]]; then
+              subproject_exists=false
+              while read -r subproject; do
+                  if [[ "$subproject" == "$rtdproject" ]]; then
+                      subproject_exists=true
+                      break
+                  fi
+              done < <(lftools rtd subproject-list "$masterproject")
+
+              if $subproject_exists; then
+                  echo "INFO: subproject $rtdproject relationship already created"
+              else
+                  echo "INFO: Creating subproject relationship"
+                  lftools rtd subproject-create "$masterproject" "$rtdproject"
+                  echo "INFO sleeping for 10 seconds"
+                  sleep 10
+              fi
+          fi
+
+          # api v3 method does not update /latest/ when master is triggered.
+          # Also, when we build anything other than master we want to trigger /stable/ as well.
+          # allow projects to change their landing page from latest to branch_name
+
+          current_version="$(lftools rtd project-details "$rtdproject" | yq -r .default_version)"
+          if [[ -z ${{ env.DEFAULT_VERSION }} ]]; then
+              echo "DEFAULT_VERSION (default-version) value cannot be empty"
+              exit 1
+          fi
+          default_version="${{ env.DEFAULT_VERSION }}"
+
+          echo "INFO: current default version $current_version"
+          if [[ $current_version != "$default_version" ]]; then
+              echo "INFO: Setting rtd landing page to $default_version"
+              lftools rtd project-update "$rtdproject" default_version="$default_version"
+          fi
+
+          if [[ ${{ inputs.GERRIT_BRANCH }} == "master" ]]; then
+              echo "INFO: triggering $rtdproject latest"
+              watchbuild latest
+          else
+
+              #read the docs only understands lower case branch names
+              branch=$(echo "${{ inputs.GERRIT_BRANCH }}" | tr '[:upper:]' '[:lower:]')
+              echo "INFO: Checking if read the docs has seen branch $branch"
+
+              #if this is 200 "null" Then run discover branch
+              if [[ $(lftools rtd project-version-details "$rtdproject" "$branch" | jq '.active') == "null" ]]; then
+                  echo "INFO: read the docs has not seen branch $branch for project $rtdproject"
+                  echo "INFO: triggering $rtdproject latest to instantiate new branch discovery"
+                  watchbuild latest
+              fi
+
+              echo "INFO: triggering $rtdproject $branch"
+              watchbuild "$branch"
+
+              #Make newly discovered branches visible in the u/i
+              isactive=$(lftools rtd project-version-details "$rtdproject" "$branch" | jq '.active')
+              if [[ "$isactive" == false ]]; then
+                  echo "INFO: Marking $branch as active for project $rtdproject"
+                  lftools rtd project-version-update "$rtdproject" "$branch" true
+              fi
+          fi
+          echo "INFO: Merge job completed"
