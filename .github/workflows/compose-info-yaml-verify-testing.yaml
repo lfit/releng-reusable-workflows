@@ -65,6 +65,7 @@ jobs:
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
           delay: "0s"
           repository: ${{ inputs.TARGET_REPO }}
           ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
