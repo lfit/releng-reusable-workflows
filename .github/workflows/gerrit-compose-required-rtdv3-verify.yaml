@@ -41,6 +41,12 @@ on:
         description: "Gerrit refspec of change"
         required: true
         type: string
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: false
+        default: ${{ github.repository }}
+        type: string
     secrets:
       RTD_TOKEN:
         description: "RTD API user token"
