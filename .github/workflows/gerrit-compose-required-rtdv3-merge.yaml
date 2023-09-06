@@ -69,7 +69,7 @@ env:
 jobs:
   rtd-verify:
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-rtdv3-verify.yaml@main
+    uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-rtdv3-verify.yaml@main
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
