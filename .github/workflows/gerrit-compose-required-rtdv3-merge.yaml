@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
-          repository: ${{ inputs.GERRIT_PROJECT }}
+          repository: ${{ inputs.TARGET_REPO }}
           submodules: "true"
       - uses: actions/setup-python@v4
         id: setup-python
