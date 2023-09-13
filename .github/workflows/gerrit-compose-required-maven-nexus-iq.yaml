@@ -1,0 +1,113 @@
+---
+name: Compose Maven Nexus IQ
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: false
+        default: ${{ github.repository }}
+        type: string
+    secrets:
+      NEXUS_IQ_PASSWORD:
+        description: "CLM Nexus token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-maven-nexus-iq-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  APPLICATION_ID: ${{ vars.ORGANIZATION }}_${{ inputs.TARGET_REPO }}
+  NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
+  NEXUS_STAGE: build
+  NEXUS_TARGET: ./target/
+
+jobs:
+  run-maven-clm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          repository: ${{ inputs.TARGET_REPO }}
+          submodules: "true"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Set up Maven
+        uses: thermofisher/setup-maven@v1.0.0
+        with:
+          maven-version: 3.5.4
+      - name: Obtain global settings file
+        # yamllint disable rule:line-length
+        run: |
+          if [[ "${{ vars.ORGANIZATION }}" == "opendaylight" ]]; then
+              CI_REPO="releng-builder"
+          else
+              CI_REPO="ci-management"
+          fi
+          wget -q -O settings.xml "https://raw.githubusercontent.com/${{ vars.ORGANIZATION }}/${CI_REPO}/master/jenkins-config/managed-config-files/globalMavenSettings/global-settings/content"
+        # yamllint enable rule:line-length
+      - name: Build code with Maven
+        uses: Best-Quality-Engineering/ci-maven-action@v1
+        with:
+          # yamllint disable-line rule:line-length
+          phases: clean, install, dependency:tree com.sonatype.clm:clm-maven-plugin:2.41.0-02:index
+          settings-file: settings.xml
+          # yamllint disable-line rule:line-length
+          maven-opts: --batch-mode -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer .Slf4jMavenTransferListener=warn -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+      - name: Nexus IQ Policy Evaluation
+        uses: sonatype-nexus-community/iq-github-action@master
+        with:
+          serverUrl: ${{ env.NEXUS_IQ_SERVER }}
+          username: ${{ vars.NEXUS_IQ_USERNAME }}
+          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+          applicationId: ${{ env.APPLICATION_ID }}
+          stage: ${{ env.NEXUS_STAGE }}
+          target: ${{ env.NEXUS_TARGET }}
