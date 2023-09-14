@@ -58,7 +58,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  APPLICATION_ID: ${{ vars.ORGANIZATION }}_${{ inputs.TARGET_REPO }}
+  GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH || 'GERRIT_BRANCH' }}
+  TARGET_REPO: ${{ inputs.TARGET_REPO || 'TARGET_REPO' }}
   NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
   NEXUS_STAGE: build
   NEXUS_TARGET: ./target/
@@ -69,8 +70,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.GERRIT_BRANCH }}
-          repository: ${{ inputs.TARGET_REPO }}
+          ref: ${{ env.GERRIT_BRANCH }}
+          repository: ${{ env.TARGET_REPO }}
           submodules: "true"
       - uses: actions/setup-python@v4
         id: setup-python
@@ -108,6 +109,6 @@ jobs:
           serverUrl: ${{ env.NEXUS_IQ_SERVER }}
           username: ${{ vars.NEXUS_IQ_USERNAME }}
           password: ${{ secrets.NEXUS_IQ_PASSWORD }}
-          applicationId: ${{ env.APPLICATION_ID }}
+          applicationId: ${{ vars.ORGANIZATION }}_${{ env.TARGET_REPO }}
           stage: ${{ env.NEXUS_STAGE }}
           target: ${{ env.NEXUS_TARGET }}
