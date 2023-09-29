@@ -1,0 +1,116 @@
+---
+name: Compose Maven Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: false
+        default: ${{ github.repository }}
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-maven-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  maven-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          repository: ${{ inputs.TARGET_REPO }}
+          submodules: "true"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Setup JDK ${{ inputs.JDK_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.JDK_VERSION }}
+          distribution: 'oracle'
+      - name: Setup Maven ${{ inputs.MVN_VERSION }}
+        uses: thermofisher/setup-maven@v1.0.0
+        with:
+          maven-version: ${{ inputs.MVN_VERSION }}
+      - name: Obtain global settings file
+        # yamllint disable rule:line-length
+        run: |
+          if [[ "${{ vars.ORGANIZATION }}" == "opendaylight" ]]; then
+              CI_REPO="releng-builder"
+          else
+              CI_REPO="ci-management"
+          fi
+          wget -q -O settings.xml "https://raw.githubusercontent.com/${{ vars.ORGANIZATION }}/${CI_REPO}/master/jenkins-config/managed-config-files/globalMavenSettings/global-settings/content"
+        # yamllint enable rule:line-length
+      - name: Build code with Maven
+        uses: Best-Quality-Engineering/ci-maven-action@v1
+        with:
+          # yamllint disable-line rule:line-length
+          phases: clean, install, dependency:tree
+          settings-file: settings.xml
+          # yamllint disable-line rule:line-length
+          maven-opts: --show-version --batch-mode -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+      - name: Generate JaCoCo Badge
+        id: jacoco
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          badges-directory: badges
+          generate-branches-badge: true
+          generate-summary: true
+      - name: Log coverage percentage
+        run: |
+          echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
+          echo "branch coverage = ${{ steps.jacoco.outputs.branches }}"
