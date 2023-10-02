@@ -99,7 +99,7 @@ jobs:
         uses: Best-Quality-Engineering/ci-maven-action@v1
         with:
           # yamllint disable-line rule:line-length
-          phases: clean, install, dependency:tree
+          phases: clean, deploy
           settings-file: settings.xml
           # yamllint disable-line rule:line-length
           maven-opts: --show-version --batch-mode -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
