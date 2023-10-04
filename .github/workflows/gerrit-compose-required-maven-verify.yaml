@@ -96,13 +96,16 @@ jobs:
           wget -q -O settings.xml "https://raw.githubusercontent.com/${{ vars.ORGANIZATION }}/${CI_REPO}/master/jenkins-config/managed-config-files/globalMavenSettings/global-settings/content"
         # yamllint enable rule:line-length
       - name: Build code with Maven
+        # yamllint disable rule:line-length
         uses: Best-Quality-Engineering/ci-maven-action@v1
         with:
-          # yamllint disable-line rule:line-length
           phases: clean, deploy
           settings-file: settings.xml
-          # yamllint disable-line rule:line-length
-          maven-opts: --show-version --batch-mode -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+          maven-opts: >-
+            -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+            -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
+            -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+        # yamllint enable rule:line-length
       - name: Generate JaCoCo Badge
         id: jacoco
         uses: cicirello/jacoco-badge-generator@v2
