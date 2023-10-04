@@ -82,7 +82,7 @@ jobs:
           java-version: ${{ inputs.JDK_VERSION }}
           distribution: 'oracle'
       - name: Setup Maven ${{ inputs.MVN_VERSION }}
-        uses: thermofisher/setup-maven@v1.0.0
+        uses: s4u/setup-maven-action@v1.10.0
         with:
           maven-version: ${{ inputs.MVN_VERSION }}
       - name: Obtain global settings file
