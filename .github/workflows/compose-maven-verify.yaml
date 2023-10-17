@@ -61,12 +61,6 @@ on:
         required: false
         default: ""
         type: string
-      TARGET_REPO:
-        # yamllint disable-line rule:line-length
-        description: "The target GitHub repository needing the required workflow"
-        required: false
-        default: ${{ github.repository }}
-        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -80,7 +74,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
-          repository: ${{ inputs.TARGET_REPO }}
           submodules: "true"
       - uses: actions/setup-python@v4
         id: setup-python
