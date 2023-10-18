@@ -61,6 +61,18 @@ on:
         required: false
         default: ""
         type: string
+      ENV_VARS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub variables to be exported as environment variables via ${{ toJSON(vars) }} or specific variables encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+      ENV_SECRETS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub secrets to be exported as environment variables via ${{ toJSON(secrets) }} or specific secrets encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -88,6 +100,14 @@ jobs:
         uses: s4u/setup-maven-action@v1.10.0
         with:
           maven-version: ${{ inputs.MVN_VERSION }}
+      - name: Export env variables
+        uses: infovista-opensource/vars-to-env-action@v1
+        with:
+          secrets: ${{ inputs.ENV_VARS }}
+      - name: Export env secrets
+        uses: infovista-opensource/vars-to-env-action@v1
+        with:
+          secrets: ${{ inputs.ENV_SECRETS }}
       - name: Obtain global settings file
         # yamllint disable rule:line-length
         run: |
