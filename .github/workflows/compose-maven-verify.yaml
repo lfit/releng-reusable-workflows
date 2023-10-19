@@ -138,6 +138,7 @@ jobs:
           badges-directory: badges
           generate-branches-badge: true
           generate-summary: true
+          on-missing-report: quiet
       - name: Log coverage percentage
         run: |
           echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
