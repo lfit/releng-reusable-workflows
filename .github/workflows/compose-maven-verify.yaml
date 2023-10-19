@@ -101,11 +101,11 @@ jobs:
         with:
           maven-version: ${{ inputs.MVN_VERSION }}
       - name: Export env variables
-        uses: infovista-opensource/vars-to-env-action@v1
+        uses: infovista-opensource/vars-to-env-action@1.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
-        uses: infovista-opensource/vars-to-env-action@v1
+        uses: infovista-opensource/vars-to-env-action@1.0.0
         with:
           secrets: ${{ inputs.ENV_SECRETS }}
       - name: Obtain global settings file
