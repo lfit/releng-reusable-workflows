@@ -51,6 +51,11 @@ on:
         required: false
         default: "3.8.2"
         type: string
+      MVN_PHASES:
+        description: "Comma separated list of phases to execute"
+        required: false
+        default: "clean, deploy"
+        type: string
       MVN_POM_FILE:
         description: "Directory with pom.xml"
         required: false
@@ -122,7 +127,7 @@ jobs:
         # yamllint disable rule:line-length
         uses: Best-Quality-Engineering/ci-maven-action@v1
         with:
-          phases: clean, deploy
+          phases: ${{ inputs.MVN_PHASES }}
           pom-file: ${{ inputs.MVN_POM_FILE }}
           profiles: ${{ inputs.MVN_PROFILES }}
           settings-file: settings.xml
