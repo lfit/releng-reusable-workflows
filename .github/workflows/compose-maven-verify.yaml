@@ -63,13 +63,13 @@ on:
         type: string
       ENV_VARS:
         # yamllint disable-line rule:line-length
-        description: "Pass GitHub variables to be exported as environment variables via ${{ toJSON(vars) }} or specific variables encoded in JSON format"
+        description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
         required: false
         default: "{}"
         type: string
       ENV_SECRETS:
         # yamllint disable-line rule:line-length
-        description: "Pass GitHub secrets to be exported as environment variables via ${{ toJSON(secrets) }} or specific secrets encoded in JSON format"
+        description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
         required: false
         default: "{}"
         type: string
