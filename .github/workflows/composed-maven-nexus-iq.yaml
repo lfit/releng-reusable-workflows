@@ -1,0 +1,136 @@
+---
+name: Composed Maven Nexus IQ
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      MVN_PHASES:
+        description: "Comma separated list of phases to execute"
+        required: false
+        # yamllint disable-line rule:line-length
+        default: "clean, install, dependency:tree com.sonatype.clm:clm-maven-plugin:2.41.0-02:index"
+        type: string
+      MVN_POM_FILE:
+        description: "Directory with pom.xml"
+        required: false
+        default: "pom.xml"
+        type: string
+      MVN_PROFILES:
+        description: "Comma-delimited list of profiles to activate"
+        required: false
+        default: ""
+        type: string
+      ENV_VARS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+      ENV_SECRETS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+    secrets:
+      NEXUS_IQ_PASSWORD:
+        description: "CLM Nexus token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: composed-maven-nexus-iq-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
+  NEXUS_STAGE: build
+  NEXUS_TARGET: ./target/
+
+jobs:
+  maven-build:
+    # yamllint disable-line rule:line-length
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-maven-verify.yaml@main
+    with:
+      GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
+      GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
+      GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
+      GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
+      GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
+      GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
+      GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
+      GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+      GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
+      JDK_VERSION: ${{ inputs.JDK_VERSION }}
+      MVN_VERSION: ${{ inputs.MVN_VERSION }}
+      MVN_PHASES: ${{ inputs.MVN_PHASES }}
+      MVN_POM_FILE: ${{ inputs.MVN_POM_FILE }}
+      MVN_PROFILES: ${{ inputs.MVN_PROFILES }}
+      ENV_VARS: ${{ inputs.ENV_VARS }}
+      ENV_SECRETS: ${{ inputs.ENV_SECRETS }}
+
+  run-maven-clm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtain Application ID
+        # yamllint disable rule:line-length
+        run: |
+          REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
+          echo "APPLICATION_ID: ${{ vars.ORGANIZATION }}_${REPO_DASHED}" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Nexus IQ Policy Evaluation
+        uses: sonatype-nexus-community/iq-github-action@master
+        with:
+          serverUrl: ${{ env.NEXUS_IQ_SERVER }}
+          username: ${{ vars.NEXUS_IQ_USERNAME }}
+          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+          applicationId: ${{ env.APPLICATION_ID }}
+          stage: ${{ env.NEXUS_STAGE }}
+          target: ${{ env.NEXUS_TARGET }}
