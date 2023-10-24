@@ -1,0 +1,58 @@
+---
+name: "nexus-docker-login"
+description: "Run docker login for all registries in Nexus3 and DockerHub"
+
+inputs:
+  nexus3-registry:
+    description: "Organization's Nexus registry URL"
+    required: true
+  nexus3-user:
+    description: "Nexus3 organization username"
+    required: true
+  dockerhub-user:
+    description: "DockerHub organization username"
+    required: true
+  nexus3-password:
+    description: "Nexus3 organization user's password"
+    required: true
+  dockerhub-password:
+    description: "DockerHub organization user's password"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: nexus3-10001-login
+      uses: docker/login-action@v3
+      with:
+        # yamllint disable-line rule:line-length
+        registry: "${{ inputs.nexus3-registry }}:10001"
+        username: docker
+        password: docker
+    - id: nexus3-10002-login
+      uses: docker/login-action@v3
+      with:
+        # yamllint disable-line rule:line-length
+        registry: "${{ inputs.nexus3-registry }}:10002"
+        username: ${{ inputs.nexus3-user }}
+        password: ${{ inputs.nexus3-password }}
+    - id: nexus3-10003-login
+      uses: docker/login-action@v3
+      with:
+        # yamllint disable-line rule:line-length
+        registry: "${{ inputs.nexus3-registry }}:10003"
+        username: ${{ inputs.nexus3-user }}
+        password: ${{ inputs.nexus3-password }}
+    - id: nexus3-10004-login
+      uses: docker/login-action@v3
+      with:
+        # yamllint disable-line rule:line-length
+        registry: "${{ inputs.nexus3-registry }}:10004"
+        username: ${{ inputs.nexus3-user }}
+        password: ${{ inputs.nexus3-password }}
+    - id: dockerhub-registry-login
+      uses: docker/login-action@v3
+      with:
+        registry: docker.io
+        username: ${{ inputs.dockerhub-user }}
+        password: ${{ inputs.dockerhub-password }}
