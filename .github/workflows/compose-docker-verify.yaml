@@ -1,0 +1,131 @@
+---
+name: Compose Docker Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      CONTAINER_TAG_METHOD:
+        description: "Method to be used to locate the Docker container's tag"
+        required: false
+        type: string
+      CONTAINER_TAG_YAML_DIR:
+        # yamllint disable-line rule:line-length
+        description: "Location of the yaml file containing the docker tag information"
+        required: false
+        type: string
+      DOCKER_BUILD_ARGS:
+        description: "Arguments to pass to docker build"
+        default: ""
+        required: false
+        type: string
+    secrets:
+      NEXUS3_PASSWORD:
+        description: "Nexus3 organization user's password"
+        required: true
+      DOCKERHUB_PASSWORD:
+        description: "DockerHub organization user's password"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-docker-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  docker-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerrit Checkout
+        # yamllint disable-line rule:line-length
+        uses: lfit/checkout-gerrit-change-action@57bf0435f739fbbc7ce4cc85c9c3b8a386c6f84b  # v0.6
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+          submodules: "true"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/nexus-docker-login-action
+        with:
+          nexus3-registry: ${{ vars.NEXUS3_REGISTRY }}
+          nexus3-user: ${{ vars.NEXUS3_USER }}
+          dockerhub-user: ${{ vars.DOCKERHUB_USER }}
+          nexus3-password: ${{ secrets.NEXUS3_PASSWORD }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Docker get container tag
+        # yamllint disable rule:line-length
+        run: |
+          echo "---> docker-get-container-tag"
+          pip install yq
+          tag=''
+          if [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "latest" ]]; then
+              tag="latest"
+          elif [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "stream" ]]; then
+              tag=${{ inputs.GERRIT_BRANCH }}
+          elif [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "git-describe" ]]; then
+              tag=$(git describe)
+          elif [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "yaml-file" ]]; then
+              dir=${{ inputs.CONTAINER_TAG_YAML_DIR }}
+              tag_file=$dir/container-tag.yaml
+              if [[ -f $tag_file ]]; then
+                  tag=$(yq -r .tag "$tag_file")
+              else
+                  echo "File $tag_file not found."
+              fi
+          else
+             echo "Method ${{ inputs.CONTAINER_TAG_METHOD }} not implemented (yet)"
+          fi
+          if [[ -z $tag ]]; then
+              echo "Failed to get a container tag using method $CONTAINER_TAG_METHOD"
+          fi
+          echo "---> Docker image tag found: $tag"
+          # Write DOCKER_IMAGE_TAG information to a file so it can be
+          # injected into the environment for following steps
+          echo "DOCKER_IMAGE_TAG=$tag" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Docker build and push
+        if: env.DOCKER_IMAGE_TAG != ''
+        uses: docker/build-push-action@v5
+        with:
+          build-args: ${{ inputs.DOCKER_BUILD_ARGS }}
+          tags: ${{ env.DOCKER_IMAGE_TAG }}
