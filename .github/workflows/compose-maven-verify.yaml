@@ -56,6 +56,16 @@ on:
         required: false
         default: "clean, deploy"
         type: string
+      MVN_OPTS:
+        description: "Maven options"
+        required: false
+        # yamllint disable rule:line-length
+        default: >-
+          -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
+          -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+        # yamllint enable rule:line-length
+        type: string
       MVN_POM_FILE:
         description: "Directory with pom.xml"
         required: false
@@ -131,11 +141,8 @@ jobs:
           phases: ${{ inputs.MVN_PHASES }}
           pom-file: ${{ inputs.MVN_POM_FILE }}
           profiles: ${{ inputs.MVN_PROFILES }}
+          maven-opts: ${{ inputs.MVN_OPTS }}
           settings-file: settings.xml
-          maven-opts: >-
-            -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-            -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
-            -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
         # yamllint enable rule:line-length
       - name: Generate JaCoCo Badge
         id: jacoco
