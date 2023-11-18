@@ -91,17 +91,19 @@ jobs:
         id: create-cloud-env-file
         if: steps.changes.outputs.src == 'true'
         shell: bash
+        # yamllint disable rule:line-length
         run: |
-          echo "${{ secrets.CLOUDS_ENV_B64 }}" | base64 --decode \
-                  > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
+          echo "${{ secrets.CLOUDS_ENV_B64 }}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
+        # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
         if: steps.changes.outputs.src == 'true'
         shell: bash
+        # yamllint disable rule:line-length
         run: |
           mkdir -p "$HOME/.config/openstack"
-          echo "${{ secrets.CLOUDS_YAML_B64 }}" | base64 --decode \
-                  > "$HOME/.config/openstack/clouds.yaml"
+          echo "${{ secrets.CLOUDS_YAML_B64 }}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
+        # yamllint enable rule:line-length
       - name: Setup Python
         if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
@@ -119,6 +121,7 @@ jobs:
       - name: Verify packer files
         if: steps.changes.outputs.src == 'true'
         shell: bash
+        # yamllint disable rule:line-length
         run: |
           set -x
           cd packer
@@ -165,3 +168,4 @@ jobs:
               done
               echo "::endgroup::"
           done
+        # yamllint enable rule:line-length
