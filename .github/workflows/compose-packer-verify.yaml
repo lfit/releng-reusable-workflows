@@ -47,13 +47,11 @@ on:
         required: false
         default: "{}"
         type: string
+    secrets:
       ENV_SECRETS:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
         required: false
-        default: "{}"
-        type: string
-    secrets:
       CLOUDS_ENV_B64:
         description: "Packer cloud environment credentials"
         required: true
@@ -108,7 +106,7 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         uses: infovista-opensource/vars-to-env-action@1.0.0
         with:
-          secrets: ${{ inputs.ENV_SECRETS }}
+          secrets: ${{ secrets.ENV_SECRETS }}
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
         if: steps.changes.outputs.src == 'true'
