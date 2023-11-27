@@ -113,8 +113,9 @@ jobs:
         shell: bash
         # yamllint disable rule:line-length
         run: |
+          echo "${{ env.CLOUDS_ENV_B64 }}" | sed 's/^ */::add-mask::/'
           clouds_env_b64="${{ env.CLOUDS_ENV_B64 }}"
-          echo "::add-mask::${clouds_env_b64}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
+          echo "${clouds_env_b64}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
@@ -123,8 +124,9 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           mkdir -p "$HOME/.config/openstack"
+          echo "${{ env.CLOUDS_YAML_B64 }}" | sed 's/^ */::add-mask::/'
           clouds_yaml_b64="${{ env.CLOUDS_YAML_B64 }}"
-          echo "::add-mask::${clouds_yaml_b64}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
+          echo "${clouds_yaml_b64}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
         # yamllint enable rule:line-length
       - name: Setup Python
         if: steps.changes.outputs.src == 'true'
