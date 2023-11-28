@@ -83,6 +83,9 @@ jobs:
         id: setup-python
         with:
           python-version: "3.8"
+      - name: Install graphviz
+        # yamllint disable-line rule:line-length
+        uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd  # v1.0.0
       - name: Verify If readthedocs Config exists
         run: |
           echo "Verifying if readthedocs.yaml config file exists"
