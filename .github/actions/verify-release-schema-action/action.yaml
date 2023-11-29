@@ -1,0 +1,48 @@
+---
+name: "verify-release-schema"
+description: "Verify a release file's contents against an approved schema"
+
+inputs:
+  distribution-type:
+    description: "The content type of the release"
+    required: true
+  release-file:
+    description: "File that describes the release contents"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: Installing dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install lftools
+    - id: Set release type
+      # yamllint disable rule:line-length
+      run: |
+        if [[ "${{ inputs.distribution-type }}" == "artifact" ]]; then
+            release_schema="release-artifact-schema.yaml"
+        elif [[ "${{ inputs.distribution-type }}" == "container" ]]; then
+            release_schema="release-container-schema.yaml"
+        elif [[ "${{ inputs.distribution-type }}" == "maven" ]]; then
+            release_schema="release-schema.yaml"
+        elif [[ "${{ inputs.distribution-type }}" == "packagecloud" ]]; then
+            release_schema="release-packagecloud-schema.yaml"
+        elif [[ "${{ inputs.distribution-type }}" == "pypi" ]]; then
+            release_schema="release-pypi-schema.yaml"
+        else
+            echo "ERROR: distribution_type: ${{ inputs.distribution-type }} not supported"
+            release_schema="unsupported"
+        fi
+        echo "INFO: Schema to compare: $release_schema"
+        echo "USE_SCHEMA=$release_schema" >> "$GITHUB_ENV"
+      # yamllint enable rule:line-length
+    - id: Download and compare schema
+      # yamllint disable rule:line-length
+      if: ${{ env.USE_SCHEMA != "unsupported" }}
+      run: |
+        echo "INFO: Fetching schema ${{ env.USE_SCHEMA }}"
+        wget -q https://raw.githubusercontent.com/lfit/releng-global-jjb/master/schema/${{ env.USE_SCHEMA }}
+        echo "INFO: Verifying ${{ inputs.release_file }} against schema ${{ env.USE_SCHEMA }}"
+        lftools schema verify "${{ inputs.release_file }}" "${{ env.USE_SCHEMA }}"
+        # yamllint enable rule:line-length
