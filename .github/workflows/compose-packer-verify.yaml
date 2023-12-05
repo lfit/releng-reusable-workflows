@@ -107,10 +107,11 @@ jobs:
         uses: infovista-opensource/vars-to-env-action@1.0.0
         with:
           secrets: ${{ secrets.ENV_SECRETS }}
+          include: CLOUDS_ENV_B64, CLOUDS_YAML_B64
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
         if: steps.changes.outputs.src == 'true'
-        shell: bash
+        shell: /usr/bin/bash --noprofile --norc -e -o pipefail +x {0}
         # yamllint disable rule:line-length
         run: |
           echo "${{ env.CLOUDS_ENV_B64 }}" | sed 's/^ */::add-mask::/'
@@ -120,7 +121,7 @@ jobs:
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
         if: steps.changes.outputs.src == 'true'
-        shell: bash
+        shell: /usr/bin/bash --noprofile --norc -e -o pipefail +x {0}
         # yamllint disable rule:line-length
         run: |
           mkdir -p "$HOME/.config/openstack"
