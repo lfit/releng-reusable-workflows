@@ -111,7 +111,7 @@ jobs:
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
         if: steps.changes.outputs.src == 'true'
-        shell: /usr/bin/bash +x {0}
+        shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
           echo "${{ env.CLOUDS_ENV_B64 }}" | sed 's/^ */::add-mask::/'
@@ -121,7 +121,7 @@ jobs:
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
         if: steps.changes.outputs.src == 'true'
-        shell: /usr/bin/bash +x {0}
+        shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
           mkdir -p "$HOME/.config/openstack"
