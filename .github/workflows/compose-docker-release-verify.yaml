@@ -1,0 +1,154 @@
+---
+name: Compose Docker Release Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      CONTAINER_PULL_REGISTRY:
+        description: "Docker pull registry in Nexus3"
+        required: false
+        type: string
+      CONTAINER_PUSH_REGISTRY:
+        description: "Docker push registry in Nexus3"
+        required: false
+        type: string
+    secrets:
+      NEXUS3_PASSWORD:
+        description: "Nexus3 organization user's password"
+        required: true
+      DOCKERHUB_PASSWORD:
+        description: "DockerHub organization user's password"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-docker-release-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  docker-release-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerrit Checkout
+        # yamllint disable-line rule:line-length
+        uses: lfit/checkout-gerrit-change-action@57bf0435f739fbbc7ce4cc85c9c3b8a386c6f84b  # v0.6
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+          submodules: "true"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - uses: ./.github/actions/nexus-docker-login-action
+        with:
+          nexus3-registry: ${{ vars.NEXUS3_REGISTRY }}
+          nexus3-user: ${{ vars.NEXUS3_USER }}
+          dockerhub-user: ${{ vars.DOCKERHUB_USER }}
+          nexus3-password: ${{ secrets.NEXUS3_PASSWORD }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Read release file
+        # yamllint disable rule:line-length
+        run: |
+          release_files=$(git diff-tree -m --no-commit-id -r "${{ inputs.GERRIT_PATCHSET_REVISION }}" "${{ inputs.GERRIT_PATCHSET_REVISION }}^1" \
+              --name-only -- "releases/" ".releases/")
+          if (( $(grep -c . <<<"$release_files") > 1 )); then
+              echo "INFO: RELEASE FILES ARE AS FOLLOWS: $release_files"
+              echo "ERROR: Adding multiple release files in the same commit"
+              echo "ERROR: OR rename/amend/delete of existing files is not supported."
+              echo "MAKE_DOCKER_RELEASE=false" >> "$GITHUB_ENV"
+          else
+              if [[ "$release_files" == *"container" ]]; then
+                  echo "INFO: Docker release file detected"
+                  echo "INFO: RELEASE FILE: $release_files"
+                  echo "release_file=$release_files" >> "$GITHUB_ENV"
+                  echo "MAKE_DOCKER_RELEASE=true" >> "$GITHUB_ENV"
+              else
+                  echo "INFO: No Docker release file detected. Finishing"
+                  echo "MAKE_DOCKER_RELEASE=false" >> "$GITHUB_ENV"
+              fi
+          fi
+        # yamllint enable rule:line-length
+      - uses: ./.github/actions/verify-release-schema-action
+        if: env.MAKE_DOCKER_RELEASE == 'true'
+        with:
+          distribution-type: "container"
+          release-file: ${{ env.release_file }}
+      - name: Processing release
+        if: env.MAKE_DOCKER_RELEASE == 'true'
+        # yamllint disable rule:line-length
+        run: |
+          echo "INFO: Processing container release"
+          docker --version
+
+          pip install jsonschema twine yq readline
+
+          VERSION=$(yq -r ".container_release_tag" "${{ env.release_file }}")
+
+          for namequoted in $(yq '.containers[].name' ${{ env.release_file }}); do
+              versionquoted=$(yq ".containers[] |select(.name==$namequoted) |.version" ${{ env.release_file }})
+
+              #Remove extra yaml quotes
+              name="${namequoted#\"}"
+              name="${name%\"}"
+              version="${versionquoted#\"}"
+              version="${version%\"}"
+
+              echo "$name"
+              echo "$version"
+              echo "INFO: Merge will release $name $version as $VERSION"
+              # Attempt to pull from releases registry to see if the image has been released.
+              if docker pull ${{ env.CONTAINER_PUSH_REGISTRY }}/${{ env.ORGANIZATION }}/"$name":"$VERSION"; then
+                  echo "INFO: $VERSION is already released for image $name, Continuing..."
+              else
+                  echo "INFO: $VERSION not found in releases, release will be prepared. Continuing..."
+                  docker pull ${{ env.CONTAINER_PULL_REGISTRY }}/${{ env.ORGANIZATION }}/"$name":"$version"
+                  container_image_id=$(docker images | grep "$name" | grep "$version" | awk '{print $3}')
+                  echo "INFO: Merge will run the following commands:"
+                  echo "docker tag $container_image_id ${{ env.CONTAINER_PUSH_REGISTRY }}/${{ env.ORGANIZATION }}/$name:$VERSION"
+                  echo "docker push ${{ env.CONTAINER_PUSH_REGISTRY }}/${{ env.ORGANIZATION }}/$name:$VERSION"
+              fi
+          done
+          echo "INFO: Merge will tag ref: $ref"
+          git checkout "$ref"
+          tag-git-repo
+          # yamllint enable rule:line-length
