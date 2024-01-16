@@ -1,0 +1,83 @@
+---
+name: Compose Tox Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      PRE_BUILD_SCRIPT:
+        description: "Optional pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      TOX_DIR:
+        description: "Working directory for tox to run"
+        required: false
+        default: "."
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-tox-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  tox-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      - uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Check if pre-build-script file exists
+        id: check_pre-build_file
+        uses: andstor/file-existence-action@v1
+        with:
+          files: ${{ inputs.PRE_BUILD_SCRIPT }}
+      - name: Run pre-build-script
+        if: steps.check_pre-build_file.outputs.files_exists == 'true'
+        run: ${{ inputs.PRE_BUILD_SCRIPT }}
+      - name: Run Tox Verify
+        uses: ymyzk/run-tox-gh-actions@main
+        with:
+          working-directory: ${{ inputs.TOX_DIR }}
