@@ -97,7 +97,7 @@ jobs:
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
         run: |
           python -m pip install --upgrade pip
-          pip install lftools 'niet~=1.4.2' 'cryptography<3.4' yq tox six
+          pip install lftools 'niet~=1.4.2' 'cryptography<3.4' yq tox
           # urllib3 needs to be pinned to avoid timeouts
           pip install --upgrade urllib3~=1.26.15
       - name: Running tox
