@@ -1,0 +1,79 @@
+---
+name: Compose Tox Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: false
+        default: ${{ github.repository }}
+        type: string
+      TOX_DIR:
+        description: "Directory containing tox.ini file"
+        required: false
+        default: "."
+        type: string
+      TOX_ENVS:
+        description: "Map of versions and envs to run"
+        required: true
+        type: string
+      PARALLEL:
+        description: "Whether to run jobs in parallel"
+        required: false
+        type: string
+      PRE_BUILD_SCRIPT:
+        description: "Optional pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-tox-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  run-tox:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ${{ fromJSON(inputs.TOX_ENVS).* }}
+
+    steps:
+      - name: Gerrit Checkout
+        # yamllint disable-line rule:line-length
+        uses: lfit/checkout-gerrit-change-action@57bf0435f739fbbc7ce4cc85c9c3b8a386c6f84b  # v0.6
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+          repository: ${{ inputs.TARGET_REPO }}
+          ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
+      - name: Running tox
+        uses: ./.github/actions/tox-run-action
+        with:
+          tox-dir: ${{ inputs.TOX_DIR }}
+          py-version: ${{ matrix.version }}
+          tox-envs: ${{ toJSON(matrix.version.*) }}
+          parallel: ${{ inputs.PARALLEL }}
+          pre-build-script: ${{ inputs.PRE_BUILD_SCRIPT }}

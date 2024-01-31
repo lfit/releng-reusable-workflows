@@ -1,0 +1,56 @@
+---
+name: "tox-run"
+description: "Run tox on specific environments"
+
+inputs:
+  tox-dir:
+    description: "Directory containing tox.ini file"
+    required: false
+    default: "."
+  py-version:
+    decription: "Version of python to use"
+    required: false
+    default: "3.12"
+  tox-envs:
+    description: "Tox envs to run on this py-version"
+    required: false
+  parallel:
+    description: "Whether to run jobs in parallel"
+    required: false
+    default: "auto"
+  pre-build-script:
+    description: "Optional pre-build script to trigger before verify run"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - id: setup-python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.py-version }}
+        cache: pip
+    - name: Run pre-build-script
+      id: pre-build
+      if: ${{ hashFiles(inputs.pre-build-script) }}
+      run: ${{ inputs.pre-build-script }}
+    - name: Build package (if available)
+      id: build-package
+      if: ${{ hashFiles('pyproject.toml') != '' }}
+      run: >
+        pipx run --python '${{ steps.setup-python.outputs.python-path }}'
+        build
+    - id: run-tox
+      run: |
+        cd "${GITHUB_WORKSPACE}/${{ inputs.tox-dir }}" || exit 1
+
+        TOX_OPTIONS_LIST=""
+        if [[ -n ${{ inputs.tox-envs }} ]]; then
+            TOX_OPTIONS_LIST=" -e ${{ inputs.tox-envs }}"
+        fi
+
+        # $TOX_OPTIONS_LIST are intentionally not surrounded by quotes
+        # to correcly pass options to tox
+        # shellcheck disable=SC2086
+        tox --parallel ${{ inputs.parallel }} --parallel-live $TOX_OPTIONS_LIST
