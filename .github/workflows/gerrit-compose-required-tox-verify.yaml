@@ -5,12 +5,33 @@ name: Compose Tox Verify
 on:
   workflow_call:
     inputs:
+      # gerrit-to-platform required
       GERRIT_BRANCH:
         description: "Branch that change is against"
         required: true
         type: string
       GERRIT_CHANGE_ID:
         description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
         required: true
         type: string
       GERRIT_PROJECT:
@@ -21,6 +42,9 @@ on:
         description: "Gerrit refspec of change"
         required: true
         type: string
+      # Inputs passed to tox-run-action.
+      # These should be defined by the calling workflow ("with:"), not listed
+      # as inputs.
       TARGET_REPO:
         # yamllint disable-line rule:line-length
         description: "The target GitHub repository needing the required workflow"
@@ -33,8 +57,17 @@ on:
         default: "."
         type: string
       TOX_ENVS:
-        description: "Map of versions and envs to run"
+        description: >
+          List of envs to run. These MUST be passed as a string representing
+          a list of strings, e.g.:
+
+          '["lint", "build"]'
         required: true
+        type: string
+      PYTHON_VERSION:
+        description: "Version of python to use"
+        required: false
+        default: "3.12"
         type: string
       PARALLEL:
         description: "Whether to run jobs in parallel"
@@ -56,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ${{ fromJSON(inputs.TOX_ENVS).* }}
+        tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}
 
     steps:
       - name: Gerrit Checkout
@@ -69,11 +102,11 @@ jobs:
           delay: "0s"
           repository: ${{ inputs.TARGET_REPO }}
           ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
-      - name: Running tox
+      - name: Run tox
         uses: ./.github/actions/tox-run-action
         with:
           tox-dir: ${{ inputs.TOX_DIR }}
-          py-version: ${{ matrix.version }}
-          tox-envs: ${{ toJSON(matrix.version.*) }}
+          py-version: ${{ inputs.PYTHON_VERSION }}
+          tox-envs: ${{ matrix.tox-env }}
           parallel: ${{ inputs.PARALLEL }}
           pre-build-script: ${{ inputs.PRE_BUILD_SCRIPT }}
