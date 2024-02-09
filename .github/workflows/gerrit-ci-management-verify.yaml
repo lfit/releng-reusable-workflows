@@ -56,7 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clear votes
-        uses: lfit/gerrit-review-action@v0.3
+        # yamllint disable-line rule:line-length
+        uses: lfit/gerrit-review-action@b2e3ea69fb74183ac3d32360d06b2b085c2efee6  # v0.5
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
@@ -74,7 +75,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@57bf0435f739fbbc7ce4cc85c9c3b8a386c6f84b  # v0.6
+        uses: lfit/checkout-gerrit-change-action@95c493e8fd60233fac7b9c99ebe5f60e9a8c555b  # v0.7
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -96,7 +97,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@57bf0435f739fbbc7ce4cc85c9c3b8a386c6f84b  # v0.6
+        uses: lfit/checkout-gerrit-change-action@95c493e8fd60233fac7b9c99ebe5f60e9a8c555b  # v0.7
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -115,7 +116,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@57bf0435f739fbbc7ce4cc85c9c3b8a386c6f84b  # v0.6
+        uses: lfit/checkout-gerrit-change-action@95c493e8fd60233fac7b9c99ebe5f60e9a8c555b  # v0.7
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -154,7 +155,8 @@ jobs:
     steps:
       - uses: technote-space/workflow-conclusion-action@v3
       - name: Set vote
-        uses: lfit/gerrit-review-action@v0.3
+        # yamllint disable-line rule:line-length
+        uses: lfit/gerrit-review-action@b2e3ea69fb74183ac3d32360d06b2b085c2efee6  # v0.5
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}

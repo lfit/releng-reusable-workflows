@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # yamllint disable-line rule:line-length
-      - uses: lfit/checkout-gerrit-change-action@main
+      - uses: lfit/checkout-gerrit-change-action@95c493e8fd60233fac7b9c99ebe5f60e9a8c555b  # v0.7
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
