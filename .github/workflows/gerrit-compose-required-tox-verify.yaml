@@ -104,8 +104,12 @@ jobs:
           ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
       - name: Actions checkout  # Needed for local action reference
         uses: actions/checkout@v4
+        with:
+          repository: lfit/releng-reusable-workflows
+          sparse-checkout: .github/actions/tox-run-action
+          path: reusable-tox-run-action
       - name: Run tox
-        uses: ./.github/actions/tox-run-action
+        uses: ./reusable-tox-run-action/.github/actions/tox-run-action
         with:
           tox-dir: ${{ inputs.TOX_DIR }}
           py-version: ${{ inputs.PYTHON_VERSION }}
