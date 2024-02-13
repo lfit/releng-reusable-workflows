@@ -34,14 +34,17 @@ runs:
     - name: Run pre-build-script
       id: pre-build
       if: ${{ hashFiles(inputs.pre-build-script) }}
+      shell: bash
       run: ${{ inputs.pre-build-script }}
     - name: Build package (if available)
       id: build-package
       if: ${{ hashFiles('pyproject.toml') != '' }}
+      shell: bash
       run: >
         pipx run --python '${{ steps.setup-python.outputs.python-path }}'
         build
     - id: run-tox
+      shell: bash
       run: |
         cd "${GITHUB_WORKSPACE}/${{ inputs.tox-dir }}" || exit 1
 
