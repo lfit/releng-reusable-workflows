@@ -60,7 +60,7 @@ jobs:
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
-        uses: lfit/gerrit-review-action@6ac4c2322b68c0120a9b516eb0421491ee1b3fdf  # v0.4
+        uses: lfit/gerrit-review-action@7c30179c3c9389545fccb0d458df59879372ae6a  # v0.6
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
@@ -88,11 +88,13 @@ jobs:
           python-version: "3.11"
       - name: Run JJB Merge
         env:
+          JJB_VERSION: ${{ vars.JJB_VERSION }}
           JJB_WORKERS: ${{ vars.JJB_WORKERS }}
         # yamllint disable rule:line-length
         run: |
+          jjb_version="${JJB_VERSION:-5.1.0}"
           python -m pip install --upgrade pip
-          pip install jenkins-job-builder==5.1.0
+          pip install jenkins-job-builder=="$jjb_version"
           mkdir -p "${GITHUB_WORKSPACE}/.config/jenkins_jobs"
           cat << EOF > "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini"
           [job_builder]
@@ -127,7 +129,7 @@ jobs:
         uses: technote-space/workflow-conclusion-action@v3
       - name: Report workflow conclusion
         # yamllint disable-line rule:line-length
-        uses: lfit/gerrit-review-action@6ac4c2322b68c0120a9b516eb0421491ee1b3fdf  # v0.4
+        uses: lfit/gerrit-review-action@7c30179c3c9389545fccb0d458df59879372ae6a  # v0.6
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}

@@ -8,7 +8,7 @@ inputs:
     required: false
     default: "."
   py-version:
-    decription: "Version of python to use"
+    description: "Version of python to use"
     required: false
     default: "3.12"
   tox-envs:
@@ -30,20 +30,26 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.py-version }}
-        cache: pip
     - name: Run pre-build-script
       id: pre-build
       if: ${{ hashFiles(inputs.pre-build-script) }}
+      shell: bash
       run: ${{ inputs.pre-build-script }}
     - name: Build package (if available)
       id: build-package
       if: ${{ hashFiles('pyproject.toml') != '' }}
+      shell: bash
       run: >
         pipx run --python '${{ steps.setup-python.outputs.python-path }}'
         build
     - id: run-tox
+      shell: bash
       run: |
         cd "${GITHUB_WORKSPACE}/${{ inputs.tox-dir }}" || exit 1
+
+        if [[ -f "requirements.txt" ]]; then
+            pip install -r requirements.txt
+        fi
 
         TOX_OPTIONS_LIST=""
         if [[ -n ${{ inputs.tox-envs }} ]]; then
@@ -53,4 +59,5 @@ runs:
         # $TOX_OPTIONS_LIST are intentionally not surrounded by quotes
         # to correcly pass options to tox
         # shellcheck disable=SC2086
+        pipx run --python '${{ steps.setup-python.outputs.python-path }}' \
         tox --parallel ${{ inputs.parallel }} --parallel-live $TOX_OPTIONS_LIST
