@@ -51,6 +51,11 @@ on:
         required: false
         default: "3.8.2"
         type: string
+      MVN_PARAMS:
+        description: "Maven parameters to pass to the mvn command"
+        required: false
+        default: ""
+        type: string
       MVN_PHASES:
         description: "Comma separated list of phases to execute"
         required: false
@@ -137,13 +142,14 @@ jobs:
         # yamllint enable rule:line-length
       - name: Build code with Maven
         # yamllint disable rule:line-length
-        uses: Best-Quality-Engineering/ci-maven-action@v1
-        with:
-          phases: ${{ inputs.MVN_PHASES }}
-          pom-file: ${{ inputs.MVN_POM_FILE }}
-          profiles: ${{ inputs.MVN_PROFILES }}
-          maven-opts: ${{ inputs.MVN_OPTS }}
-          settings-file: settings.xml
+        run: |
+          echo "Maven build starting"
+
+          mvn ${{ inputs.MVN_PHASES }} \
+              -e \
+              --global-settings settings.xml \
+              -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo \
+              ${{ inputs.MVN_OPTS }} ${{ inputs.MVN_PARAMS }}
         # yamllint enable rule:line-length
       - name: Generate JaCoCo Badge
         id: jacoco
