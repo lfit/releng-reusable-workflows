@@ -59,7 +59,7 @@ on:
       MVN_PHASES:
         description: "Comma separated list of phases to execute"
         required: false
-        default: "clean, deploy"
+        default: "clean deploy"
         type: string
       MVN_OPTS:
         description: "Maven options"
