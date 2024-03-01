@@ -143,11 +143,13 @@ jobs:
       - name: Build code with Maven
         # yamllint disable rule:line-length
         run: |
+          touch global-settings.xml
+          echo "${{ vars.GLOBAL_SETTINGS }}" >> global-settings.xml
           echo "Maven build starting"
 
           mvn ${{ inputs.MVN_PHASES }} \
               -e \
-              --global-settings settings.xml \
+              --global-settings global-settings.xml \
               -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo \
               ${{ inputs.MVN_OPTS }} ${{ inputs.MVN_PARAMS }}
         # yamllint enable rule:line-length
