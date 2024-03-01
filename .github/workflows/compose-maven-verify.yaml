@@ -147,6 +147,8 @@ jobs:
           echo "${{ vars.GLOBAL_SETTINGS }}" >> global-settings.xml
           echo "Maven build starting"
 
+          cat global-settings.xml
+
           mvn ${{ inputs.MVN_PHASES }} \
               -e \
               --global-settings global-settings.xml \
