@@ -137,9 +137,59 @@ jobs:
           else
               CI_REPO="ci-management"
           fi
-          wget -q -O settings.xml "https://raw.githubusercontent.com/${{ vars.ORGANIZATION }}/${CI_REPO}/master/jenkins-config/managed-config-files/globalMavenSettings/global-settings/content"
-          sed -i 's#\^${#${#' settings.xml
+          wget -q -O global-settings.xml "https://raw.githubusercontent.com/${{ vars.ORGANIZATION }}/${CI_REPO}/master/jenkins-config/managed-config-files/globalMavenSettings/global-settings/content"
+          sed -i 's#\^${#${#' global-settings.xml
         # yamllint enable rule:line-length
+      - name: Generate project settings file
+        # yamllint disable-line rule:line-length
+        uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd  # v3.0.0
+        with:
+          servers: |
+            [{
+                "id": "docker.io",
+                "username": "${{ vars.DOCKERHUB_USER }}",
+                "password": "${{ secrets.DOCKERHUB_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.CONTAINER_PUBLIC_REGISTRY }}",
+                "username": "${{ vars.NEXUS3_USER }}",
+                "password": "${{ secrets.NEXUS3_READONLY_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.CONTAINER_PULL_REGISTRY }}",
+                "username": "${{ vars.NEXUS3_USER }}",
+                "password": "${{ secrets.NEXUS3_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.CONTAINER_PUSH_REGISTRY }}",
+                "username": "${{ vars.NEXUS3_USER }}",
+                "password": "${{ secrets.NEXUS3_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.CONTAINER_STAGING_REGISTRY }}",
+                "username": "${{ vars.NEXUS3_USER }}",
+                "password": "${{ secrets.NEXUS3_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.NEXUS_ORG }}-snapshots",
+                "username": "${{ vars.NEXUS_USER }}",
+                "password": "${{ secrets.NEXUS_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.NEXUS_ORG }}-staging",
+                "username": "${{ vars.NEXUS_USER }}",
+                "password": "${{ secrets.NEXUS_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.NEXUS_ORG }}-releases",
+                "username": "${{ vars.NEXUS_USER }}",
+                "password": "${{ secrets.NEXUS_PASSWORD }}"
+            },
+            {
+                "id": "${{ vars.NEXUS_ORG }}-site",
+                "username": "${{ vars.NEXUS_USER }}",
+                "password": "${{ secrets.NEXUS_PASSWORD }}"
+            }]
       - name: Build code with Maven
         # yamllint disable rule:line-length
         run: |
@@ -147,7 +197,8 @@ jobs:
 
           mvn ${{ inputs.MVN_PHASES }} \
               -e \
-              --global-settings settings.xml \
+              --global-settings global-settings.xml \
+              --settings settings.xml \
               -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo \
               ${{ inputs.MVN_OPTS }} ${{ inputs.MVN_PARAMS }}
         # yamllint enable rule:line-length
