@@ -1,5 +1,5 @@
 ---
-name: Composed Maven Nexus IQ
+name: Composed Gradle Nexus IQ
 
 # yamllint disable-line rule:truthy
 on:
@@ -79,12 +79,13 @@ jobs:
 
   run-gradle-clm:
     runs-on: ubuntu-latest
+    needs: gradle-build
     steps:
       - name: Obtain Application ID
         # yamllint disable rule:line-length
         run: |
           REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
-          echo "APPLICATION_ID: ${{ vars.ORGANIZATION }}_${REPO_DASHED}" >> "$GITHUB_ENV"
+          echo "APPLICATION_ID=${{ vars.ORGANIZATION }}_${REPO_DASHED}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Nexus IQ Policy Evaluation
         uses: sonatype-nexus-community/iq-github-action@master
