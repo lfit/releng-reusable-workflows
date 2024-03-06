@@ -129,22 +129,10 @@ jobs:
         uses: infovista-opensource/vars-to-env-action@1.0.0
         with:
           secrets: ${{ inputs.ENV_SECRETS }}
-      - name: Obtain global settings file
-        # yamllint disable rule:line-length
-        run: |
-          if [[ "${{ vars.ORGANIZATION }}" == "opendaylight" ]]; then
-              CI_REPO="releng-builder"
-          else
-              CI_REPO="ci-management"
-          fi
-          wget -q -O settings.xml "https://raw.githubusercontent.com/${{ vars.ORGANIZATION }}/${CI_REPO}/master/jenkins-config/managed-config-files/globalMavenSettings/global-settings/content"
-          sed -i 's#\^${#${#' settings.xml
-        # yamllint enable rule:line-length
       - name: Build code with Maven
         # yamllint disable rule:line-length
         run: |
-          touch global-settings.xml
-          echo "${{ vars.GLOBAL_SETTINGS }}" >> global-settings.xml
+          echo "${{ vars.GLOBAL_SETTINGS }}" > global-settings.xml
           echo "Maven build starting"
 
           cat global-settings.xml
