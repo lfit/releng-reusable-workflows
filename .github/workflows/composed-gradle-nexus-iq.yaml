@@ -62,25 +62,28 @@ env:
   NEXUS_TARGET: ""
 
 jobs:
-  gradle-build:
-    # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-gradle-verify.yaml@main
-    with:
-      GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
-      GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
-      GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
-      GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
-      GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
-      GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
-      GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-      GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
-      GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
-      JDK_VERSION: ${{ inputs.JDK_VERSION }}
-
   run-gradle-clm:
     runs-on: ubuntu-latest
-    needs: gradle-build
     steps:
+      - name: Gerrit Checkout
+        # yamllint disable-line rule:line-length
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Run gradle build and CLM scan
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@main
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
       - name: Obtain Application ID
         # yamllint disable rule:line-length
         run: |
