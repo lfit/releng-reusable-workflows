@@ -10,12 +10,13 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - id: Setup JDK ${{ inputs.jdk-version }}
+    - id: Setup JDK
       uses: actions/setup-java@v3
       with:
         java-version: ${{ inputs.jdk-version }}
         distribution: 'temurin'
-    - id: Setup Gradle
+    - id: Setup gradle
       uses: gradle/gradle-build-action@v2
     - id: Run build with Gradle Wrapper
+      shell: bash
       run: ./gradlew build
