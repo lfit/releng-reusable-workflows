@@ -1,0 +1,21 @@
+---
+name: "gradle-build"
+description: "Setup a specific JDK version and run gradle build"
+
+inputs:
+  jdk-version:
+    description: "OpenJDK version"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - id: Setup JDK ${{ inputs.jdk-version }}
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ inputs.jdk-version }}
+        distribution: 'temurin'
+    - id: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+    - id: Run build with Gradle Wrapper
+      run: ./gradlew build
