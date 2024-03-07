@@ -59,7 +59,7 @@ concurrency:
 env:
   NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
   NEXUS_STAGE: build
-  NEXUS_TARGET: .
+  NEXUS_TARGET: "*"
 
 jobs:
   gradle-build:
