@@ -45,6 +45,9 @@ inputs:
     description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
     required: false
     default: "{}"
+  global-settings:
+    description: "Maven global settings file"
+    required: true
 
 runs:
   using: "composite"
@@ -75,6 +78,8 @@ runs:
       shell: bash
       # yamllint disable rule:line-length
       run: |
+        echo '${{ inputs.global-settings }}' > global-settings.xml
+
         echo "Maven build starting"
 
         cat global-settings.xml
