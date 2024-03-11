@@ -112,46 +112,16 @@ jobs:
         id: setup-python
         with:
           python-version: "3.8"
-      - name: Setup JDK ${{ inputs.JDK_VERSION }}
-        uses: actions/setup-java@v3
+      - name: Run Maven
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
         with:
           java-version: ${{ inputs.JDK_VERSION }}
-          distribution: 'oracle'
-      - name: Setup Maven ${{ inputs.MVN_VERSION }}
-        uses: s4u/setup-maven-action@v1.10.0
-        with:
-          maven-version: ${{ inputs.MVN_VERSION }}
-      - name: Export env variables
-        uses: infovista-opensource/vars-to-env-action@1.0.0
-        with:
-          secrets: ${{ inputs.ENV_VARS }}
-      - name: Export env secrets
-        uses: infovista-opensource/vars-to-env-action@1.0.0
-        with:
-          secrets: ${{ inputs.ENV_SECRETS }}
-      - name: Build code with Maven
-        # yamllint disable rule:line-length
-        run: |
-          echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
-          echo "Maven build starting"
-
-          cat global-settings.xml
-
-          mvn ${{ inputs.MVN_PHASES }} \
-              -e \
-              --global-settings global-settings.xml \
-              -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo \
-              ${{ inputs.MVN_OPTS }} ${{ inputs.MVN_PARAMS }}
-        # yamllint enable rule:line-length
-      - name: Generate JaCoCo Badge
-        id: jacoco
-        uses: cicirello/jacoco-badge-generator@v2
-        with:
-          badges-directory: badges
-          generate-branches-badge: true
-          generate-summary: true
-          on-missing-report: quiet
-      - name: Log coverage percentage
-        run: |
-          echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
-          echo "branch coverage = ${{ steps.jacoco.outputs.branches }}"
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          mvn-params: ${{ inputs.MVN_PARAMS }}
+          mvn-phases: ${{ inputs.MVN_PHASES }}
+          mvn-opts: ${{ inputs.MVN_OPTS }}
+          mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
+          mvn-profiles: ${{ inputs.MVN_PROFILES }}
+          env-vars: ${{ inputs.ENV_VARS }}
+          env-secrets: ${{ inputs.ENV_SECRETS }}

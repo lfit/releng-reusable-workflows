@@ -1,0 +1,100 @@
+---
+name: "maven-build"
+description: "Setup Maven and run the specified goals"
+
+inputs:
+  jdk-version:
+    description: "OpenJDK version"
+    required: false
+    default: "17"
+  mvn-version:
+    description: "Maven version"
+    required: false
+    default: "3.8.2"
+  mvn-params:
+    description: "Maven parameters to pass to the mvn command"
+    required: false
+    default: ""
+  mvn-phases:
+    description: "Comma separated list of phases to execute"
+    required: false
+    default: "clean deploy"
+  mvn-opts:
+    description: "Maven options"
+    required: false
+    # yamllint disable rule:line-length
+    default: >-
+      -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
+      -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+  mvn-pom-file:
+    description: "Directory with pom.xml"
+    required: false
+    default: "pom.xml"
+  mvn-profiles:
+    description: "Comma-delimited list of profiles to activate"
+    required: false
+    default: ""
+  env-vars:
+    # yamllint disable-line rule:line-length
+    description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
+    required: false
+    default: "{}"
+  env-secrets:
+    # yamllint disable-line rule:line-length
+    description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
+    required: false
+    default: "{}"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup JDK
+      id: setup-jdk
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ inputs.jdk-version }}
+        distribution: 'temurin'
+    - name: Setup Maven
+      id: setup-maven
+      uses: s4u/setup-maven-action@v1.10.0
+      with:
+        maven-version: ${{ inputs.mvn-version }}
+    - name: Export env variables
+      id: export-env-variables
+      uses: infovista-opensource/vars-to-env-action@1.0.0
+      with:
+        secrets: ${{ inputs.env-vars }}
+    - name: Export env secrets
+      id: export-env-secrets
+      uses: infovista-opensource/vars-to-env-action@1.0.0
+      with:
+        secrets: ${{ inputs.env-secrets }}
+    - name: Build code with Maven
+      id: build-maven
+      # yamllint disable rule:line-length
+      run: |
+        echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
+        echo "Maven build starting"
+
+        cat global-settings.xml
+
+        mvn ${{ inputs.mvn-phases }} \
+            -e \
+            --global-settings global-settings.xml \
+            -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo \
+            ${{ inputs.mvn-opts }} ${{ inputs.mvn-params }}
+      # yamllint enable rule:line-length
+    - name: Generate JaCoCo Badge
+      id: jacoco
+      uses: cicirello/jacoco-badge-generator@v2
+      with:
+        badges-directory: badges
+        generate-branches-badge: true
+        generate-summary: true
+        on-missing-report: quiet
+    - name: Log coverage percentage
+      id: log-coverage
+      run: |
+        echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
+        echo "branch coverage = ${{ steps.jacoco.outputs.branches }}"
