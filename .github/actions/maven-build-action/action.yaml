@@ -72,6 +72,7 @@ runs:
         secrets: ${{ inputs.env-secrets }}
     - name: Build code with Maven
       id: build-maven
+      shell: bash
       # yamllint disable rule:line-length
       run: |
         echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
@@ -95,6 +96,7 @@ runs:
         on-missing-report: quiet
     - name: Log coverage percentage
       id: log-coverage
+      shell: bash
       run: |
         echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
         echo "branch coverage = ${{ steps.jacoco.outputs.branches }}"
