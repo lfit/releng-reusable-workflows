@@ -75,7 +75,6 @@ runs:
       shell: bash
       # yamllint disable rule:line-length
       run: |
-        echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
         echo "Maven build starting"
 
         cat global-settings.xml
