@@ -119,7 +119,7 @@ jobs:
         # yamllint disable-line rule:line-length
         uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
         with:
-          java-version: ${{ inputs.JDK_VERSION }}
+          jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
           mvn-params: ${{ inputs.MVN_PARAMS }}
           mvn-phases: ${{ inputs.MVN_PHASES }}
