@@ -112,6 +112,9 @@ jobs:
         id: setup-python
         with:
           python-version: "3.8"
+      - name: Fetch global settings
+        run: |
+          echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
       - name: Run Maven
         # yamllint disable-line rule:line-length
         uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
