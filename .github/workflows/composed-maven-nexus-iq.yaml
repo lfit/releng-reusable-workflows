@@ -49,10 +49,25 @@ on:
         description: "Maven version"
         required: false
         type: string
+      MVN_PARAMS:
+        description: "Maven parameters to pass to the mvn command"
+        required: false
+        default: ""
+        type: string
       MVN_PHASES:
         description: "Comma separated list of phases to execute"
         required: false
         # yamllint disable-line rule:line-length
+        type: string
+      MVN_OPTS:
+        description: "Maven options"
+        required: false
+        # yamllint disable rule:line-length
+        default: >-
+          -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
+          -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+        # yamllint enable rule:line-length
         type: string
       MVN_POM_FILE:
         description: "Directory with pom.xml"
@@ -85,33 +100,35 @@ concurrency:
 env:
   NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
   NEXUS_STAGE: build
-  NEXUS_TARGET: ./target/
+  NEXUS_TARGET: ""
 
 jobs:
-  maven-build:
-    # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-maven-verify.yaml@main
-    with:
-      GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
-      GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
-      GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
-      GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
-      GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
-      GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
-      GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-      GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
-      GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
-      JDK_VERSION: ${{ inputs.JDK_VERSION }}
-      MVN_VERSION: ${{ inputs.MVN_VERSION }}
-      MVN_PHASES: ${{ inputs.MVN_PHASES }}
-      MVN_POM_FILE: ${{ inputs.MVN_POM_FILE }}
-      MVN_PROFILES: ${{ inputs.MVN_PROFILES }}
-      ENV_VARS: ${{ inputs.ENV_VARS }}
-      ENV_SECRETS: ${{ inputs.ENV_SECRETS }}
-
   run-maven-clm:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Run Maven
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          mvn-params: ${{ inputs.MVN_PARAMS }}
+          mvn-phases: ${{ inputs.MVN_PHASES }}
+          mvn-opts: ${{ inputs.MVN_OPTS }}
+          mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
+          mvn-profiles: ${{ inputs.MVN_PROFILES }}
+          env-vars: ${{ inputs.ENV_VARS }}
+          env-secrets: ${{ inputs.ENV_SECRETS }}
+          global-settings: ${{ vars.GLOBAL_SETTINGS }}
       - name: Obtain Application ID
         # yamllint disable rule:line-length
         run: |
