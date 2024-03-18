@@ -133,7 +133,7 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
-          echo "APPLICATION_ID: ${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
+          echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Nexus IQ Policy Evaluation
         uses: sonatype-nexus-community/iq-github-action@master
