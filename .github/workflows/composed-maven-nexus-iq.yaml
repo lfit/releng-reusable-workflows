@@ -144,3 +144,12 @@ jobs:
           applicationId: ${{ env.APPLICATION_ID }}
           stage: ${{ env.NEXUS_STAGE }}
           target: ${{ env.NEXUS_TARGET }}
+      - name: Add debugging steps for workspace content
+        # yamllint disable rule:line-length
+        run: |
+          echo "Full tree contents"
+          tree
+          echo "Tree /github/workspace"
+          tree /github/workspace
+          echo "Tree /home/runner/work"
+          tree /home/runner/work
