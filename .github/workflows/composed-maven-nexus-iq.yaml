@@ -142,4 +142,4 @@ jobs:
           password: ${{ secrets.NEXUS_IQ_PASSWORD }}
           applicationId: ${{ env.APPLICATION_ID }}
           stage: ${{ env.NEXUS_STAGE }}
-          target: ". /home/runner/work/${REPO_DASHED}"
+          target: ""
