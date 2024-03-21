@@ -1,5 +1,5 @@
 ---
-name: Composed Maven Sonar Cloud
+name: Composed Generic Sonar Cloud
 
 # yamllint disable-line rule:truthy
 on:
@@ -45,38 +45,6 @@ on:
         description: "OpenJDK version"
         required: false
         type: string
-      MVN_VERSION:
-        description: "Maven version"
-        required: false
-        type: string
-      MVN_PARAMS:
-        description: "Maven parameters to pass to the mvn command"
-        required: false
-        default: ""
-        type: string
-      MVN_PHASES:
-        description: "Comma separated list of phases to execute"
-        required: false
-        default: "clean install"
-        type: string
-      MVN_OPTS:
-        description: "Maven options"
-        required: false
-        # yamllint disable rule:line-length
-        default: >-
-          -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-          -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
-          -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
-        # yamllint enable rule:line-length
-        type: string
-      MVN_POM_FILE:
-        description: "Directory with pom.xml"
-        required: false
-        type: string
-      MVN_PROFILES:
-        description: "Comma-delimited list of profiles to activate"
-        required: false
-        type: string
       ENV_VARS:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
@@ -86,6 +54,11 @@ on:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
         required: false
+        type: string
+      PRE_BUILD_SCRIPT:
+        description: "Optional pre-build script to trigger before verify run"
+        required: false
+        default: ""
         type: string
       SONAR_ARGS:
         description: "Additional arguments to the SonarCloud scanner"
@@ -120,20 +93,27 @@ jobs:
         id: setup-python
         with:
           python-version: "3.8"
-      - name: Run Maven
-        # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
+      - name: Setup JDK
+        id: setup-jdk
+        uses: actions/setup-java@v3
         with:
-          jdk-version: ${{ inputs.JDK_VERSION }}
-          mvn-version: ${{ inputs.MVN_VERSION }}
-          mvn-params: ${{ inputs.MVN_PARAMS }}
-          mvn-phases: ${{ inputs.MVN_PHASES }}
-          mvn-opts: ${{ inputs.MVN_OPTS }}
-          mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
-          mvn-profiles: ${{ inputs.MVN_PROFILES }}
-          env-vars: ${{ inputs.ENV_VARS }}
-          env-secrets: ${{ inputs.ENV_SECRETS }}
-          global-settings: ${{ vars.GLOBAL_SETTINGS }}
+          java-version: ${{ inputs.JDK_VERSION }}
+          distribution: 'temurin'
+      - name: Export env variables
+        id: export-env-variables
+        uses: infovista-opensource/vars-to-env-action@1.0.0
+        with:
+          secrets: ${{ inputs.ENV_VARS }}
+      - name: Export env secrets
+        id: export-env-secrets
+        uses: infovista-opensource/vars-to-env-action@1.0.0
+        with:
+          secrets: ${{ inputs.ENV_SECRETS }}
+      - name: Run pre-build-script
+        id: pre-build
+        if: ${{ hashFiles(inputs.PRE_BUILD_SCRIPT) }}
+        shell: bash
+        run: ${{ inputs.PRE_BUILD_SCRIPT }}
       - name: Run Sonar Cloud scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
