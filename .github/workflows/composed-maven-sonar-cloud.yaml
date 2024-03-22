@@ -1,0 +1,150 @@
+---
+name: Composed Maven Sonar Cloud
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      MVN_PARAMS:
+        description: "Maven parameters to pass to the mvn command"
+        required: false
+        default: ""
+        type: string
+      MVN_PHASES:
+        description: "Comma separated list of phases to execute"
+        required: false
+        # yamllint disable-line rule:line-length
+        default: "clean install org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar"
+        type: string
+      MVN_OPTS:
+        description: "Maven options"
+        required: false
+        type: string
+      MVN_POM_FILE:
+        description: "Directory with pom.xml"
+        required: false
+        default: "pom.xml"
+        type: string
+      MVN_PROFILES:
+        description: "Comma-delimited list of profiles to activate"
+        required: false
+        default: ""
+        type: string
+      SONAR_PROJECT_KEY:
+        # yamllint disable-line rule:line-length
+        description: "Dashed repo name prefixed by <org>_. Example: onap_ccsdk-cds"
+        required: true
+        type: string
+      SONAR_ORG:
+        description: "Org name registered in Sonar Cloud"
+        required: true
+        type: string
+      SONAR_ARGS:
+        description: "Additional arguments to the SonarCloud scanner"
+        required: false
+        type: string
+        default: ""
+      ENV_VARS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+      ENV_SECRETS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+    secrets:
+      SONAR_TOKEN:
+        description: "Sonar Cloud access token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-maven-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  run-maven-sonar-cloud-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Run Maven
+        # yamllint disable rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          mvn-params: ${{ inputs.MVN_PARAMS }}
+          mvn-phases: ${{ inputs.MVN_PHASES }}
+          mvn-opts: >-
+            -e
+            -Dsonar
+            -Dsonar.host.url=https://sonarcloud.io/
+            -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+            -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+            -Dsonar.projectKey=${{ inputs.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ inputs.SONAR_ORG }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            ${{ inputs.SONAR_ARGS }}
+          mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
+          mvn-profiles: ${{ inputs.MVN_PROFILES }}
+          env-vars: ${{ inputs.ENV_VARS }}
+          env-secrets: ${{ inputs.ENV_SECRETS }}
+          global-settings: ${{ vars.GLOBAL_SETTINGS }}
