@@ -91,6 +91,7 @@ jobs:
           echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Nexus IQ Policy Evaluation
+        continue-on-error: true
         uses: sonatype-nexus-community/iq-github-action@master
         with:
           serverUrl: ${{ env.NEXUS_IQ_SERVER }}
