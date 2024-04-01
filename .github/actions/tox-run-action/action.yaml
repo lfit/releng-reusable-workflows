@@ -19,7 +19,8 @@ inputs:
     required: false
     default: "auto"
   pre-build-script:
-    description: "Optional pre-build script to trigger before verify run"
+    description: >
+      Path to optional pre-build script to trigger before verify run
     required: false
     default: ""
 
@@ -33,9 +34,9 @@ runs:
         python-version: ${{ inputs.py-version }}
     - name: Run pre-build-script
       id: pre-build
-      if: ${{ hashFiles(inputs.pre-build-script) }}
+      if: ${{ inputs.pre-build-script != '' }}
       shell: bash
-      run: ${{ inputs.pre-build-script }}
+      run: ./${{ inputs.pre-build-script }}
     - name: Build package (if available)
       id: build-package
       if: ${{ hashFiles('pyproject.toml') != '' }}
