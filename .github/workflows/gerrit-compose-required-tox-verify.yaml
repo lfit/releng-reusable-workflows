@@ -74,7 +74,17 @@ on:
         required: false
         type: string
       PRE_BUILD_SCRIPT:
-        description: "Optional pre-build script to trigger before verify run"
+        description: "Pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_PATH:
+        description: "Path to pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_URL:
+        description: "URL of pre-build script to trigger before verify run"
         required: false
         default: ""
         type: string
@@ -90,6 +100,8 @@ jobs:
     strategy:
       matrix:
         tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}
+    env:
+      PRE_BUILD: ""
 
     steps:
       - name: Gerrit checkout
@@ -108,6 +120,23 @@ jobs:
           repository: lfit/releng-reusable-workflows
           sparse-checkout: .github/actions/tox-run-action
           path: reusable-tox-run-action
+      - name: Pre-build path
+        if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        # yamllint disable-line rule:line-length
+        run: |
+          echo "PRE_BUILD=${{ inputs.PRE_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+      - name: Pre-build script
+        if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        run: |
+          echo "${{ inputs.PRE_BUILD_SCRIPT }}" > "${{ github.run_id }}.sh"
+          chmod +x "${{ github.run_id }}.sh"
+          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+      - name: Pre-build URL
+        if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        run: |
+          curl "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
+          chmod +x "${{ github.run_id }}.sh"
+          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
       - name: Run tox
         uses: ./reusable-tox-run-action/.github/actions/tox-run-action
         with:
@@ -115,4 +144,4 @@ jobs:
           py-version: ${{ inputs.PYTHON_VERSION }}
           tox-envs: ${{ matrix.tox-env }}
           parallel: ${{ inputs.PARALLEL }}
-          pre-build-script: ${{ inputs.PRE_BUILD_SCRIPT }}
+          pre-build-script: "$PRE_BUILD"
