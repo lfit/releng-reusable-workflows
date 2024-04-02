@@ -22,7 +22,7 @@ inputs:
     description: >
       Path to optional pre-build script to trigger before verify run
     required: false
-    default: ""
+    default: "/dev/null"
 
 runs:
   using: "composite"
@@ -36,7 +36,7 @@ runs:
       id: pre-build
       if: ${{ inputs.pre-build-script != '' }}
       shell: bash
-      run: ./${{ inputs.pre-build-script }}
+      run: sh ${{ inputs.pre-build-script }}
     - name: Build package (if available)
       id: build-package
       if: ${{ hashFiles('pyproject.toml') != '' }}
