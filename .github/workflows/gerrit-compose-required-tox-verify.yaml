@@ -101,7 +101,7 @@ jobs:
       matrix:
         tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}
     env:
-      PRE_BUILD: ""
+      PRE_BUILD: "/dev/null"
 
     steps:
       - name: Gerrit checkout
