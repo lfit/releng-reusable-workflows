@@ -1,0 +1,132 @@
+---
+name: Composed Tox Sonar Cloud
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      SONAR_ARGS:
+        description: "Additional arguments to the SonarCloud scanner"
+        required: false
+        type: string
+        default: ""
+      SONAR_PROJECTBASEDIR:
+        description: "Set the sonar.projectBaseDir analysis property"
+        required: false
+        type: string
+        default: .
+      TOX_DIR:
+        description: "Directory containing tox.ini file"
+        required: false
+        default: "."
+        type: string
+      TOX_ENVS:
+        description: >
+          List of envs to run. These MUST be passed as a string representing
+          a list of strings, e.g.:
+
+          '["lint", "build"]'
+        required: true
+        type: string
+      PYTHON_VERSION:
+        description: "Version of python to use"
+        required: false
+        default: "3.12"
+        type: string
+      PARALLEL:
+        description: "Whether to run jobs in parallel"
+        required: false
+        type: string
+      PRE_BUILD_SCRIPT:
+        description: "Pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_PATH:
+        description: "Path to pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_URL:
+        description: "URL of pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+    secrets:
+      SONAR_TOKEN:
+        description: "Sonar Cloud access token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: composed-tox-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  run-tox-sonar-cloud-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tox verify
+        id: tox-verify
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@main
+        with:
+          GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
+          GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
+          GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
+          GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
+          GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
+          GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
+          GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
+          GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+          GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
+          TOX_DIR: ${{ inputs.TOX_DIR }}
+          TOX_ENVS: ${{ inputs.TOX_ENVS }}
+          PYTHON_VERSION: ${{ inputs.PYTHON_VERSION }}
+          PARALLEL: ${{ inputs.PARALLEL }}
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
+          PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
+          PRE_BUILD_SCRIPT_URL: ${{ inputs. PRE_BUILD_SCRIPT_URL }}
+      - name: Run Sonar Cloud scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: ${{ inputs.SONAR_ARGS }}
+          projectBaseDir: ${{ inputs.SONAR_PROJECTBASEDIR }}
