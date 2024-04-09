@@ -95,6 +95,7 @@ runs:
       # yamllint enable rule:line-length
     - name: Generate JaCoCo Badge
       id: jacoco
+      if: ${{ !env.ACT }}  # skip during local actions testing
       uses: cicirello/jacoco-badge-generator@v2
       with:
         badges-directory: badges
@@ -103,6 +104,7 @@ runs:
         on-missing-report: quiet
     - name: Log coverage percentage
       id: log-coverage
+      if: ${{ steps.jacoco.outcome == 'success' }}
       shell: bash
       run: |
         echo "coverage = ${{ steps.jacoco.outputs.coverage }}"

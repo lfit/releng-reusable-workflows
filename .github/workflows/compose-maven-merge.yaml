@@ -1,0 +1,167 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
+name: Compose Maven Merge
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      ARTIFACT_DIR:
+        description: "Location of built artifacts"
+        required: false
+        default: "${GITHUB_WORKSPACE}/m2repo"
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      MVN_PARAMS:
+        description: "Maven parameters to pass to the mvn command"
+        required: false
+        default: ""
+        type: string
+      MVN_PHASES:
+        description: "Comma separated list of phases to execute"
+        required: false
+        default: "clean deploy"
+        type: string
+      MVN_OPTS:
+        description: "Maven options"
+        required: false
+        # yamllint disable rule:line-length
+        default: >-
+          -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
+          -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+        # yamllint enable rule:line-length
+        type: string
+      MVN_POM_FILE:
+        description: "Directory with pom.xml"
+        required: false
+        default: "pom.xml"
+        type: string
+      MVN_PROFILES:
+        description: "Comma-delimited list of profiles to activate"
+        required: false
+        default: ""
+        type: string
+      SIGUL_SIGN:
+        description: "Boolean indicating whether to sign artifacts"
+        required: false
+        default: false
+        type: boolean
+      SIGUL_KEY:
+        description: "Name of the sigul signing key to use"
+        required: false
+        type: string
+      ENV_VARS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+      ENV_SECRETS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-maven-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  maven-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.10"
+      - name: Run Maven
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          mvn-params: ${{ inputs.MVN_PARAMS }}
+          mvn-phases: ${{ inputs.MVN_PHASES }}
+          mvn-opts: ${{ inputs.MVN_OPTS }}
+          mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
+          mvn-profiles: ${{ inputs.MVN_PROFILES }}
+          env-vars: ${{ inputs.ENV_VARS }}
+          env-secrets: ${{ inputs.ENV_SECRETS }}
+          global-settings: ${{ vars.GLOBAL_SETTINGS }}
+      - name: Sign artifacts
+        uses: lfit/sigul-sign@v1
+        # Though inputs.SIGUL_SIGN is defined as a boolean, there is an issue
+        # with inputs always being strings. Therefore we will only run if the
+        # input is defined as string 'true.'
+        # See https://github.com/actions/runner/issues/1483
+        if: ${{ inputs.SIGUL_SIGN == 'true' }}
+        with:
+          sign-type: "sign-data"
+          sign-object: ${{ inputs.ARTIFACT_DIR }}
+          sigul-key-name: ${{ inputs.SIGUL_KEY }}
+          gh-key: ${{ secrets.GHA_TOKEN }}
+          sigul-ip: ${{ secrets.SIGUL_IP }}
+          sigul-uri: ${{ secrets.SIGUL_URI }}
+          sigul-conf: ${{ secrets.SIGUL_CONF }}
+          sigul-pass: ${{ secrets.SIGUL_PASS }}
+          sigul-pki: ${{ secrets.SIGUL_PKI }}
+      - name: Push build
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifact
+          path: ${{ inputs.ARTIFACT_DIR }}

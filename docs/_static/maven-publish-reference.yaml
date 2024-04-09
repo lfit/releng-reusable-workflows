@@ -1,0 +1,44 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
+name: Maven Publish
+description: Push previously-built artifacts to Nexus-like servers
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      ARTIFACT_DIR:
+        description: "Location of built artifacts"
+        required: false
+        default: "${GITHUB_WORKSPACE}/m2repo"
+        type: string
+
+jobs:
+  publish-artifacts:
+    strategy:
+      matrix:
+        service: ["NEXUS", "ARTIFACTORY", "CENTRAL"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifact
+          path: "${{ inputs.ARTIFACTS_DIR }}"
+      - name: Publish
+        # yamllint disable rule:line-length
+
+        # The env vars below will be pulled from the repos vars/secrets. They
+        # will therefore need to be defined before the workflow is run. In this
+        # example, we would need vars for NEXUS_USERNAME_NEXUS,
+        # NEXUS_USERNAME_ARTIFACTORY, and NEXUS_USERNAME_CENTRAL all defined in
+        # the repo/org.
+        env:
+          NEXUS_USERNAME: ${{ vars[format('NEXUS_USERNAME_{0}',  matrix.service)] }}
+          NEXUS_PASSWORD: ${{ secrets[format('NEXUS_PASSWORD_{0}',  matrix.service)] }}
+          NEXUS_URL: ${{ vars[format('NEXUS_URL_{0}',  matrix.service)] }}
+        run: |
+          curl https://raw.githubusercontent.com/lfit/releng-nexus-upload/main/nexus-upload.sh \
+              | bash -s -- -d "${{ inputs.ARTIFACTS_DIR }}"
