@@ -1,0 +1,135 @@
+---
+name: Composed Cmake Sonar Cloud
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      PRE_BUILD_SCRIPT:
+        description: "Pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_PATH:
+        description: "Path to pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_URL:
+        description: "URL of pre-build script to trigger before verify run"
+        required: false
+        default: ""
+        type: string
+      SONAR_ARGS:
+        description: "Additional arguments to the SonarCloud scanner"
+        required: false
+        type: string
+        default: ""
+      SONAR_PROJECTBASEDIR:
+        description: "Set the sonar.projectBaseDir analysis property"
+        required: false
+        type: string
+        default: .
+    secrets:
+      SONAR_TOKEN:
+        description: "Sonar Cloud access token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: composed-cmake-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  run-autotools-sonar-scan:
+    runs-on: ubuntu-latest
+    env:
+      PRE_BUILD: "/dev/null"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Setup JDK
+        id: setup-jdk
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.JDK_VERSION }}
+          distribution: 'temurin'
+      - name: Pre-build path
+        if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        run: |
+          echo "PRE_BUILD=${{ inputs.PRE_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+      - name: Pre-build script
+        if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        run: |
+          echo "${{ inputs.PRE_BUILD_SCRIPT }}" > "${{ github.run_id }}.sh"
+          chmod +x "${{ github.run_id }}.sh"
+          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+      - name: Pre-build URL
+        if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        run: |
+          curl "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
+          chmod +x "${{ github.run_id }}.sh"
+          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+      - name: Run pre-build-script
+        shell: bash
+        run: sh "$PRE_BUILD"
+      - name: Run cmake script
+        # yamllint disable rule:line-length
+        run: |
+          curl https://raw.githubusercontent.com/lfit/releng-global-jjb/master/shell/cmake-sonarqube.sh | bash
+      - name: Run Sonar Cloud scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: ${{ inputs.SONAR_ARGS }}
+          projectBaseDir: ${{ inputs.SONAR_PROJECTBASEDIR }}
