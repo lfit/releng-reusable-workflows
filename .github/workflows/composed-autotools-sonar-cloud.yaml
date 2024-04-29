@@ -121,7 +121,7 @@ jobs:
           echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
       - name: Run pre-build-script
         shell: bash
-        run: sh "$PRE_BUILD"
+        run: bash "$PRE_BUILD"
       - name: Run autotools script
         # yamllint disable rule:line-length
         run: |
