@@ -82,7 +82,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run-autotools-sonar-scan:
+  run-cmake-sonar-scan:
     runs-on: ubuntu-latest
     env:
       PRE_BUILD: "/dev/null"
@@ -121,7 +121,7 @@ jobs:
           echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
       - name: Run pre-build-script
         shell: bash
-        run: sh "$PRE_BUILD"
+        run: bash "$PRE_BUILD"
       - name: Run cmake script
         # yamllint disable rule:line-length
         run: |
