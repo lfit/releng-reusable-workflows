@@ -113,7 +113,7 @@ jobs:
           JJB_VERSION: ${{ vars.JJB_VERSION }}
         # yamllint disable rule:line-length
         run: |
-          jjb_version="${JJB_VERSION:-5.1.0}"
+          jjb_version="${JJB_VERSION:-6.3.0}"
           python -m pip install --upgrade pip
           pip install jenkins-job-builder=="$jjb_version"
           mkdir -p "${HOME}/.config/jenkins_jobs"
