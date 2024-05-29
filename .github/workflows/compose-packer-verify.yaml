@@ -114,9 +114,16 @@ jobs:
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
-          echo "${{ env.CLOUDS_ENV_B64 }}" | sed 's/^ */::add-mask::/'
+          # Generate a unique resume token for this workflow run
+          COMMAND_RESUME_TOKEN=$(echo -n ${{ github.token }} | sha256sum | head -c 64)
+          # Mask the resume token's value in the logs
+          echo "::add-mask::$COMMAND_RESUME_TOKEN"
+          # Stop command workflow processing
+          echo "::stop-commands::$COMMAND_RESUME_TOKEN"
           clouds_env_b64="${{ env.CLOUDS_ENV_B64 }}"
           echo "${clouds_env_b64}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
+          # Resume workflow command processing
+          echo "::$COMMAND_RESUME_TOKEN::"
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
@@ -125,9 +132,16 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           mkdir -p "$HOME/.config/openstack"
-          echo "${{ env.CLOUDS_YAML_B64 }}" | sed 's/^ */::add-mask::/'
+          # Generate a unique resume token for this workflow run
+          COMMAND_RESUME_TOKEN=$(echo -n ${{ github.token }} | sha256sum | head -c 64)
+          # Mask the resume token's value in the logs
+          echo "::add-mask::$COMMAND_RESUME_TOKEN"
+          # Stop command workflow processing
+          echo "::stop-commands::$COMMAND_RESUME_TOKEN"
           clouds_yaml_b64="${{ env.CLOUDS_YAML_B64 }}"
           echo "${clouds_yaml_b64}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
+          # Resume workflow command processing
+          echo "::$COMMAND_RESUME_TOKEN::"
         # yamllint enable rule:line-length
       - name: Setup Python
         if: steps.changes.outputs.src == 'true'
