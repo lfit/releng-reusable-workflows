@@ -53,6 +53,13 @@ runs:
             pip install -r requirements.txt
         fi
 
+        # python v3.12 onwards distutils module removed
+        MIN_PYTHON_VERSION=$(echo "3.11" | tr -dc '0-9')
+        INP_PYTHON_VERSION=$(echo "${{ inputs.py-version }}" | tr -dc '0-9')
+        if [[ ${INP_PYTHON_VERSION} > ${MIN_PYTHON_VERSION} ]]; then
+            pip install --upgrade pip setuptools
+        fi
+
         TOX_OPTIONS_LIST=""
         if [[ -n ${{ inputs.tox-envs }} ]]; then
             TOX_OPTIONS_LIST=" -e ${{ inputs.tox-envs }}"
