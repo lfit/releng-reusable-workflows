@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: Composed Gradle Nexus IQ
 
 # yamllint disable-line rule:truthy

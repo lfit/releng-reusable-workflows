@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
 name: Compose Gradle Publish
 
 # yamllint disable-line rule:truthy

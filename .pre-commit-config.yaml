@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+# SPDX-License-Identifier: Apache-2.0
 ci:
   autofix_commit_msg: "Chore: pre-commit autoupdate"
   skip:
@@ -75,3 +77,8 @@ repos:
     rev: ea8102762106cdca9c88829f1295b39a544706f3  # frozen: v1.6.26
     hooks:
       - id: actionlint
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: bafd6d7683dec1189d7a477489f6b8770bffc0dd  # frozen: v3.0.2
+    hooks:
+      - id: reuse
