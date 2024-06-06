@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -84,7 +84,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -92,7 +92,7 @@ jobs:
           delay: "0s"
       - name: Setup Python
         # yamllint disable-line rule:line-length
-        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
           python-version: "3.11"
       - name: Run static analysis and format checkers

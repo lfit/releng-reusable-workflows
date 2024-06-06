@@ -81,7 +81,7 @@ jobs:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
       # yamllint disable-line rule:line-length
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         id: setup-python
         with:
           python-version: "3.8"
@@ -90,7 +90,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: ${{ inputs.JDK_VERSION }}
-          distribution: 'temurin'
+          distribution: "temurin"
       - name: Get global settings file
         shell: bash
         run: |
