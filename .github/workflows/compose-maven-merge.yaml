@@ -1,6 +1,6 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2023 The Linux Foundation
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
 
 name: Compose Maven Merge
 
@@ -10,38 +10,6 @@ on:
     inputs:
       GERRIT_BRANCH:
         description: "Branch that change is against"
-        required: true
-        type: string
-      GERRIT_CHANGE_ID:
-        description: "The ID for the change"
-        required: true
-        type: string
-      GERRIT_CHANGE_NUMBER:
-        description: "The Gerrit number"
-        required: true
-        type: string
-      GERRIT_CHANGE_URL:
-        description: "URL to the change"
-        required: true
-        type: string
-      GERRIT_EVENT_TYPE:
-        description: "Type of Gerrit event"
-        required: true
-        type: string
-      GERRIT_PATCHSET_NUMBER:
-        description: "The patch number for the change"
-        required: true
-        type: string
-      GERRIT_PATCHSET_REVISION:
-        description: "The revision sha"
-        required: true
-        type: string
-      GERRIT_PROJECT:
-        description: "Project in Gerrit"
-        required: true
-        type: string
-      GERRIT_REFSPEC:
-        description: "Gerrit refspec of change"
         required: true
         type: string
       ARTIFACT_DIR:
@@ -65,7 +33,7 @@ on:
         default: ""
         type: string
       MVN_PHASES:
-        description: "Comma separated list of phases to execute"
+        description: "List of phases to execute"
         required: false
         default: "clean deploy"
         type: string
@@ -94,22 +62,6 @@ on:
         required: false
         default: false
         type: boolean
-      SIGUL_KEY:
-        description: "Name of the sigul signing key to use"
-        required: false
-        type: string
-      ENV_VARS:
-        # yamllint disable-line rule:line-length
-        description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
-        required: false
-        default: "{}"
-        type: string
-      ENV_SECRETS:
-        # yamllint disable-line rule:line-length
-        description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
-        required: false
-        default: "{}"
-        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -140,8 +92,6 @@ jobs:
           mvn-opts: ${{ inputs.MVN_OPTS }}
           mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
           mvn-profiles: ${{ inputs.MVN_PROFILES }}
-          env-vars: ${{ inputs.ENV_VARS }}
-          env-secrets: ${{ inputs.ENV_SECRETS }}
           global-settings: ${{ vars.GLOBAL_SETTINGS }}
       - name: Sign artifacts
         uses: lfit/sigul-sign@v1
@@ -165,3 +115,21 @@ jobs:
         with:
           name: release-artifact
           path: ${{ inputs.ARTIFACT_DIR }}
+
+  publish-nexus:
+    needs: maven-merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull build
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifact
+          path: "${{ inputs.ARTIFACTS_DIR }}"
+      - name: Publish to Nexus
+        uses: lfit/nexus-upload-action@0.1.8
+        with:
+          nexus_server: ${{ vars.NEXUS_SERVER }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }} # Repository secret
+          nexus_repository: ${{ env.NEXUS_REPO }}
+          upload_directory: ${{ inputs.ARTIFACT_DIR }}
