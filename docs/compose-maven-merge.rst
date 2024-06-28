@@ -8,6 +8,10 @@ This workflow is intended to be run when a merge is completed on a Java project
 built with Maven. It will build the package for release, run tests for final
 integration testing, and can optionally sign and push the package for release.
 
+This workflow can be utilized directly, or can serve as a reference workflow for
+modification (e.g. removing boolean inputs for pushes that will always occur
+or hardcoding inputs/variables that apply to all repos in an organization).
+
 :Required parameters:
 
     :GERRIT_BRANCH: This should be received from the Gerrit trigger.
@@ -27,6 +31,9 @@ integration testing, and can optionally sign and push the package for release.
     :MVN_POM_FILE: Path to the pom.xml to use. Default: "pom.xml"
     :MVN_PROFILES: Comma-delimited list of profiles to activate.
     :SIGUL_SIGN: Boolean indicating whether to sign artifacts. Default: false
+    :PUSH_NEXUS: Boolean indicating whether to push to a Nexus server. Default: false
+    :PUSH_ARTIFACTORY: Boolean indicating whether to push to Artifactory. Default: false
+    :PUSH_CENTRAL: Boolean indicating whether to push to Maven Central. Default: false
 
 :Expected variables:
 
@@ -55,4 +62,20 @@ integration testing, and can optionally sign and push the package for release.
         (e.g. snapshosts, releases, staging, etc.).
     :vars.NEXUS_SERVER: Nexus server to upload to.
     :secrets.NEXUS_USERNAME: Username for push to Nexus.
-    :secrets.NEXUS_PASSWORD: Password or API key for push to Nexus.
+    :secrets.NEXUS_PASSWORD: Password or token for push to Nexus.
+
+:Expected variables - Artifactory upload:
+
+    :vars.ARTIFACTORY_URL: Repo URL to push to.
+    :secrets.ARTIFACTORY_ACCESS_TOKEN: The token to use to push to Artifactory.
+    :vars.ARTIFACTORY_PATH: Path to the repo on Artifactory.
+    :inputs.JFROG_OPTIONS: Options to be passed to the jfrog command when
+        pushing to Artifactory (e.g. build number, module).
+
+:Expected variables - Central upload:
+
+    :env.NEXUS_REPO: Environment variable that defines what repo to push to
+        (e.g. snapshosts, releases, staging, etc.).
+    :vars.CENTRAL_URL: Repo URL to push to.
+    :secrets.CENTRAL_USERNAME: Username for push to Maven Central.
+    :secrets.CENTRAL_PASSWORD: Password or token for push to Maven Central.
