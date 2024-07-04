@@ -7,11 +7,11 @@ ci:
     # pre-commit.ci does not have actionlint installed
     - actionlint
 
-exclude: '^docs/conf.py'
+exclude: "^docs/conf.py"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: c4a0b883114b00d8d76b479c820ce7950211c99b  # frozen: v4.5.0
+    rev: c4a0b883114b00d8d76b479c820ce7950211c99b # frozen: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: check-added-large-files
@@ -24,7 +24,7 @@ repos:
       - id: end-of-file-fixer
       - id: requirements-txt-fixer
       - id: mixed-line-ending
-        args: ['--fix=lf']
+        args: ["--fix=lf"]
       - id: no-commit-to-branch
         args:
           - --branch=dev
@@ -34,51 +34,48 @@ repos:
           - --branch=production
 
   - repo: https://github.com/jorisroovers/gitlint
-    rev: acc9d9de6369b76d22cb4167029d2035e8730b98  # frozen: v0.19.1
+    rev: acc9d9de6369b76d22cb4167029d2035e8730b98 # frozen: v0.19.1
     hooks:
       - id: gitlint
 
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: dd99a1c965b56027e9773442f41d3c58cc53c690  # frozen: v1.34.0
+    rev: dd99a1c965b56027e9773442f41d3c58cc53c690 # frozen: v1.34.0
     hooks:
       - id: yamllint
         types: [yaml]
 
-  - repo: https://github.com/PyCQA/isort
-    rev: c655831799765e9593989ee12faba13b6ca391a5  # frozen: 5.13.2
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: fc609d3ce5e38f1d32423050196bf0ce4ecc59c1 # frozen: v0.4.5
     hooks:
-      - id: isort
+      - id: ruff
+        files: ^(scripts|tests|custom_components)/.+\.py$
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        files: ^(scripts|tests|custom_components)/.+\.py$
 
-  - repo: https://github.com/psf/black
-    rev: e026c93888f91a47a9c9f4e029f3eb07d96375e6  # frozen: 24.1.1
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: f12edd9c7be1c20cfa42420fd0e6df71e42b51ea # frozen: v4.0.0-alpha.8
     hooks:
-      - id: black
-        language_version: python3
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 88a4f9b2f48fc44b025a48fa6a8ac7cc89ef70e0  # frozen: 7.0.0
-    hooks:
-      - id: flake8
-        args: ["--max-line-length=120"]
-        additional_dependencies: [Flake8-pyproject]
+      - id: prettier
+        stages: [commit]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 8cd2d4056637e242709fe09f15a36f0b4b682bda  # frozen: v1.8.0
+    rev: 8cd2d4056637e242709fe09f15a36f0b4b682bda # frozen: v1.8.0
     hooks:
       - id: mypy
 
   - repo: https://github.com/btford/write-good
-    rev: ab66ce10136dfad5146e69e70f82a3efac8842c1  # frozen: v1.0.8
+    rev: ab66ce10136dfad5146e69e70f82a3efac8842c1 # frozen: v1.0.8
     hooks:
       - id: write-good
         files: "\\.(rst|md|markdown|mdown|mkdn)$"
 
   - repo: https://github.com/rhysd/actionlint
-    rev: ea8102762106cdca9c88829f1295b39a544706f3  # frozen: v1.6.26
+    rev: ea8102762106cdca9c88829f1295b39a544706f3 # frozen: v1.6.26
     hooks:
       - id: actionlint
 
   - repo: https://github.com/fsfe/reuse-tool
-    rev: bafd6d7683dec1189d7a477489f6b8770bffc0dd  # frozen: v3.0.2
+    rev: bafd6d7683dec1189d7a477489f6b8770bffc0dd # frozen: v3.0.2
     hooks:
       - id: reuse

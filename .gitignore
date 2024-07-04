@@ -55,3 +55,6 @@ MANIFEST
 .venv*/
 .conda*/
 .python-version
+
+# Node
+node_modules/*

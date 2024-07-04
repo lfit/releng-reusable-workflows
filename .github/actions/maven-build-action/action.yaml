@@ -64,7 +64,7 @@ runs:
       uses: actions/setup-java@v3
       with:
         java-version: ${{ inputs.jdk-version }}
-        distribution: 'temurin'
+        distribution: "temurin"
     - name: Setup Maven
       id: setup-maven
       uses: s4u/setup-maven-action@v1.10.0
