@@ -99,7 +99,7 @@ runs:
       # yamllint enable rule:line-length
     - name: Generate JaCoCo Badge
       id: jacoco
-      if: ${{ !env.ACT && inputs.run-jacoco }}  # skip during local testing
+      if: ${{ !env.ACT && inputs.run-jacoco }} # skip during local testing
       uses: cicirello/jacoco-badge-generator@v2
       with:
         badges-directory: badges

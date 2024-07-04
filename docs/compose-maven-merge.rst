@@ -4,17 +4,17 @@
 Compose Maven Merge
 ###################
 
-This workflow is intended to be run when a merge is completed on a Java project
+This workflow will run when a merge completes for a Java project
 built with Maven. It will build the package for release, run tests for final
 integration testing, and can optionally sign and push the package for release.
 
-This workflow can be utilized directly, or can serve as a reference workflow for
+This workflow should be directly directly, or can serve as a reference workflow for
 modification (e.g. removing boolean inputs for pushes that will always occur
 or hardcoding inputs/variables that apply to all repos in an organization).
 
 :Required parameters:
 
-    :GERRIT_BRANCH: This should be received from the Gerrit trigger.
+    :GERRIT_BRANCH: This parameter sent/received from the Gerrit trigger.
 
 :Optional parameters:
 
@@ -37,12 +37,12 @@ or hardcoding inputs/variables that apply to all repos in an organization).
 
 :Expected variables:
 
-    :vars.GLOBAL_SETTINGS: Global settings.xml to be used by mvn.
+    :vars.GLOBAL_SETTINGS: Global settings.xml used by Maven.
 
 :Expected variables - Sigul signing:
 
-    :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the signing key to
-        use (the project's identifier on the Sigul server) should be defined.
+    :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the  signing key to
+        use (the project's identifier on the Sigul server).
     :secrets.GHA_TOKEN: See `sigul-sign-action docs
         <https://github.com/lfit/sigul-sign-action>`_.
     :secrets.SIGUL_IP: See `sigul-sign-action docs
@@ -69,7 +69,7 @@ or hardcoding inputs/variables that apply to all repos in an organization).
     :vars.ARTIFACTORY_URL: Repo URL to push to.
     :secrets.ARTIFACTORY_ACCESS_TOKEN: The token to use to push to Artifactory.
     :vars.ARTIFACTORY_PATH: Path to the repo on Artifactory.
-    :inputs.JFROG_OPTIONS: Options to be passed to the jfrog command when
+    :inputs.JFROG_OPTIONS: Options passed to the JFrog command when
         pushing to Artifactory (e.g. build number, module).
 
 :Expected variables - Central upload:
@@ -79,3 +79,6 @@ or hardcoding inputs/variables that apply to all repos in an organization).
     :vars.CENTRAL_URL: Repo URL to push to.
     :secrets.CENTRAL_USERNAME: Username for push to Maven Central.
     :secrets.CENTRAL_PASSWORD: Password or token for push to Maven Central.
+
+..  # SPDX-License-Identifier: Apache-2.0
+    # SPDX-FileCopyrightText: Copyright 2024 The Linux Foundation
