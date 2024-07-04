@@ -1,0 +1,112 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: Compose Gradle Publish
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      NEXUS_URL:
+        description: "Nexus repo URL where the artifacts will be published"
+        required: true
+        type: string
+      DIRECTORY:
+        description: "Location where the artifacts are built"
+        required: true
+        type: string
+      FILE_EXTENSION:
+        description: "Artifacts file extension"
+        required: false
+        default: jar
+        type: string
+    secrets:
+      NEXUS_PASSWORD:
+        description: "Sonar Cloud access token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-gradle-publish-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  gradle-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Setup JDK
+        id: setup-jdk
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.JDK_VERSION }}
+          distribution: "temurin"
+      - name: Get global settings file
+        shell: bash
+        run: |
+          echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
+          cat global-settings.xml
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+      - name: Build with Gradle
+        run: ./gradlew shadowJar
+      - name: Run Gradle publish
+        # yamllint disable rule:line-length
+        env:
+          NEXUS_USERNAME: ${{ env.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          NEXUS_URL: ${{ inputs.NEXUS_URL }}
+          DIRECTORY: ${{ inputs.DIRECTORY }}
+          FILE_EXTENSION: ${{ inputs.FILE_EXTENSION }}
+        run: |
+          curl https://raw.githubusercontent.com/lfit/releng-nexus-upload/main/nexus-upload.sh | bash

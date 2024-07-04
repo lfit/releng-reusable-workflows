@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: Gerrit ci-management Merge
 
 # yamllint disable-line rule:truthy
@@ -51,7 +54,7 @@ on:
 
 concurrency:
   # yamllint disable-line rule:line-length
-  group: reusable-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  group: reusable-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -60,7 +63,7 @@ jobs:
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
-        uses: lfit/gerrit-review-action@7c30179c3c9389545fccb0d458df59879372ae6a  # v0.6
+        uses: lfit/gerrit-review-action@9627b9a144f2a2cad70707ddfae87c87dce60729 # v0.8
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
@@ -82,7 +85,7 @@ jobs:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
       # yamllint disable-line rule:line-length
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         id: setup-python
         with:
           python-version: "3.11"
@@ -92,7 +95,7 @@ jobs:
           JJB_WORKERS: ${{ vars.JJB_WORKERS }}
         # yamllint disable rule:line-length
         run: |
-          jjb_version="${JJB_VERSION:-5.1.0}"
+          jjb_version="${JJB_VERSION:-6.3.0}"
           python -m pip install --upgrade pip
           pip install jenkins-job-builder=="$jjb_version"
           mkdir -p "${GITHUB_WORKSPACE}/.config/jenkins_jobs"
@@ -126,10 +129,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get workflow conclusion
-        uses: technote-space/workflow-conclusion-action@v3
+        # yamllint disable-line rule:line-length
+        uses: im-open/workflow-conclusion@e4f7c4980600fbe0818173e30931d3550801b992 # v2.2.3
       - name: Report workflow conclusion
         # yamllint disable-line rule:line-length
-        uses: lfit/gerrit-review-action@7c30179c3c9389545fccb0d458df59879372ae6a  # v0.6
+        uses: lfit/gerrit-review-action@9627b9a144f2a2cad70707ddfae87c87dce60729 # v0.8
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}

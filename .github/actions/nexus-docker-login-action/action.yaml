@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: "nexus-docker-login"
 description: "Run docker login for all registries in Nexus3 and DockerHub"
 

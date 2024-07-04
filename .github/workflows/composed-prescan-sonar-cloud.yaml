@@ -2,13 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2023 The Linux Foundation
 
-name: Compose Tox Verify
+name: Composed Prescan Sonar Cloud
 
 # yamllint disable-line rule:truthy
 on:
   workflow_call:
     inputs:
-      # gerrit-to-platform required
       GERRIT_BRANCH:
         description: "Branch that change is against"
         required: true
@@ -45,35 +44,8 @@ on:
         description: "Gerrit refspec of change"
         required: true
         type: string
-      # Inputs passed to tox-run-action.
-      # These should be defined by the calling workflow ("with:"), not listed
-      # as inputs.
-      TARGET_REPO:
-        # yamllint disable-line rule:line-length
-        description: "The target GitHub repository needing the required workflow"
-        required: false
-        default: ${{ github.repository }}
-        type: string
-      TOX_DIR:
-        description: "Directory containing tox.ini file"
-        required: false
-        default: "."
-        type: string
-      TOX_ENVS:
-        description: >
-          List of envs to run. These MUST be passed as a string representing
-          a list of strings, e.g.:
-
-          '["lint", "build"]'
-        required: true
-        type: string
-      PYTHON_VERSION:
-        description: "Version of python to use"
-        required: false
-        default: "3.12"
-        type: string
-      PARALLEL:
-        description: "Whether to run jobs in parallel"
+      JDK_VERSION:
+        description: "OpenJDK version"
         required: false
         type: string
       PRE_BUILD_SCRIPT:
@@ -91,38 +63,48 @@ on:
         required: false
         default: ""
         type: string
+      SONAR_ARGS:
+        description: "Additional arguments to the SonarCloud scanner"
+        required: false
+        type: string
+        default: ""
+      SONAR_PROJECTBASEDIR:
+        description: "Set the sonar.projectBaseDir analysis property"
+        required: false
+        type: string
+        default: .
+    secrets:
+      SONAR_TOKEN:
+        description: "Sonar Cloud access token"
+        required: true
 
 concurrency:
   # yamllint disable-line rule:line-length
-  group: compose-tox-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  group: composed-prescan-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  run-tox:
+  run-prescan-sonar-scan:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}
     env:
       PRE_BUILD: "/dev/null"
 
     steps:
-      - name: Gerrit checkout
-        # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+      - uses: actions/checkout@v4
         with:
-          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
-          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
-          gerrit-url: ${{ vars.GERRIT_URL }}
-          delay: "0s"
-          repository: ${{ inputs.TARGET_REPO }}
-          ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
-      - name: Actions checkout # Needed for local action reference
-        uses: actions/checkout@v4
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        id: setup-python
         with:
-          repository: lfit/releng-reusable-workflows
-          sparse-checkout: .github/actions/tox-run-action
-          path: reusable-tox-run-action
+          python-version: "3.8"
+      - name: Setup JDK
+        id: setup-jdk
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.JDK_VERSION }}
+          distribution: "temurin"
       - name: Pre-build path
         if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
         # yamllint disable-line rule:line-length
@@ -140,11 +122,13 @@ jobs:
           curl "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
           chmod +x "${{ github.run_id }}.sh"
           echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
-      - name: Run tox
-        uses: ./reusable-tox-run-action/.github/actions/tox-run-action
+      - name: Run pre-build-script
+        shell: bash
+        run: sh "$PRE_BUILD"
+      - name: Run Sonar Cloud scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          tox-dir: ${{ inputs.TOX_DIR }}
-          py-version: ${{ inputs.PYTHON_VERSION }}
-          tox-envs: ${{ matrix.tox-env }}
-          parallel: ${{ inputs.PARALLEL }}
-          pre-build-script: "$PRE_BUILD"
+          args: ${{ inputs.SONAR_ARGS }}
+          projectBaseDir: ${{ inputs.SONAR_PROJECTBASEDIR }}

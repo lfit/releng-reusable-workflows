@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: "tox-run"
 description: "Run tox on specific environments"
 
@@ -19,22 +22,24 @@ inputs:
     required: false
     default: "auto"
   pre-build-script:
-    description: "Optional pre-build script to trigger before verify run"
+    description: >
+      Path to optional pre-build script to trigger before verify run
     required: false
-    default: ""
+    default: "/dev/null"
 
 runs:
   using: "composite"
   steps:
     - id: setup-python
-      uses: actions/setup-python@v5
+      # yamllint disable-line rule:line-length
+      uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
       with:
         python-version: ${{ inputs.py-version }}
     - name: Run pre-build-script
       id: pre-build
-      if: ${{ hashFiles(inputs.pre-build-script) }}
+      if: ${{ inputs.pre-build-script != '' }}
       shell: bash
-      run: ${{ inputs.pre-build-script }}
+      run: sh ${{ inputs.pre-build-script }}
     - name: Build package (if available)
       id: build-package
       if: ${{ hashFiles('pyproject.toml') != '' }}
@@ -49,6 +54,13 @@ runs:
 
         if [[ -f "requirements.txt" ]]; then
             pip install -r requirements.txt
+        fi
+
+        # python v3.12 onwards distutils module removed
+        MIN_PYTHON_VERSION=$(echo "3.11" | tr -dc '0-9')
+        INP_PYTHON_VERSION=$(echo "${{ inputs.py-version }}" | tr -dc '0-9')
+        if [[ ${INP_PYTHON_VERSION} > ${MIN_PYTHON_VERSION} ]]; then
+            pip install --upgrade pip setuptools
         fi
 
         TOX_OPTIONS_LIST=""

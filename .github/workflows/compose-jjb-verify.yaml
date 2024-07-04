@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: Gerrit Compose JJB Verify
 
 # yamllint disable-line rule:truthy
@@ -44,7 +47,7 @@ on:
 
 concurrency:
   # yamllint disable-line rule:line-length
-  group: compose-jjb-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  group: compose-jjb-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -53,7 +56,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -62,7 +65,7 @@ jobs:
           submodules: "true"
       - name: Setup Python
         # yamllint disable-line rule:line-length
-        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
           python-version: "3.11"
       - name: Run JJB Verify
@@ -70,7 +73,7 @@ jobs:
           JJB_VERSION: ${{ vars.JJB_VERSION }}
         # yamllint disable rule:line-length
         run: |
-          jjb_version="${JJB_VERSION:-5.1.0}"
+          jjb_version="${JJB_VERSION:-6.3.0}"
           python -m pip install --upgrade pip
           pip install jenkins-job-builder=="$jjb_version"
           mkdir -p "${HOME}/.config/jenkins_jobs"

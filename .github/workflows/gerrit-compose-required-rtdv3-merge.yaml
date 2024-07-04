@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: Compose rtdv3 Merge
 
 # yamllint disable-line rule:truthy
@@ -54,7 +57,7 @@ on:
 
 concurrency:
   # yamllint disable-line rule:line-length
-  group: compose-rtdv3-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  group: compose-rtdv3-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -76,13 +79,13 @@ jobs:
           repository: ${{ inputs.TARGET_REPO }}
           submodules: "true"
       # yamllint disable-line rule:line-length
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         id: setup-python
         with:
           python-version: "3.8"
       - name: Install graphviz
         # yamllint disable-line rule:line-length
-        uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd  # v1.0.0
+        uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd # v1.0.0
       - name: Verify If readthedocs Config exists
         run: |
           echo "Verifying if readthedocs.yaml config file exists"

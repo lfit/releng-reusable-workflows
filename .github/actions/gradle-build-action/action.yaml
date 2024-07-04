@@ -1,0 +1,28 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
+name: "gradle-build"
+description: "Setup a specific JDK version and run gradle build"
+
+inputs:
+  jdk-version:
+    description: "OpenJDK version"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup JDK
+      id: setup-jdk
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ inputs.jdk-version }}
+        distribution: "temurin"
+    - name: Setup Gradle
+      id: setup-gradle
+      uses: gradle/gradle-build-action@v2
+    - name: Run build with Gradle Wrapper
+      id: run-gradle-build
+      shell: bash
+      run: ./gradlew build

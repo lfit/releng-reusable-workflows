@@ -1,5 +1,8 @@
 ---
-name: Compose Gradle Verify
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
+name: Composed Gradle Nexus IQ
 
 # yamllint disable-line rule:truthy
 on:
@@ -46,19 +49,28 @@ on:
         required: false
         default: "17"
         type: string
+    secrets:
+      NEXUS_IQ_PASSWORD:
+        description: "CLM Nexus token"
+        required: true
 
 concurrency:
   # yamllint disable-line rule:line-length
-  group: compose-gradle-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  group: composed-gradle-nexus-iq-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+env:
+  NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
+  NEXUS_STAGE: build
+  NEXUS_TARGET: ""
+
 jobs:
-  gradle-verify:
+  run-gradle-clm:
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -66,16 +78,28 @@ jobs:
           delay: "0s"
           submodules: "true"
       # yamllint disable-line rule:line-length
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         id: setup-python
         with:
           python-version: "3.8"
-      - name: Setup JDK ${{ inputs.JDK_VERSION }}
-        uses: actions/setup-java@v3
+      - name: Run gradle build and CLM scan
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@main
         with:
-          java-version: ${{ inputs.JDK_VERSION }}
-          distribution: 'oracle'
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-      - name: Run build with Gradle Wrapper
-        run: ./gradlew build
+          jdk-version: ${{ inputs.JDK_VERSION }}
+      - name: Obtain Application ID
+        # yamllint disable rule:line-length
+        run: |
+          REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
+          echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Nexus IQ Policy Evaluation
+        continue-on-error: true
+        uses: sonatype-nexus-community/iq-github-action@master
+        with:
+          serverUrl: ${{ env.NEXUS_IQ_SERVER }}
+          username: ${{ vars.NEXUS_IQ_USERNAME }}
+          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+          applicationId: ${{ env.APPLICATION_ID }}
+          stage: ${{ env.NEXUS_STAGE }}
+          target: ${{ env.NEXUS_TARGET }}

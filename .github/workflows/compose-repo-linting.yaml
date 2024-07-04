@@ -1,4 +1,7 @@
 ---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
 name: Compose Repository Linting
 
 # yamllint disable-line rule:truthy
@@ -51,7 +54,7 @@ on:
 
 concurrency:
   # yamllint disable-line rule:line-length
-  group: compose-repo-linting-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  group: compose-repo-linting-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -60,7 +63,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -81,7 +84,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63  # v0.9
+        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -89,7 +92,7 @@ jobs:
           delay: "0s"
       - name: Setup Python
         # yamllint disable-line rule:line-length
-        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
           python-version: "3.11"
       - name: Run static analysis and format checkers
