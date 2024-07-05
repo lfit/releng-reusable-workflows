@@ -77,6 +77,12 @@ on:
         required: false
         default: false
         type: boolean
+      JFROG_OPTIONS:
+        description: >
+          Options to be passed to the jfrog command during Artifactory push
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -118,7 +124,7 @@ jobs:
         with:
           sign-type: "sign-data"
           sign-object: ${{ inputs.ARTIFACT_DIR }}
-          sigul-key-name: ${{ inputs.SIGUL_KEY }}
+          sigul-key-name: ${{ secrets.SIGUL_KEY }}
           gh-key: ${{ secrets.GHA_TOKEN }}
           sigul-ip: ${{ secrets.SIGUL_IP }}
           sigul-uri: ${{ secrets.SIGUL_URI }}
@@ -140,7 +146,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-artifact
-          path: "${{ inputs.ARTIFACTS_DIR }}"
+          path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Nexus
         uses: lfit/nexus-upload-action@0.1.8
         with:
@@ -159,7 +165,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-artifact
-          path: "${{ inputs.ARTIFACTS_DIR }}"
+          path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Install jfrog cli
         # yamllint disable-line rule:line-length
         uses: jfrog/setup-jfrog-cli@7c95feb32008765e1b4e626b078dfd897c4340ad # v4.1.2
@@ -168,9 +174,9 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
       - name: Publish to Artifactory
         run: |
-          jf rt upload ${{ inputs.ARTIFACTS_DIR }} \
+          jf rt upload ${{ inputs.ARTIFACT_DIR }} \
           ${{ vars.ARTIFACTORY_PATH }} \
-          ${{ inputs.ARTIFACTORY_OPTIONS }}
+          ${{ inputs.JFROG_OPTIONS }}
 
   publish-central:
     needs: maven-merge
@@ -181,7 +187,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-artifact
-          path: "${{ inputs.ARTIFACTS_DIR }}"
+          path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Maven Central
         uses: lfit/nexus-upload-action@0.1.8
         with:

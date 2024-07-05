@@ -8,13 +8,13 @@ This workflow will run when a merge completes for a Java project
 built with Maven. It will build the package for release, run tests for final
 integration testing, and can optionally sign and push the package for release.
 
-This workflow should be directly directly, or can serve as a reference workflow for
+This workflow is directly called, or can serve as a reference workflow for
 modification (e.g. removing boolean inputs for pushes that will always occur
 or hardcoding inputs/variables that apply to all repos in an organization).
 
 :Required parameters:
 
-    :GERRIT_BRANCH: This parameter sent/received from the Gerrit trigger.
+    :GERRIT_BRANCH: This parameter comes from the Gerrit trigger.
 
 :Optional parameters:
 
@@ -34,6 +34,8 @@ or hardcoding inputs/variables that apply to all repos in an organization).
     :PUSH_NEXUS: Boolean indicating whether to push to a Nexus server. Default: false
     :PUSH_ARTIFACTORY: Boolean indicating whether to push to Artifactory. Default: false
     :PUSH_CENTRAL: Boolean indicating whether to push to Maven Central. Default: false
+    :inputs.JFROG_OPTIONS: Options passed to the JFrog command when
+        pushing to Artifactory (e.g. build number, module).
 
 :Expected variables:
 
@@ -41,7 +43,7 @@ or hardcoding inputs/variables that apply to all repos in an organization).
 
 :Expected variables - Sigul signing:
 
-    :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the  signing key to
+    :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the signing key to
         use (the project's identifier on the Sigul server).
     :secrets.GHA_TOKEN: See `sigul-sign-action docs
         <https://github.com/lfit/sigul-sign-action>`_.
@@ -69,8 +71,6 @@ or hardcoding inputs/variables that apply to all repos in an organization).
     :vars.ARTIFACTORY_URL: Repo URL to push to.
     :secrets.ARTIFACTORY_ACCESS_TOKEN: The token to use to push to Artifactory.
     :vars.ARTIFACTORY_PATH: Path to the repo on Artifactory.
-    :inputs.JFROG_OPTIONS: Options passed to the JFrog command when
-        pushing to Artifactory (e.g. build number, module).
 
 :Expected variables - Central upload:
 
