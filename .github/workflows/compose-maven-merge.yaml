@@ -1,0 +1,198 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: Compose Maven Merge
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      ARTIFACT_DIR:
+        description: "Location of built artifacts"
+        required: false
+        default: "${GITHUB_WORKSPACE}/m2repo"
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      MVN_PARAMS:
+        description: "Maven parameters to pass to the mvn command"
+        required: false
+        default: ""
+        type: string
+      MVN_PHASES:
+        description: "List of phases to execute"
+        required: false
+        default: "clean deploy"
+        type: string
+      MVN_OPTS:
+        description: "Maven options"
+        required: false
+        # yamllint disable rule:line-length
+        default: >-
+          -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          -Dmaven.repo.local=/tmp/r -Dorg.ops4j.pax.url.mvn.localRepository=/tmp/r
+          -DaltDeploymentRepository=staging::default::file:"${GITHUB_WORKSPACE}"/m2repo
+        # yamllint enable rule:line-length
+        type: string
+      MVN_POM_FILE:
+        description: "Directory with pom.xml"
+        required: false
+        default: "pom.xml"
+        type: string
+      MVN_PROFILES:
+        description: "Comma-delimited list of profiles to activate"
+        required: false
+        default: ""
+        type: string
+      SIGUL_SIGN:
+        description: "Boolean indicating whether to sign artifacts"
+        required: false
+        default: false
+        type: boolean
+      PUSH_NEXUS:
+        description: "Boolean indicating whether to push to a Nexus server"
+        required: false
+        default: false
+        type: boolean
+      PUSH_ARTIFACTORY:
+        description: "Boolean indicating whether to push to Artifactory"
+        required: false
+        default: false
+        type: boolean
+      PUSH_CENTRAL:
+        description: "Boolean indicating whether to push to Maven Central"
+        required: false
+        default: false
+        type: boolean
+      JFROG_OPTIONS:
+        description: >
+          Options to be passed to the jfrog command during Artifactory push
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-maven-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  maven-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.GERRIT_BRANCH }}
+          submodules: "true"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        id: setup-python
+        with:
+          python-version: "3.10"
+      - name: Run Maven
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          mvn-params: ${{ inputs.MVN_PARAMS }}
+          mvn-phases: ${{ inputs.MVN_PHASES }}
+          mvn-opts: ${{ inputs.MVN_OPTS }}
+          mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
+          mvn-profiles: ${{ inputs.MVN_PROFILES }}
+          global-settings: ${{ vars.GLOBAL_SETTINGS }}
+      - name: Sign artifacts
+        uses: lfit/sigul-sign@v1
+        # Though inputs.SIGUL_SIGN is defined as a boolean, there is an issue
+        # with inputs always being strings. Therefore we will only run if the
+        # input is defined as string 'true.'
+        # See https://github.com/actions/runner/issues/1483
+        if: ${{ inputs.SIGUL_SIGN == 'true' }}
+        with:
+          sign-type: "sign-data"
+          sign-object: ${{ inputs.ARTIFACT_DIR }}
+          sigul-key-name: ${{ secrets.SIGUL_KEY }}
+          gh-key: ${{ secrets.GHA_TOKEN }}
+          sigul-ip: ${{ secrets.SIGUL_IP }}
+          sigul-uri: ${{ secrets.SIGUL_URI }}
+          sigul-conf: ${{ secrets.SIGUL_CONF }}
+          sigul-pass: ${{ secrets.SIGUL_PASS }}
+          sigul-pki: ${{ secrets.SIGUL_PKI }}
+      - name: Push build
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifact
+          path: ${{ inputs.ARTIFACT_DIR }}
+
+  publish-nexus:
+    needs: maven-merge
+    if: ${{ inputs.PUSH_NEXUS == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull build
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifact
+          path: "${{ inputs.ARTIFACT_DIR }}"
+      - name: Publish to Nexus
+        uses: lfit/nexus-upload-action@0.1.8
+        with:
+          nexus_server: ${{ vars.NEXUS_SERVER }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          nexus_repository: ${{ env.NEXUS_REPO }}
+          upload_directory: ${{ inputs.ARTIFACT_DIR }}
+
+  publish-artifactory:
+    needs: maven-merge
+    if: ${{ inputs.PUSH_ARTIFACTORY == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull build
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifact
+          path: "${{ inputs.ARTIFACT_DIR }}"
+      - name: Install jfrog cli
+        # yamllint disable-line rule:line-length
+        uses: jfrog/setup-jfrog-cli@7c95feb32008765e1b4e626b078dfd897c4340ad # v4.1.2
+        env:
+          JF_URL: ${{ vars.ARTIFACTORY_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      - name: Publish to Artifactory
+        run: |
+          jf rt upload ${{ inputs.ARTIFACT_DIR }} \
+          ${{ vars.ARTIFACTORY_PATH }} \
+          ${{ inputs.JFROG_OPTIONS }}
+
+  publish-central:
+    needs: maven-merge
+    if: ${{ inputs.PUSH_CENTRAL == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull build
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifact
+          path: "${{ inputs.ARTIFACT_DIR }}"
+      - name: Publish to Maven Central
+        uses: lfit/nexus-upload-action@0.1.8
+        with:
+          nexus_server: ${{ vars.CENTRAL_SERVER }}
+          nexus_username: ${{ secrets.CENTRAL_USERNAME }}
+          nexus_password: ${{ secrets.CENTRAL_PASSWORD }}
+          nexus_repository: ${{ env.NEXUS_REPO }}
+          upload_directory: ${{ inputs.ARTIFACT_DIR }}

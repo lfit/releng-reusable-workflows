@@ -51,6 +51,10 @@ inputs:
   global-settings:
     description: "Maven global settings file"
     required: true
+  run-jacoco:
+    description: "Boolean defining whether Jacoco should be run"
+    required: false
+    default: true
 
 runs:
   using: "composite"
@@ -95,6 +99,7 @@ runs:
       # yamllint enable rule:line-length
     - name: Generate JaCoCo Badge
       id: jacoco
+      if: ${{ !env.ACT && inputs.run-jacoco }} # skip during local testing
       uses: cicirello/jacoco-badge-generator@v2
       with:
         badges-directory: badges
@@ -103,6 +108,7 @@ runs:
         on-missing-report: quiet
     - name: Log coverage percentage
       id: log-coverage
+      if: ${{ inputs.run-jacoco && steps.jacoco.outcome == 'success' }}
       shell: bash
       run: |
         echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
