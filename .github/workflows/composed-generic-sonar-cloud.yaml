@@ -98,18 +98,21 @@ jobs:
           python-version: "3.8"
       - name: Setup JDK
         id: setup-jdk
-        uses: actions/setup-java@v3
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
         with:
           java-version: ${{ inputs.JDK_VERSION }}
           distribution: "temurin"
       - name: Export env variables
         id: export-env-variables
-        uses: infovista-opensource/vars-to-env-action@1.0.0
+        # yamllint disable-line rule:line-length
+        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
         id: export-env-secrets
-        uses: infovista-opensource/vars-to-env-action@1.0.0
+        # yamllint disable-line rule:line-length
+        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
           secrets: ${{ inputs.ENV_SECRETS }}
       - name: Run pre-build-script
