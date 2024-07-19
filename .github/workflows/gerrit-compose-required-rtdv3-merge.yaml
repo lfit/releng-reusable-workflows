@@ -163,7 +163,7 @@ jobs:
                   echo "INFO: Project not found"
                   if [[ $project_created == "false" ]]; then
                       echo "INFO: Creating project https://$rtdproject.readthedocs.io"
-                      lftools rtd project-create "$rtdproject" "${{ inputs.GERRIT_CHANGE_URL }}/${{ inputs.GERRIT_PROJECT }}" \
+                      lftools rtd project-create "$rtdproject" "${{ inputs.GERRIT_CHANGE_URL }}" \
                           git "https://$rtdproject.readthedocs.io" py en
                       project_created="true"
                   fi
