@@ -48,7 +48,7 @@ on:
         # yamllint enable rule:line-length
         type: string
       MVN_POM_FILE:
-        description: "Directory with pom.xml"
+        description: "Path to pom.xml file."
         required: false
         default: "pom.xml"
         type: string
