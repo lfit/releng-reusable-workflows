@@ -1,0 +1,11 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2024 The Linux Foundation
+-->
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.linuxfoundation.test</groupId>
+  <artifactId>maven-test-app</artifactId>
+  <version>1</version>
+</project>
