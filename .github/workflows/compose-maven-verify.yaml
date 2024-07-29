@@ -18,31 +18,31 @@ on:
         type: string
       GERRIT_CHANGE_NUMBER:
         description: "The Gerrit number"
-        required: true
+        required: false
         type: string
       GERRIT_CHANGE_URL:
         description: "URL to the change"
-        required: true
+        required: false
         type: string
       GERRIT_EVENT_TYPE:
         description: "Type of Gerrit event"
-        required: true
+        required: false
         type: string
       GERRIT_PATCHSET_NUMBER:
         description: "The patch number for the change"
-        required: true
+        required: false
         type: string
       GERRIT_PATCHSET_REVISION:
         description: "The revision sha"
-        required: true
+        required: false
         type: string
       GERRIT_PROJECT:
         description: "Project in Gerrit"
-        required: true
+        required: false
         type: string
       GERRIT_REFSPEC:
         description: "Gerrit refspec of change"
-        required: true
+        required: false
         type: string
       JDK_VERSION:
         description: "OpenJDK version"
