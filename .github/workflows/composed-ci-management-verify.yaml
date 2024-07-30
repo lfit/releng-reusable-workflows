@@ -147,7 +147,7 @@ jobs:
     secrets:
       ENV_SECRETS: ${{ toJSON(secrets) }}
       CLOUDS_ENV_B64: ${{ secrets.CLOUDS_ENV_B64 }}
-      CLOUDS_YAML_B64: ${{ secrets.CLOUDS_ENV_B64 }}
+      CLOUDS_YAML_B64: ${{ secrets.CLOUDS_YAML_B64 }}
 
   vote:
     if: ${{ always() }}
