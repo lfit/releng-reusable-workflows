@@ -63,10 +63,10 @@ on:
       GERRIT_SSH_PRIVKEY:
         description: "SSH Key for the authorized user account"
         required: true
-      CLOUDS_ENV_B64:
+      CLOUDS_ENV_2XB64:
         description: "Packer cloud environment credentials"
         required: true
-      CLOUDS_YAML_B64:
+      CLOUDS_YAML_2XB64:
         description: "Openstack cloud environment credentials"
         required: true
 
@@ -145,9 +145,9 @@ jobs:
       GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
       ENV_VARS: ${{ toJSON(vars) }}
     secrets:
-      ENV_SECRETS: ${{ toJSON(secrets) }}
-      CLOUDS_ENV_B64: ${{ secrets.CLOUDS_ENV_B64 }}
-      CLOUDS_YAML_B64: ${{ secrets.CLOUDS_YAML_B64 }}
+      ENV_SECRETS: |
+        CLOUDS_ENV_2XB64: ${{ secrets.CLOUDS_ENV_2XB64 }}
+        CLOUDS_YAML_2XB64: ${{ secrets.CLOUDS_YAML_2XB64 }}
 
   vote:
     if: ${{ always() }}
