@@ -55,12 +55,6 @@ on:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
         required: false
-      CLOUDS_ENV_B64:
-        description: "Packer cloud environment credentials"
-        required: true
-      CLOUDS_YAML_B64:
-        description: "Openstack cloud environment credentials"
-        required: true
 
 env:
   OS_CLOUD: "vex"
@@ -74,6 +68,8 @@ concurrency:
 jobs:
   packer-validator:
     runs-on: ubuntu-latest
+    env:
+      ENV_SECRETS: ${{ secrets.ENV_SECRETS }}
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -106,29 +102,25 @@ jobs:
         uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
-      - name: Export env secrets
-        if: steps.changes.outputs.src == 'true'
-        # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
-        with:
-          secrets: ${{ secrets.ENV_SECRETS }}
-          include: CLOUDS_ENV_B64, CLOUDS_YAML_B64
+      - name: Double base64 decode credentials as store as environment variables
+        run: |
+          for kval in $ENV_SECRETS; do
+              # extract the key name
+              key="${kval%%=*}"
+              # extract the value in b64 format
+              encoded_val="${kval#*=}"
+              # mask to encoded value
+              echo ::add-mask::"$encoded_val"
+              printf '%s<<EOF\n%s\nEOF\n' "$key" "$encoded_val" >> "$GITHUB_ENV"
+          done
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
         if: steps.changes.outputs.src == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
-          # Generate a unique resume token for this workflow run
-          COMMAND_RESUME_TOKEN=$(echo -n ${{ github.token }} | sha256sum | head -c 64)
-          # Mask the resume token's value in the logs
-          echo "::add-mask::$COMMAND_RESUME_TOKEN"
-          # Stop command workflow processing
-          echo "::stop-commands::$COMMAND_RESUME_TOKEN"
-          clouds_env_b64="${{ env.CLOUDS_ENV_B64 }}"
-          echo "${clouds_env_b64}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
-          # Resume workflow command processing
-          echo "::$COMMAND_RESUME_TOKEN::"
+          clouds_env_b64="$CLOUDS_ENV_2XB64"
+          echo "${clouds_env_b64}" | base64 --decode | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
@@ -137,16 +129,8 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           mkdir -p "$HOME/.config/openstack"
-          # Generate a unique resume token for this workflow run
-          COMMAND_RESUME_TOKEN=$(echo -n ${{ github.token }} | sha256sum | head -c 64)
-          # Mask the resume token's value in the logs
-          echo "::add-mask::$COMMAND_RESUME_TOKEN"
-          # Stop command workflow processing
-          echo "::stop-commands::$COMMAND_RESUME_TOKEN"
-          clouds_yaml_b64="${{ env.CLOUDS_YAML_B64 }}"
-          echo "${clouds_yaml_b64}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
-          # Resume workflow command processing
-          echo "::$COMMAND_RESUME_TOKEN::"
+          clouds_yaml_b64="$CLOUDS_YAML_2XB64"
+          echo "${clouds_yaml_b64}" | base64 --decode | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
         # yamllint enable rule:line-length
       - name: Setup Python
         if: steps.changes.outputs.src == 'true'
