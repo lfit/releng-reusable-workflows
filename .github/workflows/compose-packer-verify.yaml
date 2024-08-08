@@ -105,13 +105,16 @@ jobs:
       - name: Double base64 decode credentials as store as environment variables
         run: |
           for kval in $ENV_SECRETS; do
-              # extract the key name
-              key="${kval%%=*}"
+            # extract the key name
+            key="${kval%%=*}"
+            if [[ "$key" =~ ^(CLOUDS_ENV_.*|CLOUDS_YAML_.*)$ ]]; then
               # extract the value in b64 format
               encoded_val="${kval#*=}"
               # mask to encoded value
               echo ::add-mask::"$encoded_val"
+              # yamllint disable-line rule:line-length
               printf '%s<<EOF\n%s\nEOF\n' "$key" "$encoded_val" >> "$GITHUB_ENV"
+            fi
           done
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
