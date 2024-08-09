@@ -103,6 +103,7 @@ jobs:
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Double base64 decode credentials as store as environment variables
+        # yamllint disable rule:line-length
         run: |
           for kval in $ENV_SECRETS; do
             # extract the key name
@@ -112,10 +113,14 @@ jobs:
               encoded_val="${kval#*=}"
               # mask to encoded value
               echo ::add-mask::"$encoded_val"
-              # yamllint disable-line rule:line-length
-              printf '%s<<EOF\n%s\nEOF\n' "$key" "$encoded_val" >> "$GITHUB_ENV"
+              if (( $(grep -c . <<<"$encoded_val") > 1 )); then
+                printf '%s<<EOF\n%s\nEOF\n' "$key" "$encoded_val" >> "$GITHUB_ENV"
+              else
+                printf '%s\n' "$key=$encoded_val" >> "$GITHUB_ENV"
+              fi
             fi
           done
+        # yamllint enable rule:line-length
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
         if: steps.changes.outputs.src == 'true'
