@@ -1,0 +1,34 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: "node-build"
+description: "Setup Node.js and build a project (with npm or yarn)"
+
+inputs:
+  node-version:
+    description: "Node.js version to install prior to build"
+    required: false
+    default: 22
+  build-tool:
+    description: "Tool used to perform the build [npm|yarn]"
+    required: false
+    default: "npm"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup Node.js"
+      id: setup-node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+    # Build project with preferred tool
+    - name: "Build with npm"
+      shell: bash
+      if: inputs.build-tool == 'npm'
+      run: npm install --omit=dev
+    - name: "Build with yarn"
+      shell: bash
+      if: inputs.build-tool == 'yarn'
+      run: yarn install --prod
