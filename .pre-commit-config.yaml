@@ -3,15 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 ci:
   autofix_commit_msg: "Chore: pre-commit autoupdate"
-  skip:
-    # pre-commit.ci does not have actionlint installed
-    - actionlint
 
 exclude: "^docs/conf.py"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: c4a0b883114b00d8d76b479c820ce7950211c99b # frozen: v4.5.0
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # frozen: 5.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-added-large-files
@@ -39,13 +36,13 @@ repos:
       - id: gitlint
 
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: dd99a1c965b56027e9773442f41d3c58cc53c690 # frozen: v1.34.0
+    rev: 81e9f98ffd059efe8aa9c1b1a42e5cce61b640c6 # frozen: v1.35.1
     hooks:
       - id: yamllint
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: fc609d3ce5e38f1d32423050196bf0ce4ecc59c1 # frozen: v0.4.5
+    rev: 75b98813cfb7e663870a28c74366a1e99d7bfe79 # frozen: v0.6.9
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -70,12 +67,25 @@ repos:
       - id: write-good
         files: "\\.(rst|md|markdown|mdown|mkdn)$"
 
-  - repo: https://github.com/rhysd/actionlint
-    rev: ea8102762106cdca9c88829f1295b39a544706f3 # frozen: v1.6.26
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: a23f6b85d0fdd5bb9d564e2579e678033debbdff # frozen: v0.10.0.1
     hooks:
-      - id: actionlint
+      - id: shellcheck
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: aa975a18c9a869648007d33864034dbc7481fe5e # frozen: v0.42.0
+    hooks:
+      - id: markdownlint
+        args: ["--fix"]
 
   - repo: https://github.com/fsfe/reuse-tool
-    rev: bafd6d7683dec1189d7a477489f6b8770bffc0dd # frozen: v3.0.2
+    rev: 97607144d9c340262236b6eb1cf7b605e9a5880a # frozen: v4.0.3
     hooks:
       - id: reuse
+
+  # Replaces: https://github.com/rhysd/actionlint
+  # Permits actionlint to run both locally and with precommit.ci/GitHub
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: e676b4576ddcc3018077da2c172f30a3a83974eb # frozen: v1.7.3.17
+    hooks:
+      - id: actionlint
