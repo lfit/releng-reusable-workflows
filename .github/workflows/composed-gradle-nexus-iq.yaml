@@ -95,7 +95,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Nexus IQ Policy Evaluation
         continue-on-error: true
-        uses: sonatype-nexus-community/iq-github-action@master
+        uses: sonatype-nexus-community/iq-github-action@main
         with:
           serverUrl: ${{ env.NEXUS_IQ_SERVER }}
           username: ${{ vars.NEXUS_IQ_USERNAME }}
