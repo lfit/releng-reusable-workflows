@@ -1,0 +1,12 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# Default state for all rules
+default: true
+
+# MD013: Line length Rules
+MD013:
+  line_length: 120
+  code_block_line_length: 120
+  tables: false
