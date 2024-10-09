@@ -88,14 +88,6 @@ jobs:
         run: |
           REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
           echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
-        # yamllint enable rule:line-length
-      - name: Nexus IQ Policy Evaluation
-        continue-on-error: true
-        uses: sonatype-nexus-community/iq-github-action@master
-        with:
-          serverUrl: ${{ env.NEXUS_IQ_SERVER }}
-          username: ${{ vars.NEXUS_IQ_USERNAME }}
-          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
-          applicationId: ${{ env.APPLICATION_ID }}
-          stage: ${{ env.NEXUS_STAGE }}
-          target: ${{ env.NEXUS_TARGET }}
+      - name: Sonatype Lifecycle Scan
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@484ea7e8c8c880ca1905ee837dcf6d6547ea0418
