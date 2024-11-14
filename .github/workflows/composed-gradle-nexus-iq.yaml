@@ -49,10 +49,6 @@ on:
         required: false
         default: "17"
         type: string
-    secrets:
-      NEXUS_IQ_PASSWORD:
-        description: "CLM Nexus token"
-        required: true
 
 concurrency:
   # yamllint disable-line rule:line-length
