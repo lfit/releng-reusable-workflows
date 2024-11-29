@@ -1,0 +1,30 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: "💬 GIT Commit Message"
+
+outputs:
+  COMMIT_MESSAGE:
+    description: "GIT commit message"
+    value: ${{ steps.return.outputs.commit_message }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Retrieve GIT commit message"
+      id: return
+      shell: bash
+      run: |
+        # Retrieve GIT commit message
+        COMMIT_MESSAGE=$(git show -s --format='%B')
+        if [ -z "$COMMIT_MESSAGE" ]; then
+          echo "GIT Commit Message string was empty ❌" >> "$GITHUB_STEP_SUMMARY"
+          echo "GIT Commit Message string was empty ❌"; exit 1
+        fi
+        echo "COMMIT_MESSAGE<<EOF"$'\n'"$COMMIT_MESSAGE"$'\n'EOF >> \
+          "$GITHUB_ENV"
+        echo "COMMIT_MESSAGE<<EOF"$'\n'"$COMMIT_MESSAGE"$'\n'EOF >> \
+          "$GITHUB_OUTPUT"
+        echo "GIT Commit Message 💬"
+        echo "$COMMIT_MESSAGE"
