@@ -18,6 +18,11 @@ inputs:
     description: "Default value to return if lookup fails"
     type: string
     required: false
+  SILENT:
+    description: "Suppress output of returned values"
+    type: boolean
+    required: false
+    default: false
 
 outputs:
   VALUE:
@@ -72,8 +77,11 @@ runs:
           VALUE="$DEFAULT"
         fi
 
-        echo "Returning value: $VALUE 💬"
         echo "value=$VALUE" >> "$GITHUB_ENV"
         echo "value=$VALUE" >> "$GITHUB_OUTPUT"
         echo "Key to lookup: ${{ inputs.key }}" >> "$GITHUB_STEP_SUMMARY"
-        echo "Value returned: $VALUE" >> "$GITHUB_STEP_SUMMARY"
+        # Output is silenced, when requested
+        if [ ! "${{ inputs.silent }}" ]; then
+          echo "Value returned: $VALUE 💬"
+          echo "Value returned: $VALUE 💬" >> "$GITHUB_STEP_SUMMARY"
+        fi

@@ -42,20 +42,16 @@ Set/define this under:
 
 ## Inputs
 
-The action does not have any default values and both input parameters are mandatory.
+<!-- markdownlint-disable MD013 -->
 
-| Variable Name | Required | Description                                |
-| ------------- | -------- | ------------------------------------------ |
-| JSON          | True     | JSON dictionary containing key/value pairs |
-| KEY           | True     | Key to use to extract corresponding value  |
-| DEFAULT       | False    | Default value in the event lookup fails    |
+| Variable Name | Required | Default | Description                                |
+| ------------- | -------- | ------- | ------------------------------------------ |
+| JSON          | True     |         | JSON dictionary containing key/value pairs |
+| KEY           | True     |         | Key to use to extract corresponding value  |
+| DEFAULT       | False    | None    | Default value in the event lookup fails    |
+| SILENT        | False    | False   | Suppresses output of returned values       |
 
-### Note 🗒️
-
-In the event of a lookup failure, the action will exit with an error. Specifying
-a default value will prevent this failure from taking place, allowing the calling
-action/workflow to take alternative action, preventing the failure from
-stopping the entire pipeline.
+<!-- markdownlint-enable MD013 -->
 
 ## Outputs
 
@@ -68,6 +64,8 @@ stopping the entire pipeline.
 Ensure validated JSON (in the format specified above) is in the variable.
 The action performs validation before the lookup and will otherwise throw
 an error.
+
+## Notes
 
 If the key is not represented in the lookup table, the action will exit with an
 error. This behaviour will result in the calling action/workflow failing.
