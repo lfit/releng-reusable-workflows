@@ -1,0 +1,28 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: "[DV] Check Action SHA Pinning"
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+    paths: [".github/**"]
+
+jobs:
+  ### Test Version Pinned Actions ###
+  test-versions:
+    name: "Check Action SHA Pinning"
+    runs-on: ubuntu-latest
+    steps:
+      # Check entire repository on workflow_dispatch
+      - name: "Checkout entire repository"
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+
+      # Otherwise, just check the current pull request
+      - name: "Ensure SHA pinned actions"
+        # yamllint disable-line rule:line-length
+        uses: zgosalvez/github-actions-ensure-sha-pinned-actions@ed00f72a3ca5b6eff8ad4d3ffdcacedb67a21db1 # v3.0.15
