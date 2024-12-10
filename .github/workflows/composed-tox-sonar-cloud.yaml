@@ -125,9 +125,11 @@ jobs:
           PARALLEL: ${{ inputs.PARALLEL }}
           PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
           PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
-          PRE_BUILD_SCRIPT_URL: ${{ inputs. PRE_BUILD_SCRIPT_URL }}
+          PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
+
       - name: Run Sonar Cloud scan
-        uses: sonarsource/sonarcloud-github-action@master
+        # yamllint disable-line rule:line-length
+        uses: sonarsource/sonarcloud-github-action@02ef91109b2d589e757aefcfb2854c2783fd7b19 # v4.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
