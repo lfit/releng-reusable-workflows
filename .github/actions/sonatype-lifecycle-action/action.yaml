@@ -1,0 +1,58 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# Runs a Sonatype Lifecycle (Nexus IQ) scan
+name: "Sonatype Lifecycle Action"
+
+inputs:
+  JAVA_DISTRIBUTION:
+    description: "JAVA SE distribution to setup/run for Nexus CLI tool"
+    required: false
+    type: string
+    default: "temurin"
+  JAVA_VERSION:
+    description: "Java runtime to setup/run for Nexus CLI tool"
+    required: false
+    type: number
+    default: 17
+  IQ_CLI_VERSION:
+    description: "Specific version of Nexus CLI to setup/run"
+    required: false
+    type: string
+    default: "1.179.0-01"
+  APPLICATION_ID:
+    description: "Organisation and project name in Nexus IQ"
+    required: false
+    type: string
+    default: ${{ github.repository_owner }}-${{ github.event.repository.name }}
+  SCAN_TARGETS:
+    description: "Location of file(s) or folder(s) to scan"
+    required: false
+    type: string
+    default: "."
+  NEXUS_IQ_PASSWORD:
+    description: "Nexus IQ Password"
+    required: true
+
+steps:
+  - name: Setup Sonatype CLI
+    uses: sonatype/actions/setup-iq-cli@v1
+    with:
+      iq-cli-version: ${{ inputs.IQ_CLI_VERSION }}
+
+  # Sonatype CLI requires Java to run
+  - name: Setup Java runtime
+    uses: actions/setup-java@v4
+    with:
+      distribution: ${{ inputs.JAVA_DISTRIBUTION }}
+      java-version: ${{ inputs.JAVA_VERSION }}
+
+  - name: Run Sonatype CLI
+    uses: sonatype/actions/run-iq-cli@v1
+    with:
+      iq-server-url: ${{ vars.NEXUS_IQ_SERVER }}
+      username: ${{ vars.NEXUS_IQ_USERNAME }}
+      password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+      application-id: ${{ inputs.APPLICATION_ID }}
+      scan-targets: ${{ inputs.SCAN_TARGETS }}
