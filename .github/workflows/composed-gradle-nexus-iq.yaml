@@ -88,6 +88,8 @@ jobs:
         run: |
           REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
           echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
-      - name: Sonatype Lifecycle Scan
-        # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@05bc79da997ed6406fb58d43508fd01ff27a2bb8
+  sonatype-lifecycle:
+    name: "Sonatype Lifecycle Scan"
+    needs: [run-gradle-clm]
+    # yamllint disable-line rule:line-length
+    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@484ea7e8c8c880ca1905ee837dcf6d6547ea0418
