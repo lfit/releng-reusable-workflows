@@ -93,3 +93,5 @@ jobs:
     needs: [run-gradle-clm]
     # yamllint disable-line rule:line-length
     uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@484ea7e8c8c880ca1905ee837dcf6d6547ea0418
+    secrets:
+      NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
