@@ -1,0 +1,104 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: "🎟️ Add issue tracker to commit message"
+
+inputs:
+  ISSUE_ID_LOOKUP_JSON:
+    description: "JSON mapping/lookup table for issues"
+    type: string
+    required: true
+  ISSUE_STRING:
+    description: "String to embed/inject"
+    type: string
+    required: false
+    default: "Issue-ID:"
+  INJECT:
+    # When injection is enabled and no issue found...
+    # String will be added, output variable set true
+    description: "Whether to add an issue tracker if NOT found"
+    type: boolean
+    required: false
+    default: true
+
+outputs:
+  PRESENT:
+    description: "Whether the required Issue tracker is present"
+    value: ${{ steps.status.outputs.present }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        fetch-depth: 0
+
+    - name: "Get GIT commit message body"
+      id: commit-message
+      # yamllint disable rule:line-length
+      uses: lfit/releng-reusable-workflows/.github/actions/git-commit-message-action@main
+
+    - name: "Check commit message for issue tracker reference"
+      shell: bash
+      run: |
+        # Check commit message for issue tracker reference
+        echo "# Checking Commit Message for Issue Tracker" >> "$GITHUB_STEP_SUMMARY"
+
+        COMMIT_MESSAGE="${{ env.COMMIT_MESSAGE }}"
+        if [ -z "$COMMIT_MESSAGE" ]; then
+          echo "Commit message body was empty/unpopulated ❌"; exit 1
+        fi
+        if [[ "$COMMIT_MESSAGE" =~ "${{ inputs.ISSUE_STRING }}" ]]; then
+          echo "Issue tracker found in pull request ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "Issue tracker found in pull request ✅"
+          echo "PRESENT=true" >> "$GITHUB_ENV"
+        else
+          echo "Issue tracker NOT found in pull request ❌" >> "$GITHUB_STEP_SUMMARY"
+          echo "Issue tracker NOT found in pull request ❌"
+          echo "PRESENT=false" >> "$GITHUB_ENV"
+        fi
+
+    - name: "Set key to use for JSON lookup"
+      if: env.PRESENT == 'false' && inputs.INJECT == 'true'
+      shell: bash
+      run: |
+        # Set key to use for JSON lookup
+        ACTOR="${{ github.actor }}"
+        ACTOR_ID="${{ github.actor_id }}"
+        echo "Using GitHub actor as lookup key: $ACTOR [$ACTOR_ID] 🔑"
+        echo "key=$ACTOR" >> "$GITHUB_ENV"
+
+    - name: "Get ticket from JSON lookup table"
+      if: env.PRESENT == 'false' && inputs.INJECT == 'true'
+      uses: lfit/releng-reusable-workflows/.github/actions/json-key-value-lookup-action@main
+      with:
+        json: ${{ inputs.issue_id_lookup_json }}
+        key: ${{ env.key }}
+
+    - name: "Configure GIT user for commit"
+      if: env.PRESENT == 'false' && inputs.INJECT == 'true'
+      uses: lfit/releng-reusable-workflows/.github/actions/git-configure-action@main
+
+    - name: "Adding issue tracker to commit message"
+      id: inject
+      # yamllint disable-line rule:line-length
+      if: env.PRESENT == 'false' && inputs.INJECT == 'true' && (github.event.pull_request.head.ref != github.ref_name) && (github.event.pull_request.head.ref != github.event.pull_request.base.ref)
+      shell: bash
+      run: |
+        # Adding issue tracker reference to commit message
+        git commit --amend --trailer "${{ inputs.ISSUE_STRING }} ${{ env.value }}" --no-verify --no-edit
+        echo "Performing force push on pull request ⚠️"
+        git push --force
+        echo "present=true" >> "$GITHUB_ENV"
+        echo "Added issue tracker reference: ${{ env.value }} 🎟️"
+        echo "### 🎟️ Added issue tracker reference: ${{ env.value }}" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: "Set status/outputs"
+      id: status
+      shell: bash
+      run: |
+        # Set status/outputs
+        echo "present=${{ env.present }}" >> "$GITHUB_OUTPUT"
