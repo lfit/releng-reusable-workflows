@@ -1,0 +1,87 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: "🔑 JSON Variable Key/Value Lookup"
+
+inputs:
+  JSON:
+    description: "The JSON key/value lookup table"
+    type: string
+    required: true
+  KEY:
+    description: "The JSON key requiring lookup"
+    type: string
+    required: true
+  DEFAULT:
+    # Can be used to prevent exit/error if lookup fails
+    description: "Default value to return if lookup fails"
+    type: string
+    required: false
+  SILENT:
+    description: "Suppress output of returned values"
+    type: boolean
+    required: false
+    default: false
+
+outputs:
+  VALUE:
+    description: "The value associated with the supplied key"
+    value: ${{ steps.lookup.outputs.value }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "JSON Variable Key/Value Lookup"
+      id: lookup
+      shell: bash
+      run: |
+        # JSON Variable Key/Value Lookup
+
+        echo "### 🔑 JSON Variable Key/Value Lookup" >> "$GITHUB_STEP_SUMMARY"
+
+        KEY="${{ inputs.key }}"
+        DEFAULT="${{ inputs.default }}"
+
+        # Validate that input variables are populated
+        if [ -z "${{ inputs.json }}" ]; then
+          echo "Error: variable/JSON string was NOT passed as input ❌"
+          exit 1
+        elif [ -z "$KEY" ]; then
+          echo "Error: required lookup key was NOT passed as input ❌"
+          exit 1
+        fi
+
+        # Ensure JSON parser/binary is available
+        JQ=$(which jq || true)
+        if [ ! -x "$JQ" ]; then
+          echo "Error: jq command was NOT found in the PATH ❌"; exit 1
+        fi
+
+        # Check that string parses as valid JSON
+        if (jq -re '""' <<< '${{ inputs.json }}' 2>&1); then
+          echo "JSON parsing successful ✅"
+        else
+          echo "Error: jq command was NOT able to parse JSON ❌"; exit 1
+        fi
+
+        echo "Key to lookup: $KEY 🔑"
+
+        VALUE=$(echo '${{ inputs.JSON }}' | \
+          jq -r --arg KEY "$KEY" '.[] | select(.key==$KEY) | .value')
+        if [ -z "$VALUE" ] && [ -z "$DEFAULT" ]; then
+          # If no default return value provided, throw a fatal error
+          echo "Key/value lookup failed ❌"; exit 1
+        elif [ -z "$VALUE" ]; then
+          echo "Key/value lookup failed ⚠️"
+          VALUE="$DEFAULT"
+        fi
+
+        echo "value=$VALUE" >> "$GITHUB_ENV"
+        echo "value=$VALUE" >> "$GITHUB_OUTPUT"
+        echo "Key to lookup: ${{ inputs.key }}" >> "$GITHUB_STEP_SUMMARY"
+        # Output is silenced, when requested
+        if [ ! "${{ inputs.silent }}" ]; then
+          echo "Value returned: $VALUE 💬"
+          echo "Value returned: $VALUE 💬" >> "$GITHUB_STEP_SUMMARY"
+        fi
