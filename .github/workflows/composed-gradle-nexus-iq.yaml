@@ -49,6 +49,10 @@ on:
         required: false
         default: "17"
         type: string
+    secrets:
+      NEXUS_IQ_PASSWORD:
+        description: "CLM Nexus token"
+        required: true
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -80,7 +84,7 @@ jobs:
           python-version: "3.8"
       - name: Run gradle build and CLM scan
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@main
+        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@9fcfab68a65dda743452f85233ed97c8e86e7b9c
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
       - name: Obtain Application ID
