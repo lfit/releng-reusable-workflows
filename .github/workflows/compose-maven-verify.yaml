@@ -84,6 +84,11 @@ on:
         required: false
         default: ""
         type: string
+      MVN_GLOBAL_SETTINGS:
+        description: "Maven global settings configuration."
+        required: false
+        default: ${{ vars.GLOBAL_SETTINGS }}
+        type: string
       ENV_VARS:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
@@ -128,4 +133,4 @@ jobs:
           mvn-profiles: ${{ inputs.MVN_PROFILES }}
           env-vars: ${{ inputs.ENV_VARS }}
           env-secrets: ${{ inputs.ENV_SECRETS }}
-          global-settings: ${{ vars.GLOBAL_SETTINGS }}
+          global-settings: ${{ inputs.MVN_GLOBAL_SETTINGS }}

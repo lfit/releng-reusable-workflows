@@ -1,0 +1,17 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: Verify Maven Workflows
+
+# yamllint disable-line rule:truthy
+on: [push, pull_request]
+
+jobs:
+  test-maven-verify:
+    uses: ./.github/workflows/compose-maven-verify.yaml
+    with:
+      GERRIT_BRANCH: ${{ github.ref }}
+      GERRIT_CHANGE_ID: Ic8aaa0728a43936cd4c6e1ed590e01ba8f0fbf5b
+      MVN_POM_FILE: test/maven-project/pom.xml
+      MVN_GLOBAL_SETTINGS: "<settings/>"
