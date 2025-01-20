@@ -61,23 +61,27 @@ runs:
   steps:
     - name: Setup JDK
       id: setup-jdk
-      uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
+      # yamllint disable-line rule:line-length
+      uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
       with:
         java-version: ${{ inputs.jdk-version }}
         distribution: "temurin"
     - name: Setup Maven
       id: setup-maven
-      uses: s4u/setup-maven-action@v1.10.0
+      # yamllint disable-line rule:line-length
+      uses: s4u/setup-maven-action@4f7fb9d9675e899ca81c6161dadbba0189a4ebb1 # v1.18.0
       with:
         maven-version: ${{ inputs.mvn-version }}
     - name: Export env variables
       id: export-env-variables
-      uses: infovista-opensource/vars-to-env-action@1.0.0
+      # yamllint disable-line rule:line-length
+      uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
       with:
         secrets: ${{ inputs.env-vars }}
     - name: Export env secrets
       id: export-env-secrets
-      uses: infovista-opensource/vars-to-env-action@1.0.0
+      # yamllint disable-line rule:line-length
+      uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
       with:
         secrets: ${{ inputs.env-secrets }}
     - name: Build code with Maven
@@ -101,7 +105,8 @@ runs:
     - name: Generate JaCoCo Badge
       id: jacoco
       if: ${{ !env.ACT && inputs.run-jacoco }} # skip during local testing
-      uses: cicirello/jacoco-badge-generator@v2
+      # yamllint disable-line rule:line-length
+      uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 # v2.11.0
       with:
         badges-directory: badges
         generate-branches-badge: true

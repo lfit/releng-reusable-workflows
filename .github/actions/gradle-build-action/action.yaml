@@ -15,13 +15,15 @@ runs:
   steps:
     - name: Setup JDK
       id: setup-jdk
-      uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
+      # yamllint disable-line rule:line-length
+      uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
       with:
         java-version: ${{ inputs.jdk-version }}
         distribution: "temurin"
     - name: Setup Gradle
       id: setup-gradle
-      uses: gradle/gradle-build-action@v2
+      # yamllint disable-line rule:line-length
+      uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
     - name: Run build with Gradle Wrapper
       id: run-gradle-build
       shell: bash
