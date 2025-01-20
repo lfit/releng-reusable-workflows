@@ -47,19 +47,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Sonatype CLI
-        uses: sonatype/actions/setup-iq-cli@v1
+        # yamllint disable-line rule:line-length
+        uses: sonatype/actions/setup-iq-cli@5cda9c26ba3a6fab47a8870695d634cee81da062 # v.1.1.2
         with:
           iq-cli-version: ${{ inputs.IQ_CLI_VERSION }}
 
       # Sonatype CLI requires Java to run
       - name: Setup Java runtime
-        uses: actions/setup-java@v4
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
         with:
           distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           java-version: ${{ inputs.JAVA_VERSION }}
 
       - name: Run Sonatype CLI
-        uses: sonatype/actions/run-iq-cli@v1
+        # yamllint disable-line rule:line-length
+        uses: sonatype/actions/run-iq-cli@5cda9c26ba3a6fab47a8870695d634cee81da062 # v1.1.2
         with:
           iq-server-url: ${{ vars.NEXUS_IQ_SERVER }}
           username: ${{ vars.NEXUS_IQ_USERNAME }}
