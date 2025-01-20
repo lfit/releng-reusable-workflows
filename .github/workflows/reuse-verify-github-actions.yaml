@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2024 The Linux Foundation
 
 # Verifies action/workflow calls are pinned to SHA commit values
-name: 📌 Audit GitHub Actions
+name: 📌 [R] Audit GitHub Actions
 
 # yamllint disable-line rule:truthy
 on:
@@ -20,4 +20,4 @@ jobs:
     steps:
       - name: Check Pinned Versions
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/pinned-versions-action@main
+        uses: lfit/releng-reusable-workflows/.github/actions/pinned-versions-action@fd9bc3881956c2645d4da312079580d331f562ed # v0.2.2
