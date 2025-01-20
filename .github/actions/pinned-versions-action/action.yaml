@@ -22,34 +22,38 @@ runs:
       if: ${{ github.event_name != 'workflow_dispatch' }}
       id: changed-files
       # yamllint disable-line rule:line-length
-      uses: tj-actions/changed-files@bab30c2299617f6615ec02a68b9a40d10bd21366 # v45.0.5
+      uses: tj-actions/changed-files@d6e91a2266cdb9d62096cebf1e8546899c6aa18f # v45.0.6
       with:
         since_last_remote_commit: true
         files: |
           .github/**/*.{yml,yaml}
 
-    - name: Prune files NOT changed in pull request
+    - name: Set verification scope
       if: ${{ github.event_name != 'workflow_dispatch' }}
       env:
         ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
       shell: bash
       run: |
-        # Prune files NOT changed in pull request
-        find .github -type f -name '*.yaml' -o -name '*.yml' > listed.txt
+        # ✂️ Prune unmodified workflows/actions from scope
+        find .github -type f -name '*.yaml' -o -name '*.yml' > github.txt
         for YAMLFILE in ${ALL_CHANGED_FILES}; do
           echo "$YAMLFILE" >> changed.txt
         done
         if [ ! -f changed.txt ]; then
-          echo "No changes in scope for audit"; exit 0
+          echo "No changes in scope for check ⏩"
+          echo "workflow_changes=false" >> "$GITHUB_ENV"
+        else
+          grep -Fvf changed.txt github.txt > unmodified.txt
+          while IFS= read -r YAMLFILE
+          do
+            rm "$YAMLFILE"
+          done < unmodified.txt
+          echo "workflow_changes=true" >> "$GITHUB_ENV"
+          echo "Files found to check ✅"
+          cat changed.txt
         fi
-        grep -Fvf changed.txt listed.txt > excluded.txt
-        while IFS= read -r YAMLFILE
-        do
-          mv "$YAMLFILE" "$YAMLFILE.excluded"
-        done < excluded.txt
-        echo "Files to process:"
-        find .github -type f -name '*.yaml' -o -name '*.yml'
 
     - name: "Ensure SHA pinned actions"
       # yamllint disable-line rule:line-length
-      uses: zgosalvez/github-actions-ensure-sha-pinned-actions@5d6ac37a4cef8b8df67f482a8e384987766f0213 # v3.0.17
+      uses: zgosalvez/github-actions-ensure-sha-pinned-actions@c3a2b64f69b7a1542a68f44d9edbd9ec3fc1455e # v3.0.20
+      if: env.workflow_changes == 'true'
