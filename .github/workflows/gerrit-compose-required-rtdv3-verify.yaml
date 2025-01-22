@@ -61,6 +61,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  DEFAULT_PYTHON: 3.9
   READTHEDOCS_FOUND: true
   TOX_ENVS: docs,docs-linkcheck
   TOX_DIR: docs/
@@ -82,11 +83,35 @@ jobs:
           gerrit-url: ${{ vars.GERRIT_URL }}
           delay: "0s"
           submodules: "true"
-      # yamllint disable-line rule:line-length
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
-        id: setup-python
+
+      - name: Get Python version from TOX configuration
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/file-grep-regex-action@edbf8500dcbe4c63ea07b13f4077a7f29bbecb11 # v0.2.3
+        id: python-version-from-tox
         with:
-          python-version: "3.8"
+          # https://regex101.com/r/axPzef/1
+          flags: "-oP -m1"
+          regex: '(?<=^\[testenv:docs\])*basepython = python\K(.*)'
+          filename: "docs/tox.ini"
+          no_fail: "true"
+
+      - name: Setup Python [DOCS/TOX.INI]
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        id: setup-python-from-tox
+        if: steps.python-version-from-tox.outputs.extracted_string != ''
+        with:
+          # yamllint disable-line rule:line-length
+          python-version: "${{ steps.python-version-from-tox.outputs.extracted_string }}"
+
+      - name: Setup Python [DEFAULT]
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        id: setup-default-python
+        if: steps.python-version-from-tox.outputs.extracted_string == ''
+        with:
+          python-version: "${{ env.default_python }}"
+
       - name: Install graphviz
         # yamllint disable-line rule:line-length
         uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd # v1.0.0
@@ -97,6 +122,7 @@ jobs:
             echo "INFO Config file not found. Skipping further checks."
             echo "READTHEDOCS_FOUND=false" >> "$GITHUB_ENV"
           fi
+
       - name: Installing dependencies
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
         run: |
@@ -143,6 +169,7 @@ jobs:
           tox $TOX_OPTIONS_LIST
 
           echo "---> Completed tox runs"
+
       - name: Running rtdv3
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
         run: |
