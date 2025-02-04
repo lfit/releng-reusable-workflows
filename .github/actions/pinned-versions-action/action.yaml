@@ -2,25 +2,40 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2024 The Linux Foundation
 
+# pinned-versions-action
 name: "📌 Pinned Versions Action"
 description: "Verifies action/workflow calls are pinned to SHA commit values"
 
 runs:
   using: "composite"
   steps:
+    # Checkout repository on manual invocation
     - name: Checkout repository
+      if: github.event_name == 'workflow_dispatch'
+      # yamllint disable-line rule:line-length
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      if: ${{ github.event_name == 'workflow_dispatch' }}
 
+    # Scan all GitHub actions/workflows on manual invocation
+    - name: Audit all GitHub actions/workflows
+      if: github.event_name == 'workflow_dispatch'
+      shell: bash
+      run: |
+        # Audit all GitHub actions/workflows
+        echo "workflow_changes=true" >> "$GITHUB_ENV"
+        echo "Auditing all actions/workflows ✅"
+
+    # Checkout change when invoked on a pull request
     - name: Checkout pull request
+      if: github.event_name != 'workflow_dispatch'
+      # yamllint disable-line rule:line-length
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      if: ${{ github.event_name != 'workflow_dispatch' }}
       with:
         ref: ${{ github.event.pull_request.head.sha }}
 
-    - name: Get changed files
-      if: ${{ github.event_name != 'workflow_dispatch' }}
+    # Get files changed in the pull request from upstream action
+    - name: Get changed files from action
       id: changed-files
+      if: github.event_name != 'workflow_dispatch'
       # yamllint disable-line rule:line-length
       uses: tj-actions/changed-files@d6e91a2266cdb9d62096cebf1e8546899c6aa18f # v45.0.6
       with:
@@ -28,8 +43,8 @@ runs:
         files: |
           .github/**/*.{yml,yaml}
 
-    - name: Set verification scope
-      if: ${{ github.event_name != 'workflow_dispatch' }}
+    - name: Prune unmodified workflows/actions from scope
+      if: github.event_name != 'workflow_dispatch'
       env:
         ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
       shell: bash
