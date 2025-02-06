@@ -1,6 +1,6 @@
 <!--
-[comment]: # SPDX-License-Identifier: Apache-2.0
-[comment]: # SPDX-FileCopyrightText: 2024 The Linux Foundation
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2024 The Linux Foundation
 -->
 
 # 📦 Action to run RegEx against a file using GREP
