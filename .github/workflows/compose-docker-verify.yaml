@@ -129,7 +129,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Docker build and push
         if: env.DOCKER_IMAGE_TAG != ''
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           build-args: ${{ inputs.DOCKER_BUILD_ARGS }}
           tags: ${{ env.DOCKER_IMAGE_TAG }}
