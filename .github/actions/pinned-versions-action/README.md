@@ -35,7 +35,7 @@ jobs:
         steps:
             - name: Check Pinned Versions
               # yamllint disable-line rule:line-length
-              uses: os-climate/osc-github-devops/.github/actions/pinned-versions-action@ea8bbd5f4f817abe64b2498e0f1393ca15b86c0e # v1.0.0
+              uses: lfit/releng-reusable-workflows/.github/actions/pinned-versions-action@ea8bbd5f4f817abe64b2498e0f1393ca15b86c0e # v1.0.0
 ```
 
 <!-- markdownlint-enable MD013 -->
