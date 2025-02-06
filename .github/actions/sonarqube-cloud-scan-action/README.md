@@ -1,6 +1,6 @@
 <!--
-# SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2024 The Linux Foundation
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2024 The Linux Foundation
 -->
 
 # 🔐 SonarQube Cloud Scan

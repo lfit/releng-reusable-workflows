@@ -1,6 +1,6 @@
 <!--
-[comment]: # SPDX-License-Identifier: Apache-2.0
-[comment]: # SPDX-FileCopyrightText: 2024 The Linux Foundation
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2024 The Linux Foundation
 -->
 
 # 🎟️ Add issue tracker to commit message body
