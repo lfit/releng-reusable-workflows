@@ -71,6 +71,7 @@ runs:
       # yamllint disable-line rule:line-length
       uses: s4u/setup-maven-action@4f7fb9d9675e899ca81c6161dadbba0189a4ebb1 # v1.18.0
       with:
+        java-version: ${{ inputs.jdk-version }}
         maven-version: ${{ inputs.mvn-version }}
     - name: Export env variables
       id: export-env-variables
