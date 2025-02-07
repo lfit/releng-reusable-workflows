@@ -31,3 +31,7 @@ contrib=contrib-title-conventional-commits,contrib-body-requires-signed-off-by
 
 [contrib-title-conventional-commits]
 types=Fix,Feat,Chore,Docs,Style,Refactor,Perf,Test,Revert,CI,Build
+
+# Disable linting on lines that have URLs on them
+[ignore-body-lines]
+regex=(.*)https?://(.*)
