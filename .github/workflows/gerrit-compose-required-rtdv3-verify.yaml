@@ -97,7 +97,7 @@ jobs:
 
       - name: Setup Python [DOCS/TOX.INI]
         # yamllint disable-line rule:line-length
-        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         id: setup-python-from-tox
         if: steps.python-version-from-tox.outputs.extracted_string != ''
         with:
@@ -106,7 +106,7 @@ jobs:
 
       - name: Setup Python [DEFAULT]
         # yamllint disable-line rule:line-length
-        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         id: setup-default-python
         if: steps.python-version-from-tox.outputs.extracted_string == ''
         with:
