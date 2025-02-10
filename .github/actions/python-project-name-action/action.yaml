@@ -1,0 +1,107 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# python-project-name-action
+name: "🐍 Python Project/Package Names"
+description: "Extracts Python project name and derives the package name"
+
+outputs:
+  # Mandatory
+  PYTHON_PROJECT_FILE:
+    # Supports both pyproject.toml and setup.py
+    description: "File used to extract/parse project metadata"
+    value: ${{ steps.capture.outputs.python_project_file }}
+  PYTHON_PROJECT_NAME:
+    description: "Name of the Python project from pyproject.toml/setup.py"
+    value: ${{ steps.capture.outputs.python_project_name }}
+  PYTHON_PACKAGE_NAME:
+    # Note: dashes in the name are substituted with underscores
+    description: "The name of the Python package"
+    value: ${{ steps.capture.outputs.python_package_name }}
+
+runs:
+  using: "composite"
+  steps:
+    # yamllint disable-line rule:line-length
+    - uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@11530dee75e77f063c6e01ac7f3a6cb0cdc95db7 # 2025-02-05
+      id: setup-py
+      with:
+        path: "setup.py"
+
+    - name: "Get project name from setup.py"
+      id: setup-name
+      if: steps.setup-py.outputs.type == 'file'
+      # yamllint disable-line rule:line-length
+      uses: lfit/releng-reusable-workflows/.github/actions/file-grep-regex-action@0b3caf21542fc99480016a2c3759264807880bff # 2025-01-30
+      with:
+        flags: "-oP -m1"
+        regex: '(?<=name=")([^"]*)'
+        filename: "setup.py"
+
+    # yamllint disable-line rule:line-length
+    - uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@11530dee75e77f063c6e01ac7f3a6cb0cdc95db7 # 2025-02-05
+      id: pyproject-toml
+      with:
+        path: "pyproject.toml"
+
+    - name: "Get project name from pyproject.toml"
+      id: pyproject-name
+      if: steps.pyproject-toml.outputs.type == 'file'
+      # yamllint disable-line rule:line-length
+      uses: lfit/releng-reusable-workflows/.github/actions/file-grep-regex-action@0b3caf21542fc99480016a2c3759264807880bff # 2025-01-30
+      with:
+        flags: "-oP -m1"
+        regex: '(?<=^name = ")([^"]*)'
+        filename: "pyproject.toml"
+
+    - name: "Capture Python project metadata"
+      if: env.python_project != 'false'
+      id: capture
+      shell: bash
+      # yamllint disable rule:line-length
+      run: |
+        # Capture Python project metadata
+
+        # pyproject.toml is preferred source if both files exist
+        if [ ${{ steps.pyproject-toml.outputs.type == 'file' }} ]; then
+          echo "Using project name from: pyproject.toml"
+          PYTHON_PROJECT_NAME="${{ steps.pyproject-name.outputs.extracted_string}}"
+          PYTHON_PROJECT_FILE="pyproject.toml"
+
+        elif [ ${{ steps.setup-py.outputs.type == 'file' }} ]; then
+
+          # This is a legacy format and does not conform to the latest PEP standards
+
+          echo "Using project name from: setup.py"
+          PYTHON_PROJECT_NAME="${{ steps.setup-name.outputs.extracted_string}}"
+          PYTHON_PROJECT_FILE="setup.py"
+
+          # Project is defined using legacy standards
+          echo "# ⚠️ Project using outdated format: setup.py"
+          echo "This Python project format is deprecated"
+          echo "The repository content needs updating"
+
+          echo "# ⚠️ Project using outdated format: setup.py" >> "$GITHUB_STEP_SUMMARY"
+          echo "This Python project format is deprecated" >> "$GITHUB_STEP_SUMMARY"
+          echo "The repository content needs updating" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        if [ -z "$PYTHON_PROJECT_NAME" ]; then
+          echo "Python project name extraction failed ❌"
+          exit 1
+        fi
+
+        echo "Python project name: $PYTHON_PROJECT_NAME ✅"
+
+        # Replace all dashes in the name with underscores
+        PYTHON_PACKAGE_NAME=$(echo "$PYTHON_PROJECT_NAME" | tr '-' '_')
+        echo "Python package name: $PYTHON_PACKAGE_NAME"
+
+        # Make available to the GitHub environment
+        echo "python_project_name=$PYTHON_PROJECT_NAME" >> "$GITHUB_ENV"
+        echo "python_project_name=$PYTHON_PROJECT_NAME" >> "$GITHUB_OUTPUT"
+        echo "python_package_name=$PYTHON_PACKAGE_NAME" >> "$GITHUB_ENV"
+        echo "python_package_name=$PYTHON_PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+        echo "python_project_file=$PYTHON_PROJECT_FILE" >> "$GITHUB_ENV"
+        echo "python_project_file=$PYTHON_PROJECT_FILE" >> "$GITHUB_OUTPUT"
