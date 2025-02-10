@@ -42,7 +42,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 75b98813cfb7e663870a28c74366a1e99d7bfe79 # frozen: v0.6.9
+    rev: 895ebb389825c29bd4e0addcf7579d6c69d199cc # frozen: v0.9.6
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -56,7 +56,7 @@ repos:
       - id: prettier
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 8cd2d4056637e242709fe09f15a36f0b4b682bda # frozen: v1.8.0
+    rev: f40886d54c729f533f864ed6ce584e920feb0af7 # frozen: v1.15.0
     hooks:
       - id: mypy
 
@@ -72,19 +72,19 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: aa975a18c9a869648007d33864034dbc7481fe5e # frozen: v0.42.0
+    rev: 586c3ea3f51230da42bab657c6a32e9e66c364f0 # frozen: v0.44.0
     hooks:
       - id: markdownlint
         args: ["--fix"]
 
   - repo: https://github.com/fsfe/reuse-tool
-    rev: 97607144d9c340262236b6eb1cf7b605e9a5880a # frozen: v4.0.3
+    rev: 60dfc6b2ad9e1f3eabfbcf3a0dc202ee89dc5a00 # frozen: v5.0.2
     hooks:
       - id: reuse
 
   # Replaces: https://github.com/rhysd/actionlint
   # Permits actionlint to run both locally and with precommit.ci/GitHub
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: e676b4576ddcc3018077da2c172f30a3a83974eb # frozen: v1.7.3.17
+    rev: a185be0fd5b45112845b700d91b81050c75579e2 # frozen: v1.7.7.23
     hooks:
       - id: actionlint
