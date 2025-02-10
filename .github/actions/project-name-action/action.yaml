@@ -1,0 +1,63 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# project-name-action
+name: "Compares Project Name to Github Repository Name"
+description: "Checks whether repository name and project name match"
+
+outputs:
+  # Mandatory
+  PROJECT_NAME:
+    description: "Extracts the project name from supported project types"
+    value: ${{ steps.compare-naming.outputs.project_name }}
+  MATCH:
+    description: "Set true when project name and repository name match"
+    value: ${{ steps.compare-naming.outputs.match }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Capture Python project name"
+      id: python-project-name-action
+      # yamllint disable-line rule:line-length
+      uses: lfit/releng-reusable-workflows/.github/actions/python-project-name-action@main
+
+      # ToDo: Add additional supported project types here, e.g.
+      # Maven, Gradle, Go, etc.
+
+    - name: "Compare repository name to project name"
+      id: compare-naming
+      shell: bash
+      run: |
+        # Compare repository name to project name
+
+        REPOSITORY_NAME=$(basename ${{ github.repository }})
+        echo "GitHub repository name: $REPOSITORY_NAME"
+
+        # ToDo: Add additional supported project types here, e.g.
+        # Maven, Gradle, Go, etc.
+
+        if [ -n ${{ env.python_project_name }} ]; then
+          PROJECT_NAME="${{ env.python_project_name }}"
+          echo "project_name=$PROJECT_NAME" >> "$GITHUB_ENV"
+          echo "project_name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
+
+        # ToDo: add further statments supporting additional project types
+
+        else
+          echo "Error: no supported project types were found ❌"
+          exit 1
+        fi
+
+        echo "Project name: $PROJECT_NAME"
+
+        if [ "$REPOSITORY_NAME" = "$PROJECT_NAME" ]; then
+          echo "match=true" >> "$GITHUB_ENV"
+          echo "match=true" >> "$GITHUB_OUTPUT"
+          echo "Project name matches GitHub repository name ✅"
+        else
+          echo "match=false" >> "$GITHUB_ENV"
+          echo "match=false" >> "$GITHUB_OUTPUT"
+          echo "Project name does NOT match GitHub repository name ❌"
+        fi
