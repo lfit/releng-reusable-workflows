@@ -118,7 +118,7 @@ jobs:
           repository: ${{ inputs.TARGET_REPO }}
           ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
       - name: Actions checkout # Needed for local action reference
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: lfit/releng-reusable-workflows
           sparse-checkout: .github/actions/tox-run-action

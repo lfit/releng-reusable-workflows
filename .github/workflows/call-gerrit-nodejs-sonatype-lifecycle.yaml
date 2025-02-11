@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get workflow conclusion
-        uses: technote-space/workflow-conclusion-action@v3
+        uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5 # v3.0.3
       - name: Report workflow conclusion
         # yamllint disable-line rule:line-length
         uses: lfit/gerrit-review-action@9627b9a144f2a2cad70707ddfae87c87dce60729 # v0.8
