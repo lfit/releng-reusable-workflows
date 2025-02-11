@@ -7,6 +7,7 @@
 # policy, and support documentation.
 
 name: 🔐 OpenSSF Scorecard
+# yamllint disable-line rule:truthy
 on:
   workflow_dispatch:
   # For Branch-Protection check. Only the default branch is supported. See

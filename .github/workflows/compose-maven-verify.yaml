@@ -111,7 +111,7 @@ jobs:
   maven-verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
@@ -122,7 +122,7 @@ jobs:
           python-version: "3.8"
       - name: Run Maven
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@main
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@46fce72e65b1838c2bfbc6ba0ad29cdd9f229303 # 2025-02-10
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}

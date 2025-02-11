@@ -92,7 +92,8 @@ jobs:
               - 'packer/**'
       - name: Setup packer
         if: steps.changes.outputs.src == 'true'
-        uses: hashicorp/setup-packer@main
+        # yamllint disable-line rule:line-length
+        uses: hashicorp/setup-packer@1aa358be5cf73883762b302a3a03abd66e75b232 # v3.1.0
         id: setup
         with:
           version: ${{ env.PACKER_VERSION }}
