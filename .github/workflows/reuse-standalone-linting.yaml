@@ -1,0 +1,22 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+name: "⛔️ [R] Standalone Linting"
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  linting:
+    name: "Standalone linting checks"
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: read
+    steps:
+      - name: "Standalone linting action"
+        # yamllint disable-line rule:line-length
+        uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@workflows/reuse-linting.yaml # v0.2.4
