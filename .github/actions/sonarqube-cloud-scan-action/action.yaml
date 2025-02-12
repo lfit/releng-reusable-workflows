@@ -83,18 +83,24 @@ runs:
       shell: bash
       run: |
         # SonarQube configuration warning
-        echo "⚠️ Missing SonarQube configuration"
+        echo "⚠️ Repository is missing a SonarQube configuration file"
         echo "Check the documentation for further details:"
         echo "https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/analysis-parameters/"
-        echo "### ⚠️ Missing SonarQube configuration file" >> "$GITHUB_STEP_SUMMARY"
+        echo "### ⚠️ Repository is missing a SonarQube configuration file" >> "$GITHUB_STEP_SUMMARY"
         echo "Check the documentation for further details:" >> "$GITHUB_STEP_SUMMARY"
         echo "https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/analysis-parameters/" \
           >> "$GITHUB_STEP_SUMMARY"
+        # Create an ephemeral configuration file
+        echo "sonar.organization=${{ steps.repository-metadata.outputs.repository_owner }}" > sonar-project.properties
+        echo "sonar.projectKey=${{ steps.repository-metadata.outputs.repository_name }}" >> sonar-project.properties
+        echo "Created: sonar-project.properties"
+        echo "Containing:"
+        cat sonar-project.properties
 
     - name: "SonarQube configuration present"
       if:
         # yamllint disable-line rule:line-length
-        steps.sonar-project-properties.outputs.type != 'file' || steps.sonarcloud-properties.outputs.type != 'file'
+        steps.sonar-project-properties.outputs.type == 'file' || steps.sonarcloud-properties.outputs.type == 'file'
       shell: bash
       run: |
         # SonarQube configuration present
@@ -145,10 +151,6 @@ runs:
         SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
         SONAR_ROOT_CERT: ${{ inputs.sonar_root_cert }}
         LC_ALL: ${{ inputs.LC_ALL }}
-      with:
-        args: >
-          -Dsonar.organization="${{ steps.repository-metadata.outputs.repository_owner }}"
-          -Dsonar.projectKey="${{ steps.repository-metadata.outputs.repository_name }}"
 
     - name: "Print summary/job output"
       shell: bash
