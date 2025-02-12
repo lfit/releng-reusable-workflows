@@ -1,0 +1,8 @@
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+# Prettier prior to 3.4.0 has an issue affecting markdown:
+# See: https://prettier.io/blog/2024/11/26/3.4.0/
+
+# Ignore markdown files; leave them to markdownlint
+**/*.md
