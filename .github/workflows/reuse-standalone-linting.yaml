@@ -7,6 +7,28 @@ name: "⛔️ [R] Standalone Linting"
 # yamllint disable-line rule:truthy
 on:
   workflow_call:
+    inputs:
+      CONFIG_URL:
+        description: "Download location linting configuration file"
+        type: string
+        required: false
+        # yamllint disable-line rule:line-length
+        default: "https://raw.githubusercontent.com/lfit/releng-reusable-workflows/refs/heads/main/.github/actions/standalone-linting-action/pre-commit-config.yaml"
+      DEPENDENCIES_URL:
+        description: "Download location for additional Python dependencies"
+        type: string
+        required: false
+      REMOTE_CONFIG:
+        description: "Ignore local configuration; always install from remote"
+        type: string
+        required: false
+        default: "true"
+      PYTHON-VERSION:
+        description: "Python version used to run pre-commit hooks"
+        type: string
+        required: false
+        # Needs to be maintained; best practice to always provide setup-python
+        default: "3.12"
 
 permissions: {}
 
@@ -19,4 +41,9 @@ jobs:
     steps:
       - name: "Standalone linting action"
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@workflows/reuse-linting.yaml # v0.2.4
+        uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@473a3c654d58fa0c27f91a9cc25bd9433de43d5e # v0.2.4
+        with:
+          config_url: ${{ inputs.config_url }}
+          dependencies_url: ${{ inputs.dependencies_url }}
+          remote_config: ${{ inputs.remote_config }}
+          python-version: ${{ inputs.python-version }}
