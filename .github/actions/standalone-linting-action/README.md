@@ -16,46 +16,26 @@ pre-commit.ci application.
 An example workflow step using this action:
 
 ```yaml
-steps:
-    - name: Linting action
-      # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@main
-```
-
-An example reusable workflow implementation:
-
-```yaml
----
-# SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2024 The Linux Foundation
-
-name: "⛔️ [R] Standalone Linting"
-
-# yamllint disable-line rule:truthy
-on:
-    workflow_call:
-
-permissions: {}
-
 jobs:
-    linting:
-        name: "Standalone linting check"
-        runs-on: "ubuntu-24.04"
-        permissions:
-            contents: read
-        steps:
-            - name: Linting action
-              # yamllint disable-line rule:line-length
-              uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@main
+  linting:
+    name: "Standalone linting checks"
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: read
+    steps:
+      # yamllint disable-line rule:line-length
+      - uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@main
 ```
 
 ## Inputs
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name    | Required | Default                                                                                                                                                                     |
-| ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CONFIG_URL       | False    | [pre-commit-config.yaml](https://raw.githubusercontent.com/lfit/releng-reusable-workflows/refs/heads/main/.github/actions/standalone-linting-action/pre-commit-config.yaml) |
-| DEPENDENCIES_URL | False    | [requirements.txt](https://raw.githubusercontent.com/lfit/releng-reusable-workflow/refs/heads/main/linting/requirements.txt)                                                |
+| Variable Name    | Required | Description                                                    | Default                                                                                                                                                                     |
+| ---------------- | -------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CONFIG_URL       | False    | Download location for pre-commit configuration                 | [pre-commit-config.yaml](https://raw.githubusercontent.com/lfit/releng-reusable-workflows/refs/heads/main/.github/actions/standalone-linting-action/pre-commit-config.yaml) |
+| DEPENDENCIES_URL | False    | Download location for Python dependencies                      | None                                                                                                                                                                        |
+| REMOTE_CONFIG    | False    | Ignore local linting configuration; always install from remote | true                                                                                                                                                                        |
+| PYTHON-VERSION   | False    | Python version used to run linting tools                       | 3.12                                                                                                                                                                        |
 
 <!-- markdownlint-enable MD013 -->
