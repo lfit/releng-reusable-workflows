@@ -7,16 +7,9 @@ name: "🌍 Check URL for Validity with WGET"
 description: "Tests a give URL for a valid server response"
 
 inputs:
-  # Allows for compound URLs built from three separate components
   URL:
-    description: "URL prefix to check"
+    description: "Remote URL to check"
     required: true
-  STRING:
-    description: "Check URL for presence of this project/name"
-    required: false
-  SUFFIX:
-    description: "URL suffix to append"
-    required: false
 
 outputs:
   VALID:
@@ -50,12 +43,10 @@ runs:
       # yamllint disable rule:line-length
       run: |
         # Check URL for Validity
-        if (wget ${{ inputs.PREFIX }}${{ inputs.STRING }}${{ inputs.SUFFIX }} --spider -q); then
-          echo "URL/location WAS found and valid ✅"
-          echo "${{ inputs.PREFIX }}${{ inputs.STRING }}${{ inputs.SUFFIX }}"
+        if (wget ${{ inputs.url }} --spider -q); then
+          echo "URL/location was found and valid ✅"
           echo "valid=true" >> "$GITHUB_OUTPUT"
         else
           echo "URL/location was NOT found/valid ❌"
-          echo "${{ inputs.PREFIX }}${{ inputs.STRING }}${{ inputs.SUFFIX }}"
           echo "valid=false" >> "$GITHUB_OUTPUT"
         fi
