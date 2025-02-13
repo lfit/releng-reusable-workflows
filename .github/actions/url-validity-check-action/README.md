@@ -28,25 +28,13 @@ Uses the shell command:
 
 `wget [URL] --spider -q`
 
-## Example
-
-When providing the example inputs above to the action, the checked URL would be:
-
-`https://pypi.org/my-project/1.0.1`
-
-The full wget command in the shell:
-
-`wget https://pypi.org/my-project/1.0.1 --spider -q`
-
 ## Inputs
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name | Required | Description                       | Example            |
-| ------------- | -------- | --------------------------------- | ------------------ |
-| URL           | True     | Primary URL to check              | <https://pypi.org> |
-| STRING        | False    | Intermediate string to add to URL | /my-project        |
-| SUFFIX        | False    | Suffix to add to URL              | /1.0.1             |
+| Input | Required | Description  | Example                     |
+| ----- | -------- | ------------ | --------------------------- |
+| URL   | True     | URL to check | <https://linuxfoundation.org> |
 
 <!-- markdownlint-enable MD013 -->
 
