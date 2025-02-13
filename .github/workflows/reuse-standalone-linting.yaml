@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: "Standalone linting action"
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@473a3c654d58fa0c27f91a9cc25bd9433de43d5e # v0.2.4
+        uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@6cf86107749bfe16888ae055525fa0900c1789b9 # 2025-02-13
         with:
           config_url: ${{ inputs.config_url }}
           dependencies_url: ${{ inputs.dependencies_url }}
