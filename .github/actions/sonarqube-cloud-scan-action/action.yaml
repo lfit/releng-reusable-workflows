@@ -107,41 +107,42 @@ runs:
         echo "SonarQube configuration present ✅"
         echo "### SonarQube configuration present ✅" >> "$GITHUB_STEP_SUMMARY"
 
-    - name: "Check build wrapper URL"
-      id: url-validity-check-action
+    - name: Download remote build script
       if: inputs.BUILD_WRAPPER_URL != ''
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/url-validity-check-action@a54eb06d062f1ddfb4fbeb9655c185482fe1d375 # 2025-02-05
+      uses: lfit/releng-reusable-workflows/.github/actions/url-download-action@129547875495d714361eefc713e859292ac78da8 # 2025-02-19
       with:
         url: ${{ inputs.build_wrapper_url }}
+
+    - name: Validate required input parameters
+      if: inputs.BUILD_WRAPPER_URL != ''
+      shell: bash
+      run: |
+        # Validate required input parameters
+        if [ -z "${{ inputs.build_wrapper_out_dir }}" ]; then
+          echo "Error: build outputs directory must be specified when using a build wrapper ❌"
+          exit 1
+        fi
 
     - name: Install build wrapper
       if: inputs.BUILD_WRAPPER_URL != ''
       # yamllint disable-line rule:line-length
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@bfd4e558cda28cda6b5defafb9232d191be8c203 # v4.2.1
 
-    - name: Run Build Wrapper
+    - name: Run build wrapper
       if: inputs.BUILD_WRAPPER_URL != ''
       shell: bash
       run: |
-        # Run Build Wrapper 🛠️
-        WGET_CMD=$(which wget)
-        if [ ! -x "$WGET_CMD" ]; then
-          echo "WGET command was not available ❌"; exit 1
-        fi
-        "$WGET_CMD" -q "$BUILD_WRAPPER_URL"
-        BUILD_SCRIPT=$(basename ${{ inputs.BUILD_WRAPPER_URL }})
+        # Run build wrapper 🧱
+        BUILD_SCRIPT="./$(basename ${{ inputs.BUILD_WRAPPER_URL }})"
+        BUILD_WRAPPER_OUT_DIR="${{ inputs.build_wrapper_out_dir }}"
         chmod u+x "$BUILD_SCRIPT"
-        if [ -n "${{ inputs.BUILD_WRAPPER_OUT_DIR }}" ]; then
-          BUILD_WRAPPER_OUT_DIR="${{ inputs.BUILD_WRAPPER_OUT_DIR }}"
-        elif [ -n "${{ env.BUILD_WRAPPER_OUT_DIR }}" ]; then
-          BUILD_WRAPPER_OUT_DIR="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+        if [ ! -d "$BUILD_WRAPPER_OUT_DIR" ]; then
+          mkdir -p "$BUILD_WRAPPER_OUT_DIR"
+          echo "Created build wrapper output directory: $BUILD_WRAPPER_OUT_DIR"
         fi
-        if [ -z "$BUILD_WRAPPER_OUT_DIR" ]; then
-          build-wrapper-linux-x86-64 "$BUILD_SCRIPT"
-        else
-          build-wrapper-linux-x86-64 --out-dir "$BUILD_WRAPPER_OUT_DIR" "$BUILD_SCRIPT"
-        fi
+        echo "Running: build-wrapper-linux-x86-64 --out-dir $BUILD_WRAPPER_OUT_DIR $BUILD_SCRIPT"
+        build-wrapper-linux-x86-64 --out-dir "$BUILD_WRAPPER_OUT_DIR" "$BUILD_SCRIPT"
 
     - name: SonarQube Scan
       # yamllint disable-line rule:line-length
