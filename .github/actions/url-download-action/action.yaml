@@ -15,11 +15,11 @@ inputs:
   EXIT_ON_FAIL:
     description: "Exit with error if download fails"
     required: false
-    default: true
+    default: "true"
   NO_CLOBBER:
     description: "Will not overwrite existing local file"
     required: false
-    default: false
+    default: "false"
   PATH:
     description: "Saves file to given path"
     required: false
@@ -46,10 +46,14 @@ runs:
 
         # Process inputs, set variable/parameters
         URL="${{ inputs.url }}"
-        if [[ "f${{ inputs.no_clobber }}" = "ftrue" ]]; then
+        # Case insensitive matching of strings representing booleans
+        EXIT_ON_FAIL=$(echo ${{ inputs.exit_on_fail }} | tr '[:upper:]' '[:lower:]')
+        NO_CLOBBER=$(echo ${{ inputs.no_clobber }} | tr '[:upper:]' '[:lower:]')
+
+        if [[ "f$NO_CLOBBER" = "ftrue" ]]; then
           WGET_FLAGS="--no-clobber"
         fi
-        if [[ "f${{ inputs.no_clobber }}" = "ftrue" ]]; then
+        if [ -n "${{ inputs.path }}" ]; then
           WGET_FLAGS="$WGET_FLAGS -O ${{ inputs.path }}"
         fi
 
@@ -65,7 +69,7 @@ runs:
           echo "Content successfully downloaded ✅"
         else
           echo "Error: content download failed ❌"
-          if [[ "f${{ inputs.exit_on_fail }}" = "ftrue" ]]; then
+          if [[ "f$EXIT_ON_FAIL" = "ftrue" ]]; then
             # Dependent on the action's inputs
             exit 1
           fi
