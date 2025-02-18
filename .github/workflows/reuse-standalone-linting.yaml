@@ -34,7 +34,7 @@ permissions: {}
 
 jobs:
   linting:
-    name: "Standalone linting checks"
+    name: "Pre-Commit"
     runs-on: "ubuntu-24.04"
     permissions:
       contents: read
