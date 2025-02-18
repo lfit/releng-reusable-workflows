@@ -49,6 +49,13 @@ on:
         required: false
         default: "17"
         type: string
+      DISTRIBUTION:
+        description: "OpenJDK distribution"
+        # yamllint disable-line rule:line-length
+        # See: https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+        required: false
+        default: "temurin"
+        type: string
     secrets:
       NEXUS_IQ_PASSWORD:
         description: "CLM Nexus token"
@@ -82,6 +89,7 @@ jobs:
         uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@9fcfab68a65dda743452f85233ed97c8e86e7b9c
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
+          distribution: ${{ inputs.DISTRIBUTION }}
       - name: Obtain Application ID
         # yamllint disable rule:line-length
         run: |
