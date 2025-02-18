@@ -9,6 +9,12 @@ inputs:
   jdk-version:
     description: "OpenJDK version"
     required: false
+  distribution:
+    description: "OpenJDK distribution"
+    # yamllint disable-line rule:line-length
+    # See: https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+    required: false
+    default: "temurin"
 
 runs:
   using: "composite"
@@ -19,7 +25,7 @@ runs:
       uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
       with:
         java-version: ${{ inputs.jdk-version }}
-        distribution: "temurin"
+        distribution: ${{ inputs.distribution }}
     - name: Setup Gradle
       id: setup-gradle
       # yamllint disable-line rule:line-length
