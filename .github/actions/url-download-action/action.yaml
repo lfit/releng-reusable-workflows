@@ -1,0 +1,76 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+# url-download-action
+name: "🌍 Download Content from URL"
+description: "Uses WGET to download the content from a given URL"
+
+inputs:
+  # Mandatory
+  URL:
+    description: "URL to download"
+    required: true
+  # Optional
+  EXIT_ON_FAIL:
+    description: "Exit with error if download fails"
+    required: false
+    default: "true"
+  NO_CLOBBER:
+    description: "Will not overwrite existing local file"
+    required: false
+    default: "false"
+  PATH:
+    description: "Saves file to given path"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Verify WGET is available"
+      shell: bash
+      run: |
+        # Verify WGET is available
+        WGET_CMD=$(which wget)
+        if [ ! -x $WGET_CMD ]; then
+          echo "Unable to find/install WGET command ❌"
+          echo "Check instance type and OS environment"
+          exit 1
+        fi
+
+    - name: "Download content at URL"
+      shell: bash
+      # yamllint disable rule:line-length
+      run: |
+        # Download content at URL
+
+        # Process inputs, set variable/parameters
+        URL="${{ inputs.url }}"
+        # Case insensitive matching of strings representing booleans
+        EXIT_ON_FAIL=$(echo ${{ inputs.exit_on_fail }} | tr '[:upper:]' '[:lower:]')
+        NO_CLOBBER=$(echo ${{ inputs.no_clobber }} | tr '[:upper:]' '[:lower:]')
+
+        if [ "f$NO_CLOBBER" = "ftrue" ]; then
+          WGET_FLAGS="--no-clobber"
+        fi
+        if [ -n "${{ inputs.path }}" ]; then
+          WGET_FLAGS="$WGET_FLAGS -O ${{ inputs.path }}"
+        fi
+
+        echo "Downloading content from:"
+        echo "$URL"
+
+        # Perform the download
+        wget ${{ inputs.url }} $WGET_FLAGS --spider -q || true
+
+        # Validate download, exit appropriately
+        DOWNLOAD=$(basename ${{ inputs.url }})
+        if [ -f "$DOWNLOAD" ]; then
+          echo "Content successfully downloaded ✅"
+        else
+          echo "Error: content download failed ❌"
+          if [ "f$EXIT_ON_FAIL" = "ftrue" ]; then
+            # Dependent on the action's inputs
+            exit 1
+          fi
+        fi
