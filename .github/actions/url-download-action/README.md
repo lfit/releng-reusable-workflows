@@ -5,7 +5,7 @@
 
 # 🌍 Download Content from URL
 
-Uses WGET to downloads the content at a given URL.
+Uses WGET to download the content from a given URL.
 
 ## url-download-action
 

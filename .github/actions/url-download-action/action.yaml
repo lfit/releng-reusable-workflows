@@ -4,7 +4,7 @@
 
 # url-download-action
 name: "🌍 Download Content from URL"
-description: "Uses WGET to download the content at a given URL"
+description: "Uses WGET to download the content from a given URL"
 
 inputs:
   # Mandatory
