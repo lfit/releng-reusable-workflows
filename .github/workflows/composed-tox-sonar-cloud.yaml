@@ -142,6 +142,6 @@ jobs:
     steps:
       - name: "SonarQube Cloud Scan"
         # yamllint disable-line rule:line-length
-        uses: lfit-releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@f01a730905e72598d5ba129509ec10ef420a0b4b # 2025-02-24
+        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@f01a730905e72598d5ba129509ec10ef420a0b4b # 2025-02-24
         with:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
