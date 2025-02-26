@@ -101,37 +101,47 @@ concurrency:
   group: composed-tox-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
-jobs:
-  run-tox-sonar-cloud-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run tox verify
-        id: tox-verify
-        # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@722992887e1d5a032146db18e2e00adf78ff168e # 2025-02-11
-        with:
-          GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
-          GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
-          GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
-          GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
-          GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
-          GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
-          GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-          GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
-          GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
-          TOX_DIR: ${{ inputs.TOX_DIR }}
-          TOX_ENVS: ${{ inputs.TOX_ENVS }}
-          PYTHON_VERSION: ${{ inputs.PYTHON_VERSION }}
-          PARALLEL: ${{ inputs.PARALLEL }}
-          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
-          PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
-          PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
+permissions: {}
 
-      - name: Run Sonar Cloud scan
+jobs:
+  run-tox:
+    name: "Run TOX"
+    # yamllint disable-line rule:line-length
+    uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@722992887e1d5a032146db18e2e00adf78ff168e # 2025-02-11
+    permissions:
+      contents: read
+    with:
+      GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
+      GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
+      GERRIT_CHANGE_NUMBER: ${{ inputs.GERRIT_CHANGE_NUMBER }}
+      GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
+      GERRIT_EVENT_TYPE: ${{ inputs.GERRIT_EVENT_TYPE }}
+      GERRIT_PATCHSET_NUMBER: ${{ inputs.GERRIT_PATCHSET_NUMBER }}
+      GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
+      GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+      GERRIT_REFSPEC: ${{ inputs.GERRIT_REFSPEC }}
+      TOX_DIR: ${{ inputs.TOX_DIR }}
+      TOX_ENVS: ${{ inputs.TOX_ENVS }}
+      PYTHON_VERSION: ${{ inputs.PYTHON_VERSION }}
+      PARALLEL: ${{ inputs.PARALLEL }}
+      PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
+      PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
+      PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
+
+  sonarqube-cloud:
+    name: "SonarQube Cloud Scan"
+    runs-on: ubuntu-24.04
+    permissions:
+      # Needed to upload the results to code-scanning dashboard
+      security-events: write
+      # Needed to publish results and get a badge (see publish_results below)
+      id-token: write
+      # Uncomment these below if installing in a private repository
+      # contents: read
+      # actions: read
+    steps:
+      - name: "SonarQube Cloud Scan"
         # yamllint disable-line rule:line-length
-        uses: sonarsource/sonarcloud-github-action@02ef91109b2d589e757aefcfb2854c2783fd7b19 # v4.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@f01a730905e72598d5ba129509ec10ef420a0b4b # 2025-02-24
         with:
-          args: ${{ inputs.SONAR_ARGS }}
-          projectBaseDir: ${{ inputs.SONAR_PROJECTBASEDIR }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
