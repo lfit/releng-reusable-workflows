@@ -18,11 +18,17 @@ inputs:
     description: "Default value to return if lookup fails"
     type: string
     required: false
+  SUMMARY_OUTPUT:
+    description: "Displays summary output"
+    type: boolean
+    required: false
+    default: "false"
   SILENT:
+    # Present for security, in case the content that might be sensitive
     description: "Suppress output of returned values"
     type: boolean
     required: false
-    default: false
+    default: "false"
 
 outputs:
   VALUE:
@@ -35,13 +41,15 @@ runs:
     - name: "JSON Variable Key/Value Lookup"
       id: lookup
       shell: bash
+      # yamllint disable rule:line-length
       run: |
         # JSON Variable Key/Value Lookup
 
-        echo "### 🔑 JSON Variable Key/Value Lookup" >> "$GITHUB_STEP_SUMMARY"
 
         KEY="${{ inputs.key }}"
         DEFAULT="${{ inputs.default }}"
+        SUMMARY_OUTPUT=$(echo ${{ inputs.SUMMARY_OUTPUT }} | tr '[:upper:]' '[:lower:]')
+        SILENT=$(echo ${{ inputs.SILENT }} | tr '[:upper:]' '[:lower:]')
 
         # Validate that input variables are populated
         if [ -z "${{ inputs.json }}" ]; then
@@ -79,9 +87,15 @@ runs:
 
         echo "value=$VALUE" >> "$GITHUB_ENV"
         echo "value=$VALUE" >> "$GITHUB_OUTPUT"
-        echo "Key to lookup: ${{ inputs.key }}" >> "$GITHUB_STEP_SUMMARY"
-        # Output is silenced, when requested
-        if [ ! "${{ inputs.silent }}" ]; then
-          echo "Value returned: $VALUE 💬"
+
+        if [ "$SILENT" != "true" ]; then
           echo "Value returned: $VALUE 💬" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        if [ "$SUMMARY_OUTPUT" = "true" ]; then
+          echo "### 🔑 JSON Variable Key/Value Lookup" >> "$GITHUB_STEP_SUMMARY"
+          echo "Key to lookup: $KEY 🔑" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SILENT" != "true" ]; then
+            echo "Value returned: $VALUE 💬" >> "$GITHUB_STEP_SUMMARY"
+          fi
         fi
