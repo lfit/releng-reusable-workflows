@@ -8,7 +8,7 @@ exclude: "^docs/conf.py"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # frozen: 5.0.0
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # frozen: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-added-large-files
@@ -42,7 +42,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 895ebb389825c29bd4e0addcf7579d6c69d199cc # frozen: v0.9.6
+    rev: f78b4d43a4b7a3a01a298ce2aaed0f96c811f809 # frozen: v0.9.8
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
