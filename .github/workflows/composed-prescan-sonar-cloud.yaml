@@ -128,7 +128,7 @@ jobs:
         run: sh "$PRE_BUILD"
       - name: Run Sonar Cloud scan
         # yamllint disable-line rule:line-length
-        uses: sonarsource/sonarcloud-github-action@02ef91109b2d589e757aefcfb2854c2783fd7b19 # v4.0.0
+        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@83e3ea0dcbfb1e8c707b0284ae7e7c376b0e27d4 # v0.2.7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
