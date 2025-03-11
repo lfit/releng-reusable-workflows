@@ -1,0 +1,81 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# python-supported-versions-action
+name: "🐍 Extract Python Versions Supported by Project"
+description: "Returns version for builds and JSON for matrix jobs"
+# Note: build version is the most recent/latest Python
+
+# Future enhancement: switch extraction to use 'requires-python'
+# This would potentially bring alignment with actions/setup-python
+# e.g.
+# Run actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b
+# Extracted <3.13,>=3.10 from pyproject.toml
+
+outputs:
+  BUILD_PYTHON:
+    description: "Most recent Python version supported by project"
+    value: ${{ steps.parse.outputs.build_python }}
+  MATRIX_JSON:
+    description: "All Python versions supported by project as JSON string"
+    # Example: matrix_json = {"python-version": ["3.10", "3.11"]}
+    value: ${{ steps.parse.outputs.matrix_json }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Check for: pyproject.toml"
+      id: path-check
+      # yamllint disable-line rule:line-length
+      uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@11530dee75e77f063c6e01ac7f3a6cb0cdc95db7 # 2025-02-05
+      with:
+        path: "pyproject.toml"
+
+    - name: "Error: missing pyproject.toml file"
+      if: steps.path-check.outputs.type != 'file'
+      shell: bash
+      run: |
+        # Error: missing pyproject.toml file
+        echo "Error: missing pyproject.toml file ❌"
+        exit 1
+
+    - name: "Extract supported Python versions"
+      id: capture-versions
+      # yamllint disable-line rule:line-length
+      uses: lfit/releng-reusable-workflows/.github/actions/file-grep-regex-action@0b3caf21542fc99480016a2c3759264807880bff # 2025-01-30
+      with:
+        flags: "-oP"
+        # https://regex101.com/r/0mhOlr/1
+        # Only matches explicit/full Python versions
+        # Those with major/minor versions, e.g. 3.10, 3.11
+        regex: '(?<="Programming Language :: Python :: ).*\..*(?=")'
+        filename: "pyproject.toml"
+
+    - id: parse
+      name: "Process and transform extracted string"
+      shell: bash
+      run: |
+        # Process and transform extracted string
+        set -o pipefail
+
+        PYTHON_VERSIONS=$(echo \
+          "${{ steps.capture-versions.outputs.extracted_string }}" \
+          | sort | uniq | tr -d ' ') 2>/dev/null
+        BUILD_PYTHON=$(echo "${PYTHON_VERSIONS}" | sort -r | head -1)
+        STRING=$(echo "$PYTHON_VERSIONS" |\
+          awk '{print "\""$1"\""}' | paste -s -d, -)
+        STRING="[$STRING]"
+        MATRIX_JSON="{\"python-version\": $STRING}"
+        if ! (echo "$MATRIX_JSON" | jq); then
+          echo "Error: parsed string not valid JSON ❌"
+          exit 1
+        fi
+
+        # Set action outputs
+        echo "build_python=$BUILD_PYTHON" >> "$GITHUB_ENV"
+        echo "build_python=$BUILD_PYTHON" >> "$GITHUB_OUTPUT"
+        echo "Build Python: $BUILD_PYTHON 💬"
+        echo "matrix_json=$MATRIX_JSON" >> "$GITHUB_ENV"
+        echo "matrix_json=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
+        echo "Matrix JSON: $MATRIX_JSON"
