@@ -57,10 +57,10 @@ runs:
 
         CHANGE_ID_LINE=$(echo "$COMMIT_MESSAGE" | grep 'Change-Id:' || true)
         if [ $? -ne 0 ] || [ -z "$DCO_LINE" ]; then
-          echo "Change-Id NOT found in commit message/body ⚠️"
+          echo "Gerrit Change-Id NOT found in commit message/body"
           CHANGE_ID="false"
         else
-          echo "Change-Id found in commit message/body ✅"
+          echo "Gerrit Change-Id found in commit message/body"
           CHANGE_ID="true"
           CHANGE_ID_VALUE=$(echo "$CHANGE_ID_LINE" | awk '{ print $2 }')
         fi
@@ -72,8 +72,12 @@ runs:
         else
           echo "DCO statement found in commit message/body ✅"
           DCO_SIGNED_OFF="true"
-          DCO_NAME=$(echo "$DCO_LINE" | awk '{ print $2 }')
-          DCO_EMAIL=$(echo "$DCO_LINE" | awk '{ print $3 }')
+          # Tested: https://regex101.com/r/LFOLgS/1
+          DCO_NAME=$(echo "$DCO_LINE" |\
+           grep -oP '^Signed-off-by: \K.*.+?(?= <)')
+          # Tested: https://regex101.com/r/LMK94y/1
+          DCO_EMAIL=$(echo "$DCO_LINE" |\
+           grep -oP '(?<=<).*(?=>)')
         fi
 
         if [ -z "$COMMIT_MESSAGE" ]; then

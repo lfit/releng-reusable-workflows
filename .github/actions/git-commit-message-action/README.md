@@ -37,15 +37,15 @@ actions/workflows.
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name   | Mandatory | Description                                            |
-| --------------- | ----------| ------------------------------------------------------ |
-| COMMIT_SHA      | True      | String of the last/current Git commit message body     |
-| COMMIT_MESSAGE  | True      | String of the last/current Git commit message body     |
-| CHANGE_ID       | True      | Whether the commit message contains a Gerrit Change-Id |
-| CHANGE_ID_VALUE | False     | When Change-Id present, returns the string/value       |
-| DCO_SIGNED_OFF  | True      | Whether the commit message body contains a DCO line    |
-| DCO_NAME        | False     | Name provided in DCO statement, if present             |
-| DCO_EMAIL       | False     | E-mail address from DCO statement, if present          |
+| Variable Name   | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| COMMIT_SHA      | String of the last/current Git commit message body     |
+| COMMIT_MESSAGE  | String of the last/current Git commit message body     |
+| CHANGE_ID       | Whether the commit message contains a Gerrit Change-Id |
+| CHANGE_ID_VALUE | When Change-Id present, returns the string/value       |
+| DCO_SIGNED_OFF  | Whether the commit message body contains a DCO line    |
+| DCO_NAME        | Name provided in DCO statement, if present             |
+| DCO_EMAIL       | E-mail address from DCO statement, if present          |
 
 <!-- markdownlint-enable MD013 -->
 
