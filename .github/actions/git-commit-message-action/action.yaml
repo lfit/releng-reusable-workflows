@@ -4,27 +4,105 @@
 
 name: "💬 GIT Commit Message"
 
+inputs:
+  COMMIT_NUMBER:
+    # Starting at one, which is the last/latest commit
+    description: "SHA value of GIT commit message to retrieve"
+    required: false
+    default: 1
+
 outputs:
+  COMMIT_SHA:
+    description: "SHA value corresponding to GIT commit number"
+    value: ${{ steps.return.outputs.commit_sha }}
   COMMIT_MESSAGE:
-    description: "GIT commit message"
+    description: "GIT commit message body"
     value: ${{ steps.return.outputs.commit_message }}
+  # See: https://gerrit-review.googlesource.com/Documentation/user-changeid.html
+  CHANGE_ID:
+    description: "Whether the commit message contains a Gerrit Change-Id"
+    value: ${{ steps.return.outputs.change_id }}
+  CHANGE_ID_VALUE:
+    description: "The extracted Change-Id value/string"
+    value: ${{ steps.return.outputs.change_id_value }}
+  # See: https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin
+  DCO_SIGNED_OFF:
+    description: "Whether the commit message contains a DCO statement"
+    value: ${{ steps.return.outputs.dco_signed_off }}
+  DCO_NAME:
+    description: "Name provided in DCO statement, if present"
+    value: ${{ steps.return.outputs.dco_name }}
+  DCO_EMAIL:
+    description: "E-mail address from DCO statement, if present "
+    value: ${{ steps.return.outputs.dco_email }}
 
 runs:
   using: "composite"
   steps:
-    - name: "Retrieve GIT commit message"
+    - name: "Retrieve GIT commit"
       id: return
       shell: bash
       run: |
-        # Retrieve GIT commit message
-        COMMIT_MESSAGE=$(git show -s --format='%B')
-        if [ -z "$COMMIT_MESSAGE" ]; then
-          echo "GIT commit message string was empty ❌" >> "$GITHUB_STEP_SUMMARY"
-          echo "GIT commit message string was empty ❌"; exit 1
+        # Retrieve GIT commit
+
+        COMMIT_NUMBER="${{ inputs.COMMIT_NUMBER }}"
+        CHECK_REGEX='^[0-9]+$'
+        if ! [[ "$COMMIT_NUMBER" =~ $CHECK_REGEX ]] ; then
+           echo "Error: commit number/input must be numeric ❌"
+           exit 1
         fi
-        echo "COMMIT_MESSAGE<<EOF"$'\n'"$COMMIT_MESSAGE"$'\n'EOF >> \
+
+        COMMIT_SHA=$(git log --pretty=format:"%H" | awk "NR==$COMMIT_NUMBER")
+        COMMIT_MESSAGE=$(git log --format=%B -n 1 "$COMMIT_SHA")
+
+        CHANGE_ID_LINE=$(echo "$COMMIT_MESSAGE" | grep 'Change-Id:' || true)
+        if [ $? -ne 0 ] || [ -z "$DCO_LINE" ]; then
+          echo "Gerrit Change-Id NOT found in commit message/body"
+          CHANGE_ID="false"
+        else
+          echo "Gerrit Change-Id found in commit message/body"
+          CHANGE_ID="true"
+          CHANGE_ID_VALUE=$(echo "$CHANGE_ID_LINE" | awk '{ print $2 }')
+        fi
+
+        DCO_LINE=$(echo "$COMMIT_MESSAGE" | grep 'Signed-off-by:' || true)
+        if [ $? -ne 0 ] || [ -z "$DCO_LINE" ]; then
+          echo "DCO statement NOT found in commit message/body ⚠️"
+          DCO_SIGNED_OFF="false"
+        else
+          echo "DCO statement found in commit message/body ✅"
+          DCO_SIGNED_OFF="true"
+          # Tested: https://regex101.com/r/LFOLgS/1
+          DCO_NAME=$(echo "$DCO_LINE" |\
+           grep -oP '^Signed-off-by: \K.*.+?(?= <)')
+          # Tested: https://regex101.com/r/LMK94y/1
+          DCO_EMAIL=$(echo "$DCO_LINE" |\
+           grep -oP '(?<=<).*(?=>)')
+        fi
+
+        if [ -z "$COMMIT_MESSAGE" ]; then
+          echo "GIT commit message string was empty ⚠️"
+          echo "Ensure checkout step was performed"
+          echo "Ensure fetch depth covers request range"
+        fi
+
+        # Set outputs
+        echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_ENV"
+        echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+        echo "commit_message<<EOF"$'\n'"$COMMIT_MESSAGE"$'\n'EOF >> \
           "$GITHUB_ENV"
-        echo "COMMIT_MESSAGE<<EOF"$'\n'"$COMMIT_MESSAGE"$'\n'EOF >> \
+        echo "commit_message<<EOF"$'\n'"$COMMIT_MESSAGE"$'\n'EOF >> \
           "$GITHUB_OUTPUT"
+        echo "change_id=$CHANGE_ID" >> "$GITHUB_ENV"
+        echo "change_id=$CHANGE_ID" >> "$GITHUB_OUTPUT"
+        echo "change_id_value=$CHANGE_ID_VALUE">> "$GITHUB_ENV"
+        echo "change_id_value=$CHANGE_ID_VALUE" >> "$GITHUB_OUTPUT"
+        echo "dco_signed_off=$DCO_SIGNED_OFF" >> "$GITHUB_ENV"
+        echo "dco_signed_off=$DCO_SIGNED_OFF" >> "$GITHUB_OUTPUT"
+        echo "dco_name=$DCO_NAME" >> "$GITHUB_ENV"
+        echo "dco_name=$DCO_NAME" >> "$GITHUB_OUTPUT"
+        echo "dco_email=$DCO_EMAIL" >> "$GITHUB_ENV"
+        echo "dco_email=$DCO_EMAIL" >> "$GITHUB_OUTPUT"
+
         echo "GIT Commit Message 💬"
         echo "$COMMIT_MESSAGE"
