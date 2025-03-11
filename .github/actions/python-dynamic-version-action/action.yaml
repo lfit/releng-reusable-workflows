@@ -1,0 +1,30 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# python-dynamic-version-action
+name: "🐍 Check Python Project for Dynamic Versioning"
+description: "Checks if dynamic versioning is enabled in pyproject.toml"
+
+outputs:
+  DYNAMIC_VERSION:
+    description: "Set true when dynamic versioning configured"
+    value: ${{ steps.parse.outputs.dynamic_version }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: parse
+      name: "Check for dynamic project versioning"
+      shell: bash
+      run: |
+        # Check for dynamic project versioning
+        if (grep -q 'dynamic = \["version"\]' pyproject.toml); then
+          echo "Dynamic versioning set in pyproject.toml ✅"
+          echo "dynamic_version=true" >> "$GITHUB_ENV"
+          echo "dynamic_version=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Dynamic versioning NOT set in pyproject.toml"
+          echo "dynamic_version=false" >> "$GITHUB_ENV"
+          echo "dynamic_version=false" >> "$GITHUB_OUTPUT"
+        fi
