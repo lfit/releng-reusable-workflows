@@ -1,0 +1,54 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+# python-twine-check-action
+name: "📦 Verify Build Artefacts with Twine"
+description: "Verifies Python build artefacts prior to package publishing"
+# Call prior to package publishing to validate filenames/content
+
+inputs:
+  PATH:
+    description: "Directory/folder containing Python build artefacts"
+    required: false
+    type: string
+    default: "dist"
+
+runs:
+  using: "composite"
+  steps:
+    - id: twine-check
+      name: "Verify Python build artefacts with Twine"
+      shell: bash
+      run: |
+        # Verify Python build artefacts with Twine
+        ARTEFACT_PATH="${{ inputs.path }}"
+        if [ -z "$ARTEFACT_PATH" ]; then
+          echo "Error: mandatory input PATH was not set/configured ❌"
+          exit 1
+        fi
+
+        if (ls "$ARTEFACT_PATH"); then
+          ARTEFACTS=$(ls dist | wc -l)
+          if [ "$ARTEFACTS" -eq 0 ]; then
+            echo "Error: specified directory/path was empty ❌"
+            exit 1
+          else
+            echo "Files in specified directory/path: $ARTEFACTS"
+          fi
+        else
+          echo "Error: specified directory/path does not exist ❌"
+          exit 1
+        fi
+
+        echo "Installing: twine"
+        pip install --disable-pip-version-check -q --upgrade twine
+        echo "Running: twine check $ARTEFACT_PATH/*"
+        if (twine check $ARTEFACT_PATH/*); then
+          echo "Verified Python build artefacts with Twine ✅"
+          echo "Verified Python build artefacts with Twine ✅" \
+            >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "Python build artefacts failed Twine verification ❌"
+          exit 1
+        fi
