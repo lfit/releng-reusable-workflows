@@ -12,7 +12,7 @@ runs:
     - name: "Repository metadata"
       id: repository-metadata
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/repository-metadata-action@11530dee75e77f063c6e01ac7f3a6cb0cdc95db7 # 2025-02-05
+      uses: lfit/releng-reusable-workflows/.github/actions/repository-metadata-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
 
     - name: "Print summary/job output"
       shell: bash

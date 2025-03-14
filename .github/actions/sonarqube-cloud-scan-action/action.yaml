@@ -58,19 +58,19 @@ runs:
     - name: "Repository metadata"
       id: repository-metadata
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/repository-metadata-action@a54eb06d062f1ddfb4fbeb9655c185482fe1d375 # 2025-02-05
+      uses: lfit/releng-reusable-workflows/.github/actions/repository-metadata-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
 
     - name: "Check for SonarQube project configuration"
       id: sonar-project-properties
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@a54eb06d062f1ddfb4fbeb9655c185482fe1d375 # 2025-02-05
+      uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
       with:
         path: "sonar-project.properties"
 
     - name: "Check for SonarQube project configuration"
       id: sonarcloud-properties
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@a54eb06d062f1ddfb4fbeb9655c185482fe1d375 # 2025-02-05
+      uses: lfit/releng-reusable-workflows/.github/actions/path-check-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
       with:
         path: ".sonarcloud.properties"
 
@@ -109,7 +109,7 @@ runs:
     - name: Download remote build script
       if: inputs.BUILD_WRAPPER_URL != ''
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/url-download-action@129547875495d714361eefc713e859292ac78da8 # 2025-02-19
+      uses: lfit/releng-reusable-workflows/.github/actions/url-download-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
       with:
         url: ${{ inputs.build_wrapper_url }}
 
