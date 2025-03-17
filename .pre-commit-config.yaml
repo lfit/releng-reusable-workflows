@@ -36,13 +36,13 @@ repos:
       - id: gitlint
 
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: 81e9f98ffd059efe8aa9c1b1a42e5cce61b640c6 # frozen: v1.35.1
+    rev: cd96692595b4c5ed1a93b182b4c808786b34d4ee  # frozen: v1.36.2
     hooks:
       - id: yamllint
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: f78b4d43a4b7a3a01a298ce2aaed0f96c811f809 # frozen: v0.9.8
+    rev: 99abe27a5a16f301d9e0a3828181399dfbf54ebd  # frozen: v0.11.0
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
