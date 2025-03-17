@@ -39,7 +39,7 @@ runs:
     - name: "Get GIT commit message body"
       id: commit-message
       # yamllint disable rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/git-commit-message-action@main
+      uses: lfit/releng-reusable-workflows/.github/actions/git-commit-message-action@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
 
     - name: "Check commit message for issue tracker reference"
       shell: bash
@@ -73,14 +73,14 @@ runs:
 
     - name: "Get ticket from JSON lookup table"
       if: env.PRESENT == 'false' && inputs.INJECT == 'true'
-      uses: lfit/releng-reusable-workflows/.github/actions/json-key-value-lookup-action@main
+      uses: lfit/releng-reusable-workflows/.github/actions/json-key-value-lookup-action@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
       with:
         json: ${{ inputs.issue_id_lookup_json }}
         key: ${{ env.key }}
 
     - name: "Configure GIT user for commit"
       if: env.PRESENT == 'false' && inputs.INJECT == 'true'
-      uses: lfit/releng-reusable-workflows/.github/actions/git-configure-action@main
+      uses: lfit/releng-reusable-workflows/.github/actions/git-configure-action@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
 
     - name: "Adding issue tracker to commit message"
       id: inject
