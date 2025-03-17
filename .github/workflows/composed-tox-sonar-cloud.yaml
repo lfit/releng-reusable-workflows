@@ -107,7 +107,7 @@ jobs:
   run-tox:
     name: "Run TOX"
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@1d327501514102db5018642036a974e79415ec5a # v0.2.8
+    uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
     permissions:
       contents: read
     with:
@@ -142,6 +142,6 @@ jobs:
     steps:
       - name: "SonarQube Cloud Scan"
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
+        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
         with:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

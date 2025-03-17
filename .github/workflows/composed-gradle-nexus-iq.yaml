@@ -86,7 +86,7 @@ jobs:
           submodules: "true"
       - name: Run gradle build and CLM scan
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@9fcfab68a65dda743452f85233ed97c8e86e7b9c
+        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@9b845102d5158f0b80bd53405a0b6855b26dc4a0
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           distribution: ${{ inputs.DISTRIBUTION }}
@@ -99,6 +99,6 @@ jobs:
     name: "Sonatype Lifecycle Scan"
     needs: [run-gradle-clm]
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@484ea7e8c8c880ca1905ee837dcf6d6547ea0418
+    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@9b845102d5158f0b80bd53405a0b6855b26dc4a0
     secrets:
       NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
