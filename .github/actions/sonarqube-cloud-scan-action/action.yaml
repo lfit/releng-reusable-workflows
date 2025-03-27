@@ -109,7 +109,7 @@ runs:
     - name: Download remote build script
       if: inputs.BUILD_WRAPPER_URL != ''
       # yamllint disable-line rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/url-download-action@1d327501514102db5018642036a974e79415ec5a # v0.2.8
+      uses: lfreleng-actions/url-download-action@f7b3d37ff5cc61c55c25cd54e95552ce110375a2 # v0.1.1
       with:
         url: ${{ inputs.build_wrapper_url }}
 
