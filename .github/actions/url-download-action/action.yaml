@@ -21,7 +21,7 @@ inputs:
     required: false
     default: "false"
   PATH:
-    description: "Saves file to given path"
+    description: "Save file to this filesystem path"
     required: false
 
 runs:
@@ -42,16 +42,18 @@ runs:
       shell: bash
       # yamllint disable rule:line-length
       run: |
-        # Download content at URL
+        # Download content at URL ⬇️
 
         # Process inputs, set variable/parameters
         URL="${{ inputs.url }}"
+
         # Case insensitive matching of strings representing booleans
         EXIT_ON_FAIL=$(echo ${{ inputs.exit_on_fail }} | tr '[:upper:]' '[:lower:]')
         NO_CLOBBER=$(echo ${{ inputs.no_clobber }} | tr '[:upper:]' '[:lower:]')
 
+        WGET_FLAGS="-q"
         if [ "f$NO_CLOBBER" = "ftrue" ]; then
-          WGET_FLAGS="--no-clobber"
+          WGET_FLAGS="$WGET_FLAGS --no-clobber"
         fi
         if [ -n "${{ inputs.path }}" ]; then
           WGET_FLAGS="$WGET_FLAGS -O ${{ inputs.path }}"
@@ -61,10 +63,16 @@ runs:
         echo "$URL"
 
         # Perform the download
-        wget ${{ inputs.url }} $WGET_FLAGS --spider -q || true
+        wget "$URL" $WGET_FLAGS || true
 
         # Validate download, exit appropriately
-        DOWNLOAD=$(basename ${{ inputs.url }})
+
+        if [ -n "${{ inputs.path }}" ]; then
+          DOWNLOAD="${{ inputs.path }}"
+        else
+          DOWNLOAD=$(basename ${{ inputs.url }})
+        fi
+
         if [ -f "$DOWNLOAD" ]; then
           echo "Content successfully downloaded ✅"
         else
