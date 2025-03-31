@@ -74,13 +74,13 @@ jobs:
     steps:
       - name: "Build Node.js project"
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/node-build-action@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
+        uses: lfit/releng-reusable-workflows/.github/actions/node-build-action@ac846b1cfeaf3a7cac6f28413a5206afc9951464 # v0.2.11
 
   sonartype-lifecycle:
     name: "Sonatype Lifecycle Scan"
     needs: [notify, build-nodejs]
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@9b845102d5158f0b80bd53405a0b6855b26dc4a0 # v0.2.9
+    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@ac846b1cfeaf3a7cac6f28413a5206afc9951464 # v0.2.11
     secrets:
       NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
 
