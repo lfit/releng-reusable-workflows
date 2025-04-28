@@ -1,5 +1,0 @@
-Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-
-Files: node_modules/**
-Copyright: 2024 The Linux Foundation
-License: Apache-2.0

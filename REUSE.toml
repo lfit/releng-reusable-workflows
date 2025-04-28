@@ -1,0 +1,7 @@
+version = 1
+
+[[annotations]]
+path = "node_modules/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2024 The Linux Foundation"
+SPDX-License-Identifier = "Apache-2.0"
