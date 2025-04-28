@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2023 The Linux Foundation
 # SPDX-License-Identifier: Apache-2.0
 ci:
-  autofix_commit_msg: "Chore: pre-commit autoupdate"
+  autoupdate_commit_msg: "Chore: pre-commit autoupdate"
 
 exclude: "^docs/conf.py"
 
