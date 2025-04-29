@@ -99,7 +99,7 @@ jobs:
     needs: prepare
     # use compose-repo-linting from the v0.4 series of releng-reusable-workflows
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-repo-linting.yaml@ac846b1cfeaf3a7cac6f28413a5206afc9951464 # v0.2.11
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-repo-linting.yaml@2a1566a557320810e89d1da3f9692292bb485313 # v0.2.12
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
@@ -115,7 +115,7 @@ jobs:
     needs: prepare
     # use compose-jjb-verify from the v0.4 series of releng-reusable-workflows
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-jjb-verify.yaml@ac846b1cfeaf3a7cac6f28413a5206afc9951464 # v0.2.11
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-jjb-verify.yaml@2a1566a557320810e89d1da3f9692292bb485313 # v0.2.12
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
@@ -132,7 +132,7 @@ jobs:
     # use compose-packer-verify from the v0.4 series of
     # releng-reusable-workflows
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@ac846b1cfeaf3a7cac6f28413a5206afc9951464 # v0.2.11
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@2a1566a557320810e89d1da3f9692292bb485313 # v0.2.12
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
