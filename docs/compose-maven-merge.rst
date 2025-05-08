@@ -81,4 +81,4 @@ or hardcoding inputs/variables that apply to all repos in an organization).
     :secrets.CENTRAL_PASSWORD: Password or token for push to Maven Central.
 
 ..  # SPDX-License-Identifier: Apache-2.0
-    # SPDX-FileCopyrightText: Copyright 2024 The Linux Foundation
+    # SPDX-FileCopyrightText: Copyright 2025 The Linux Foundation
