@@ -1,9 +1,9 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2024 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 # Verifies action/workflow calls are pinned to SHA commit values
-name: 📌 [R] Audit GitHub Actions
+name: '📌 [R] Audit GitHub Actions'
 
 # yamllint disable-line rule:truthy
 on:
@@ -13,11 +13,11 @@ permissions: {}
 
 jobs:
   check-actions:
-    name: Pinned Versions
-    runs-on: ubuntu-24.04
+    name: 'Pinned Versions'
+    runs-on: 'ubuntu-24.04'
     permissions:
       contents: read
     steps:
-      - name: Check Pinned Versions
+      - name: 'Check Pinned Versions'
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/pinned-versions-action@b20d15799ca2b9a492b61c4dde4081f0bc96baa7 # v0.2.13
+        uses: lfreleng-actions/pinned-versions-action@cde1c07452cbfcc2bef79fd4b14e90e5efbd8fc2 # v0.1.0
