@@ -43,7 +43,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 24e02b24b8ab2b7c76225602d13fa60e12d114e6  # frozen: v0.11.9
+    rev: 12753357c00c3fb8615100354c9fdc6ab80b044d  # frozen: v0.11.10
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -68,7 +68,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: 586c3ea3f51230da42bab657c6a32e9e66c364f0 # frozen: v0.44.0
+    rev: 192ad822316c3a22fb3d3cc8aa6eafa0b8488360  # frozen: v0.45.0
     hooks:
       - id: markdownlint
         args: ["--fix"]
