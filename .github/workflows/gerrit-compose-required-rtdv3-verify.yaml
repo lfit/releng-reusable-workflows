@@ -86,7 +86,7 @@ jobs:
 
       - name: Get Python version from TOX configuration
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/file-grep-regex-action@b20d15799ca2b9a492b61c4dde4081f0bc96baa7 # v0.2.13
+        uses: lfit/releng-reusable-workflows/.github/actions/file-grep-regex-action@fdcd10bc0fe174fe7d8834b2ba3a30159b4bf0bf # v0.2.14
         id: python-version-from-tox
         with:
           # https://regex101.com/r/axPzef/1

@@ -133,7 +133,7 @@ jobs:
           curl https://raw.githubusercontent.com/lfit/releng-global-jjb/master/shell/cmake-sonarqube.sh | bash
       - name: Run Sonar Cloud scan
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@b20d15799ca2b9a492b61c4dde4081f0bc96baa7 # v0.2.13
+        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@fdcd10bc0fe174fe7d8834b2ba3a30159b4bf0bf # v0.2.14
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
