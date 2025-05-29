@@ -2,48 +2,53 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
-name: "⛔️ [R] Standalone Linting"
+name: '⛔️ [R] Standalone Linting'
 
 # yamllint disable-line rule:truthy
 on:
   workflow_call:
     inputs:
-      CONFIG_URL:
-        description: "Download location linting configuration file"
-        type: string
+      config_url:
+        description: 'Download URL for pre-commit linting configuration file'
+        type: 'string'
         required: false
-        # yamllint disable-line rule:line-length
-        default: "https://raw.githubusercontent.com/lfit/releng-reusable-workflows/refs/heads/main/.github/actions/standalone-linting-action/pre-commit-config.yaml"
-      DEPENDENCIES_URL:
+      dependencies_url:
         description: "Download location for additional Python dependencies"
+        type: 'string'
+        required: false
+      branch_name:
+        description: 'Checkout this branch name prior to running linting'
+        type: 'string'
+        required: false
+      path_prefix:
+        description: 'Directory location containing project code'
+        type: 'string'
+        required: false
+      no_checkout:
+        description: 'Do not checkout local repository; used for testing'
+        type: 'string'
+        required: false
+      python-version:
+        description: 'Python version used to run pre-commit hooks'
         type: string
         required: false
-      REMOTE_CONFIG:
-        description: "Ignore local configuration; always install from remote"
-        type: string
-        required: false
-        default: "true"
-      PYTHON-VERSION:
-        description: "Python version used to run pre-commit hooks"
-        type: string
-        required: false
-        # Needs to be maintained; best practice to always provide setup-python
-        default: "3.12"
 
 permissions: {}
 
 jobs:
   linting:
-    name: "Pre-Commit"
-    runs-on: "ubuntu-24.04"
+    name: 'Pre-Commit'
+    runs-on: 'ubuntu-latest'
     permissions:
       contents: read
     steps:
-      - name: "Standalone linting action"
+      - name: 'Standalone linting"'
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/standalone-linting-action@fdcd10bc0fe174fe7d8834b2ba3a30159b4bf0bf # v0.2.14
+        uses: lfreleng-actions/standalone-linting-action@cd0e39a5420ae667ad3efe5c14aa39d7d2a159db # v0.1.0
         with:
           config_url: ${{ inputs.config_url }}
           dependencies_url: ${{ inputs.dependencies_url }}
-          remote_config: ${{ inputs.remote_config }}
+          branch_name: ${{ inputs.branch_name }}
+          path_prefix: ${{ inputs.path_prefix }}
+          no_checkout: ${{ inputs.no_checkout }}
           python-version: ${{ inputs.python-version }}
