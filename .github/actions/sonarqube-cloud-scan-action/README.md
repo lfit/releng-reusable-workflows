@@ -80,7 +80,7 @@ portal. For further details on populating the scan configuration file with
 the required information, refer to the documentation links in the section
 below.
 
-# SonarQube Cloud Documentation
+## SonarQube Cloud Documentation
 
 See: <https://github.com/SonarSource/sonarqube-scan-action>
 
