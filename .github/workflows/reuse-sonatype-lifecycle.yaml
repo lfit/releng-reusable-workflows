@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: "."
+      DEBUG:
+        description: "Enable debug logging"
+        required: false
+        type: boolean
+        default: false
     # Re-usable workflow requires secrets be explicitly passed
     secrets:
       NEXUS_IQ_PASSWORD:
@@ -60,6 +65,17 @@ jobs:
           distribution: ${{ inputs.JAVA_DISTRIBUTION }}
           java-version: ${{ inputs.JAVA_VERSION }}
 
+      - name: Show local directory context
+        if: ${{ inputs.debug }}
+        shell: bash
+        run: |
+          # Show local directory context
+          echo "Debug logging enabled 🐞"
+          echo "Current directory: $(pwd)"
+          echo "GitHub workspace: ${{ github.workspace }}"
+          echo "Directory content:"
+          ls -la
+
       - name: Run Sonatype CLI
         # yamllint disable-line rule:line-length
         uses: sonatype/actions/run-iq-cli@2464d8cc1d12f80ba0b5ba8f9d85ac258556a39e # v1.4.3
@@ -69,3 +85,4 @@ jobs:
           password: ${{ secrets.NEXUS_IQ_PASSWORD }}
           application-id: ${{ inputs.APPLICATION_ID }}
           scan-targets: ${{ inputs.SCAN_TARGETS }}
+          debug: ${{ inputs.debug }}
