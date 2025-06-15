@@ -10,34 +10,39 @@ on:
   workflow_call:
     inputs:
       # Optional
-      SONAR_ROOT_CERT:
+      sonar_root_cert:
         description: "Server root certificate PEM encoded"
         type: string
         required: false
-      BUILD_WRAPPER_URL:
+      build_wrapper_url:
         # yamllint disable-line rule:line-length
         # e.g. https://raw.githubusercontent.com/o-ran-sc/ci-management/refs/heads/master/jjb/com-golog/prescan-golog-go-ubuntu.sh
         description: "Download location of build wrapper/script"
         type: string
         required: false
-      BUILD_WRAPPER_OUT_DIR:
+      build_wrapper_out_dir:
         description: "Filesystem location of build outputs"
         type: string
         required: false
-      SONAR_HOST_URL:
+      sonar_host_url:
         description: "Uploads scans to the given host URL"
         type: string
         required: false
         default: "https://sonarcloud.io"
-      LC_ALL:
+      lc_all:
         # yamllint disable-line rule:line-length
         description: "Change when code character set is outside the range of en_US.UTF-8"
         type: string
         required: false
         default: "en_US.UTF-8"
+      debug:
+        description: "Enable debugging output"
+        type: boolean
+        required: false
+        default: false
     # Re-usable workflow requires secrets be explicitly passed
     secrets:
-      SONAR_TOKEN:
+      sonar_token:
         description: "SonarQube API key/token"
         required: true
 
@@ -48,11 +53,12 @@ jobs:
     steps:
       - name: "SonarQube Cloud Scan"
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/sonarqube-cloud-scan-action@fdcd10bc0fe174fe7d8834b2ba3a30159b4bf0bf # v0.2.14
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@2aaaeb724759db0eda25d28ece3339f395a9d49c # v0.1.0
         with:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_ROOT_CERT: ${{ inputs.SONAR_ROOT_CERT }}
-          BUILD_WRAPPER_URL: ${{ inputs.BUILD_WRAPPER_URL }}
-          BUILD_WRAPPER_OUT_DIR: ${{ inputs.BUILD_WRAPPER_OUT_DIR }}
-          SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
-          LC_ALL: ${{ inputs.LC_ALL }}
+          sonar_token: ${{ secrets.sonar_token }}
+          sonar_root_cert: ${{ inputs.sonar_root_cert }}
+          build_wrapper_url: ${{ inputs.build_wrapper_url }}
+          build_wrapper_out_dir: ${{ inputs.build_wrapper_out_dir }}
+          sonar_host_url: ${{ inputs.sonar_host_url }}
+          lc_all: ${{ inputs.lc_all }}
+          debug: ${{ inputs.debug }}

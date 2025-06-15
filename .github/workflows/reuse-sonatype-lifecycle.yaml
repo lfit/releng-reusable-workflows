@@ -9,40 +9,40 @@ name: "[R] sonatype-lifecycle"
 on:
   workflow_call:
     inputs:
-      JAVA_DISTRIBUTION:
+      java_distribution:
         description: "JAVA SE distribution to setup/run for Nexus CLI tool"
         required: false
         type: string
         default: "temurin"
-      JAVA_VERSION:
+      java_version:
         description: "Java runtime to setup/run for Nexus CLI tool"
         required: false
         type: number
         default: 17
-      IQ_CLI_VERSION:
+      iq_cli_version:
         description: "Specific version of Nexus CLI to setup/run"
         required: false
         type: string
-        default: "1.179.0-01"
-      APPLICATION_ID:
+        default: "2.4.2-01"
+      application_id:
         description: "Organisation and project name in Nexus IQ"
         required: false
         type: string
         # yamllint disable-line rule:line-length
         default: ${{ github.repository_owner }}-${{ github.event.repository.name }}
-      SCAN_TARGETS:
+      scan_targets:
         description: "Location of file(s) or folder(s) to scan"
         required: false
         type: string
         default: "."
-      DEBUG:
+      debug:
         description: "Enable debug logging"
         required: false
         type: boolean
         default: false
     # Re-usable workflow requires secrets be explicitly passed
     secrets:
-      NEXUS_IQ_PASSWORD:
+      nexus_iq_password:
         description: "Nexus IQ Password"
         required: true
 
@@ -51,38 +51,16 @@ jobs:
     name: "Scan"
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Sonatype CLI
+      - name: "Sonatype Lifecycle Scan"
         # yamllint disable-line rule:line-length
-        uses: sonatype/actions/setup-iq-cli@2464d8cc1d12f80ba0b5ba8f9d85ac258556a39e # v.1.4.3
+        uses: lfreleng-actions/sonatype-lifecycle-scan-action@91b0d6c368e06bd596fb3a4df83a9bb6479bed93 # v0.1.0
         with:
-          iq-cli-version: ${{ inputs.IQ_CLI_VERSION }}
-
-      # Sonatype CLI requires Java to run
-      - name: Setup Java runtime
-        # yamllint disable-line rule:line-length
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
-        with:
-          distribution: ${{ inputs.JAVA_DISTRIBUTION }}
-          java-version: ${{ inputs.JAVA_VERSION }}
-
-      - name: Show local directory context
-        if: ${{ inputs.debug }}
-        shell: bash
-        run: |
-          # Show local directory context
-          echo "Debug logging enabled 🐞"
-          echo "Current directory: $(pwd)"
-          echo "GitHub workspace: ${{ github.workspace }}"
-          echo "Directory content:"
-          ls -la
-
-      - name: Run Sonatype CLI
-        # yamllint disable-line rule:line-length
-        uses: sonatype/actions/run-iq-cli@2464d8cc1d12f80ba0b5ba8f9d85ac258556a39e # v1.4.3
-        with:
-          iq-server-url: ${{ vars.NEXUS_IQ_SERVER }}
-          username: ${{ vars.NEXUS_IQ_USERNAME }}
-          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
-          application-id: ${{ inputs.APPLICATION_ID }}
-          scan-targets: ${{ inputs.SCAN_TARGETS }}
+          nexus_iq_server: ${{ vars.NEXUS_IQ_SERVER }}
+          nexus_iq_username: ${{ vars.NEXUS_IQ_USERNAME }}
+          nexus_iq_password: ${{ secrets.nexus_iq_password }}
+          java_distribution: ${{ inputs.java_distribution }}
+          java_version: ${{ inputs.java_version }}
+          iq_cli_version: ${{ inputs.iq_cli_version }}
+          application_id: ${{ inputs.application_id }}
+          scan_targets: ${{ inputs.scan_targets }}
           debug: ${{ inputs.debug }}
