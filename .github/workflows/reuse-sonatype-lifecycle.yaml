@@ -53,7 +53,7 @@ jobs:
     steps:
       - name: "Sonatype Lifecycle Scan"
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonatype-lifecycle-scan-action@91b0d6c368e06bd596fb3a4df83a9bb6479bed93 # v0.1.0
+        uses: lfreleng-actions/sonatype-lifecycle-scan-action@40d8e15deff16aeec890657406e3ba0a0bf92e1e # v0.1.0
         with:
           nexus_iq_server: ${{ vars.NEXUS_IQ_SERVER }}
           nexus_iq_username: ${{ vars.NEXUS_IQ_USERNAME }}
