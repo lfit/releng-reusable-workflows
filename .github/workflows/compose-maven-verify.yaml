@@ -42,7 +42,7 @@ on:
         type: string
       GERRIT_REFSPEC:
         description: "Gerrit refspec of change"
-        required: false
+        required: true
         type: string
       JDK_VERSION:
         description: "OpenJDK version"
@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ inputs.GERRIT_BRANCH }}
+          ref: ${{ inputs.GERRIT_REFSPEC }}
           submodules: "true"
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0

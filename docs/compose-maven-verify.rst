@@ -32,7 +32,7 @@ It verifies the integrity and correctness of Maven-based projects by running Mav
     :GERRIT_PROJECT: The project in Gerrit that the change belongs to.
         Default: None (Optional)
     :GERRIT_REFSPEC: The refspec of the change in Gerrit.
-        Default: None (Optional)
+        Default: None (Required)
     :JDK_VERSION: The version of OpenJDK to use for the build.
         Default: "17" (Optional)
     :MVN_VERSION: The version of Maven to use for the build.
