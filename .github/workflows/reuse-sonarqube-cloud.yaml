@@ -53,7 +53,7 @@ jobs:
     steps:
       - name: "SonarQube Cloud Scan"
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonarqube-cloud-scan-action@2aaaeb724759db0eda25d28ece3339f395a9d49c # v0.1.0
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@923fe3ccda484bf4114eec08e3bfc41980f0ba06 # v0.1.1
         with:
           sonar_token: ${{ secrets.sonar_token }}
           sonar_root_cert: ${{ inputs.sonar_root_cert }}
