@@ -130,6 +130,6 @@ jobs:
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/sonarqube-cloud-scan-action@bad9028f5252eb1432340d891f9b3a589f0280c1 # v0.1.2
         with:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
           args: ${{ inputs.SONAR_ARGS }}
           projectBaseDir: ${{ inputs.SONAR_PROJECTBASEDIR }}
