@@ -51,14 +51,14 @@ jobs:
 
       - name: 'Initialize CodeQL'
         # yamllint disable-line rule:line-length
-        uses: github/codeql-action/init@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
+        uses: github/codeql-action/init@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
       - name: "Perform CodeQL Analysis: ${{ matrix.language }}"
         # yamllint disable-line rule:line-length
-        uses: github/codeql-action/analyze@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
+        uses: github/codeql-action/analyze@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
         with:
           output: codeql-results  # Specify the output directory for results
 
