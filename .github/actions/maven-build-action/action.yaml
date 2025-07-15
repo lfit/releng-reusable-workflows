@@ -73,6 +73,7 @@ runs:
       with:
         java-version: ${{ inputs.jdk-version }}
         maven-version: ${{ inputs.mvn-version }}
+        checkout-enabled: false
     - name: Export env variables
       id: export-env-variables
       # yamllint disable-line rule:line-length
