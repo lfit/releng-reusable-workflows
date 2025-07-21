@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2023 The Linux Foundation
 
-name: Compose Maven Verify
+name: Compose Make Verify
 
 # yamllint disable-line rule:truthy
 on:
@@ -100,7 +100,7 @@ jobs:
           python-version: "3.8"
       - name: Run Make
         # yamllint disable-line rule:line-length
-        uses: ravipendurty/releng-reusable-workflows/.github/actions/make-build-action@main # v0.2.18
+        uses: ravipendurty/releng-reusable-workflows/.github/actions/make-build-action # v0.2.18
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
