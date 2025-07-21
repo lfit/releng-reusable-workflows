@@ -1,0 +1,84 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2023 The Linux Foundation
+
+name: "maven-build-using-make"
+description: "Setup Maven and run make"
+
+inputs:
+  jdk-version:
+    description: "OpenJDK version"
+    required: false
+    default: "17"
+  mvn-version:
+    description: "Maven version"
+    required: false
+    default: "3.8.2"
+  env-vars:
+    # yamllint disable-line rule:line-length
+    description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
+    required: false
+    default: "{}"
+  env-secrets:
+    # yamllint disable-line rule:line-length
+    description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
+    required: false
+    default: "{}"
+  run-jacoco:
+    description: "Boolean defining whether Jacoco should be run"
+    required: false
+    default: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup JDK
+      id: setup-jdk
+      # yamllint disable-line rule:line-length
+      uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
+      with:
+        java-version: ${{ inputs.jdk-version }}
+        distribution: "temurin"
+    - name: Setup Maven
+      id: setup-maven
+      # yamllint disable-line rule:line-length
+      uses: s4u/setup-maven-action@4f7fb9d9675e899ca81c6161dadbba0189a4ebb1 # v1.18.0
+      with:
+        java-version: ${{ inputs.jdk-version }}
+        maven-version: ${{ inputs.mvn-version }}
+        checkout-enabled: false
+    - name: Export env variables
+      id: export-env-variables
+      # yamllint disable-line rule:line-length
+      uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
+      with:
+        secrets: ${{ inputs.env-vars }}
+    - name: Export env secrets
+      id: export-env-secrets
+      # yamllint disable-line rule:line-length
+      uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
+      with:
+        secrets: ${{ inputs.env-secrets }}
+    - name: Build code with Make
+      id: build-make
+      shell: bash
+      # yamllint disable rule:line-length
+      run: make all
+      # yamllint enable rule:line-length
+    - name: Generate JaCoCo Badge
+      id: jacoco
+      if: ${{ !env.ACT && inputs.run-jacoco }} # skip during local testing
+      # yamllint disable-line rule:line-length
+      uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 # v2.11.0
+      with:
+        badges-directory: badges
+        generate-branches-badge: true
+        generate-summary: true
+        on-missing-report: quiet
+    - name: Log coverage percentage
+      id: log-coverage
+      if: ${{ inputs.run-jacoco && steps.jacoco.outcome == 'success' }}
+      shell: bash
+      run: |
+        echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
+        echo "branch coverage = ${{ steps.jacoco.outputs.branches }}"
