@@ -1,6 +1,6 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2023 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 name: Compose Make Verify
 
@@ -54,15 +54,10 @@ on:
         required: false
         default: "3.8.2"
         type: string
-      MVN_PARAMS:
-        description: "Maven parameters to pass to the mvn command"
+      MAKE_TARGETS:
+        description: "Make targets to pass to the make command"
         required: false
-        default: ""
-        type: string
-      MVN_PHASES:
-        description: "Comma separated list of phases to execute"
-        required: false
-        default: "clean deploy"
+        default: "all"
         type: string
       ENV_VARS:
         # yamllint disable-line rule:line-length
@@ -100,10 +95,11 @@ jobs:
           python-version: "3.8"
       - name: Run Make
         # yamllint disable-line rule:line-length
-        uses: ravipendurty/releng-reusable-workflows/.github/actions/make-build-action@main # v0.2.18
+        uses: ravipendurty/releng-reusable-workflows/.github/actions/make-build-action@main # main
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
+          make-targets: ${{ inputs.MAKE_TARGETS }}
           env-vars: ${{ inputs.ENV_VARS }}
           env-secrets: ${{ inputs.ENV_SECRETS }}
 

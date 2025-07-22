@@ -1,6 +1,6 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2023 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 name: "maven-build-using-make"
 description: "Setup Maven and run make"
@@ -14,6 +14,10 @@ inputs:
     description: "Maven version"
     required: false
     default: "3.8.2"
+  make-targets:
+    description: "Targets for the make command"
+    required: false
+    default: "all"
   env-vars:
     # yamllint disable-line rule:line-length
     description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
@@ -63,7 +67,7 @@ runs:
       id: build-make
       shell: bash
       # yamllint disable rule:line-length
-      run: make all
+      run: make ${{ inputs.make-targets }}
       # yamllint enable rule:line-length
     - name: Generate JaCoCo Badge
       id: jacoco
