@@ -8,6 +8,18 @@ name: Compose Maven Merge
 on:
   workflow_call:
     inputs:
+      GERRIT_EVENT_TYPE: 
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
+      GERRIT_PATCHSET_NUMBER: 
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
+      GERRIT_PATCHSET_REVISION: 
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
       # GERRIT_BRANCH:
       #   description: "Branch that change is against"
       #   required: true
