@@ -8,6 +8,10 @@ name: Compose Maven Merge
 on:
   workflow_call:
     inputs:
+      ENV_VARS:
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
       GERRIT_PROJECT:
         description: "Gerrit refspec of change"
         required: false
@@ -78,6 +82,7 @@ on:
         required: false
         default: ""
         type: string
+        
 
 # concurrency:
 #   # yamllint disable-line rule:line-length
