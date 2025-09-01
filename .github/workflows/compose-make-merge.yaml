@@ -8,6 +8,10 @@ name: Compose Maven Merge
 on:
   workflow_call:
     inputs:
+      GERRIT_PROJECT:
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
       GERRIT_EVENT_TYPE: 
         description: "Gerrit refspec of change"
         required: false
