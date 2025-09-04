@@ -7,6 +7,9 @@ name: Compose Maven Merge
 # yamllint disable-line rule:truthy
 on:
   workflow_call:
+    secrets:                     # define what secrets it expects
+      NEXUS_PASSWORD:
+        required: true
     inputs:
       ENV_VARS:
         description: "Gerrit refspec of change"
@@ -112,6 +115,8 @@ jobs:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
           make-targets: ${{ inputs.MAKE_TARGETS }}
+        env:                         # map secrets into env vars
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
       # - name: Sign artifacts
       #   # yamllint disable-line rule:line-length
       #   # uses: lfit/sigul-sign-action@39307c0b992e7c92ca4d2558409da96c0cc2bc15 # v1.0.0
