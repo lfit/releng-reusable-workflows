@@ -108,6 +108,13 @@ jobs:
       #   id: setup-python
       #   with:
       #     python-version: "3.10"
+      - name: Debug settings.xml
+        env:                         # map secrets into env vars
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          echo "------ Effective Settings ------"
+          echo "Password length = ${#NEXUS_PASSWORD}"
+          mvn help:effective-settings -s settings.xml
       - name: Run Maven
         # yamllint disable-line rule:line-length
         uses: ravipendurty/releng-reusable-workflows/.github/actions/make-build-action@main # main
