@@ -114,7 +114,7 @@ jobs:
         run: |
           echo "------ Effective Settings ------"
           echo "Password length = ${#NEXUS_PASSWORD}"
-          mvn help:effective-settings -s settings.xml
+          mvn help:effective-settings -s settings.xml -f parents/pom.xml
       - name: Run Maven
         # yamllint disable-line rule:line-length
         uses: ravipendurty/releng-reusable-workflows/.github/actions/make-build-action@main # main
