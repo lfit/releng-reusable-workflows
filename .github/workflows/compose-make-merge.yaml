@@ -1,0 +1,65 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+name: Compose Maven Merge
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    secrets:                     # define what secrets it expects
+      NEXUS_PASSWORD:
+        required: true
+    inputs:
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: false
+        type: string
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      MAKE_TARGETS:
+        description: "Make targets to pass to the make command"
+        required: false
+        default: "all"
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-make-merge-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}-${{ inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  maven-merge:
+    runs-on: ubuntu-latest
+    steps:
+      # yamllint disable-line rule:line-length
+      - uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+      - name: Run Maven
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/maven-make-build-action@59d078ca61a7bba9a46649a615094300b8e4c2dd # v0.1.0
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          make-targets: ${{ inputs.MAKE_TARGETS }}
+        env:                         # map secrets into env vars
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
