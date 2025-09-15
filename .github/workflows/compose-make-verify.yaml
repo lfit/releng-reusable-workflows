@@ -1,0 +1,105 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+name: Compose Make Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: false
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: false
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: false
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: false
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: false
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: false
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: false
+        type: string
+      JDK_VERSION:
+        description: "OpenJDK version"
+        required: false
+        default: "17"
+        type: string
+      MVN_VERSION:
+        description: "Maven version"
+        required: false
+        default: "3.8.2"
+        type: string
+      MAKE_TARGETS:
+        description: "Make targets to pass to the make command"
+        required: false
+        default: "all"
+        type: string
+      ENV_VARS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+      ENV_SECRETS:
+        # yamllint disable-line rule:line-length
+        description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
+        required: false
+        default: "{}"
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-make-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  make-verify:
+    runs-on: ubuntu-latest
+    steps:
+      # yamllint disable-line rule:line-length
+      - uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          repository: ${{ inputs.GERRIT_PROJECT }}
+          delay: "0s"
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        id: setup-python
+        with:
+          python-version: "3.8"
+      - name: Run Make
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/maven-make-build-action@59d078ca61a7bba9a46649a615094300b8e4c2dd # v0.1.0
+        with:
+          jdk-version: ${{ inputs.JDK_VERSION }}
+          mvn-version: ${{ inputs.MVN_VERSION }}
+          make-targets: ${{ inputs.MAKE_TARGETS }}
+          env-vars: ${{ inputs.ENV_VARS }}
+          env-secrets: ${{ inputs.ENV_SECRETS }}
+
