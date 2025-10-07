@@ -20,4 +20,4 @@ jobs:
     steps:
       - name: 'Check Pinned Versions'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/pinned-versions-action@cde1c07452cbfcc2bef79fd4b14e90e5efbd8fc2 # v0.1.0
+        uses: lfreleng-actions/pinned-versions-action@1deefbe98d5f8e463ffd3943d5019fdfb7931ab0 # v0.1.1
