@@ -50,7 +50,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 9c89adb347f6b973f4905a4be0051eb2ecf85dea  # frozen: v0.13.3
+    rev: f9351c924055bf6c7b4a4670237d3ce141e9f57c  # frozen: v0.14.0
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -81,13 +81,13 @@ repos:
         args: ["--fix"]
 
   - repo: https://github.com/fsfe/reuse-tool
-    rev: 3b1a1a25613abcbe1afa2e0226a39b7cf1017d88  # frozen: v6.0.0
+    rev: 9245cd26448e246cda84f70711cc9d5f970855d6  # frozen: v6.1.2
     hooks:
       - id: reuse
 
   # Replaces: https://github.com/rhysd/actionlint
   # Permits actionlint to run both locally and with precommit.ci/GitHub
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: f999ae59ac949d9b57aaa5569c2d60eb846b3a00  # frozen: v1.7.7.24
+    rev: 2773c7d04be5d0ceb075f215b6d0a4eacd4a432b  # frozen: v1.7.8.24
     hooks:
       - id: actionlint
