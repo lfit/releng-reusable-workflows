@@ -51,6 +51,18 @@ on:
         required: false
         default: "{}"
         type: string
+      SAVE_DOCKER_ARTIFACTS:
+        # yamllint disable-line rule:line-length
+        description: "whether to save docker artifacts created by the build or not"
+        required: false
+        default: false
+        type: boolean
+      DOCKER_ARTIFACTS_TO_SAVE:
+        # yamllint disable-line rule:line-length
+        description: "Space separated list of docker image names to save. Mandatory if SAVE_DOCKER_ARTIFACTS is true"
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -77,3 +89,9 @@ jobs:
           make-targets: ${{ inputs.MAKE_TARGETS }}
           env-vars: ${{ inputs.ENV_VARS }}
           env-secrets: ${{ inputs.ENV_SECRETS }}
+      - name: Save Artifacts
+        if: ${{ inputs.SAVE_DOCKER_ARTIFACTS }}
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/docker-save-images-action@031ec24b6210550c666851f59456c130efa17789
+        with:
+          docker-artifacts-to-save: ${{ inputs.DOCKER_ARTIFACTS_TO_SAVE }}
