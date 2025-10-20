@@ -173,7 +173,7 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Install jfrog cli
         # yamllint disable-line rule:line-length
-        uses: jfrog/setup-jfrog-cli@c32bf10843e4071112c4ea3abf622d3b27cd8c17 # v4.7.0
+        uses: jfrog/setup-jfrog-cli@e5d3afdd1d75e4aa14a4f217cca93a2a9b5b846d # v4.8.0
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
