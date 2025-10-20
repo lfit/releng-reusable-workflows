@@ -7,8 +7,10 @@ name: Compose Maven Merge
 # yamllint disable-line rule:truthy
 on:
   workflow_call:
-    secrets:                     # define what secrets it expects
-      NEXUS_PASSWORD:
+    secrets:
+      VAULT_MAPPING_JSON:
+        required: true
+      OP_SERVICE_ACCOUNT_TOKEN:
         required: true
     inputs:
       GERRIT_CHANGE_ID:
@@ -48,12 +50,26 @@ jobs:
   maven-merge:
     runs-on: ubuntu-latest
     steps:
+      # Harden the runner used by this workflow
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: 'audit'
+
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-url: ${{ vars.GERRIT_URL }}
           delay: "0s"
+
+      - name: "Load project/repository credentials"
+      # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/credential-load-action@fbc59159612005541035fe47730a21d872b6082a # v0.1.0
+        with:
+          vault_mapping_json: ${{ secrets.VAULT_MAPPING_JSON }}
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
       - name: Run Maven
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/maven-make-build-action@59d078ca61a7bba9a46649a615094300b8e4c2dd # v0.1.0
@@ -62,4 +78,4 @@ jobs:
           mvn-version: ${{ inputs.MVN_VERSION }}
           make-targets: ${{ inputs.MAKE_TARGETS }}
         env:                         # map secrets into env vars
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          NEXUS_PASSWORD: ${{ env.CREDENTIAL }}
