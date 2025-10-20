@@ -80,7 +80,7 @@ jobs:
     name: "Sonatype Lifecycle Scan"
     needs: [notify, build-nodejs]
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@353a06e737c950cb297b3138784729ebd24e4861 # v0.2.22
+    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@aa120f2c452e600b606d6a646baa9e8ca4dfc294 # v0.2.23
     secrets:
       NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
 

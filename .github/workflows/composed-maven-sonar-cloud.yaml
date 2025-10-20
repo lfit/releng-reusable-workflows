@@ -130,7 +130,7 @@ jobs:
           python-version: "3.8"
       - name: Run Maven
         # yamllint disable rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@353a06e737c950cb297b3138784729ebd24e4861 # v0.2.22
+        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@aa120f2c452e600b606d6a646baa9e8ca4dfc294 # v0.2.23
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
