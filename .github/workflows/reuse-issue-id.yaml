@@ -20,6 +20,6 @@ jobs:
       contents: write
     steps:
       # yamllint disable-line rule:line-length
-      - uses: lfit/releng-reusable-workflows/.github/actions/inject-issue-id-action@353a06e737c950cb297b3138784729ebd24e4861 # v0.2.22
+      - uses: lfit/releng-reusable-workflows/.github/actions/inject-issue-id-action@aa120f2c452e600b606d6a646baa9e8ca4dfc294 # v0.2.23
         with:
           issue_id_lookup_json: ${{ vars.ISSUE_ID_LOOKUP_JSON }}
