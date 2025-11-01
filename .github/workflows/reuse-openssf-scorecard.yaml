@@ -43,7 +43,7 @@ jobs:
 
       - name: "Upload artifact"
         # yamllint disable-line rule:line-length
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: SARIF file
           path: results.sarif
@@ -52,7 +52,7 @@ jobs:
       # Upload the results to GitHub's code scanning dashboard (optional).
       - name: "Upload to code-scanning"
         # yamllint disable-line rule:line-length
-        uses: github/codeql-action/upload-sarif@16140ae1a102900babc80a33c44059580f687047 # 4.30.9
+        uses: github/codeql-action/upload-sarif@4e94bd11f71e507f7f87df81788dff88d1dacbfb # 4.31.0
         with:
           sarif_file: results.sarif
 
@@ -67,4 +67,4 @@ jobs:
         # The upstream action does not provide any useful summary output
         # the action below adds a hyperlink to the OpenSSF Scorecard/report
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/openssf-scorecard-summary-action@aa120f2c452e600b606d6a646baa9e8ca4dfc294 # v0.2.23
+        uses: lfreleng-actions/openssf-scorecard-summary-action@0985db543f90ce527ba6e673f994630a5fcad435 # v0.1.0
