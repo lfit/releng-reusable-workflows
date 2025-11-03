@@ -82,7 +82,7 @@ jobs:
           delay: "0s"
       - name: Run Make
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/maven-make-build-action@59d078ca61a7bba9a46649a615094300b8e4c2dd # v0.1.0
+        uses: lfreleng-actions/maven-make-build-action@8fcc45f031956d05aa98b90b572c1ac88b6d0627 # v0.1.1
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
