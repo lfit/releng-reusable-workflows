@@ -11,6 +11,9 @@
 # precedence over this
 # verbosity = 2
 
+# Set to True to use search semantics instead of match semantics for regex
+regex-style-search=True
+
 # By default gitlint will ignore merge commits. Set to 'false' to disable.
 # ignore-merge-commits=true
 
@@ -28,6 +31,12 @@
 # extra-path=examples/
 
 contrib=contrib-title-conventional-commits,contrib-body-requires-signed-off-by
+
+[title-max-length]
+line-length=120
+
+[body-max-line-length]
+line-length=120
 
 [contrib-title-conventional-commits]
 types=Fix,Feat,Chore,Docs,Style,Refactor,Perf,Test,Revert,CI,Build
