@@ -115,7 +115,7 @@ jobs:
     needs: prepare
     # use compose-jjb-verify from the v0.4 series of releng-reusable-workflows
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-jjb-verify.yaml@b138097fe80abdc0f3d220787cbd82dbe231179c # v0.2.24
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-jjb-verify.yaml@21dee35da5cf13331dad63a2c81ae5bb6d023f95 # v0.2.25
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
