@@ -131,6 +131,6 @@ jobs:
         run: |
           curl https://raw.githubusercontent.com/lfit/releng-global-jjb/master/shell/autotools-sonarqube.sh | bash
       - name: Run Sonar Cloud scan
-        uses: lfreleng-actions/sonarqube-cloud-scan-action@a5fb959e36b1e7957b7cae5f4a12bf14b5c66875 # v0.1.3
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@c72bf92c73d9c41fa12da57f1a50fcdf0d06994c # v0.1.5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
