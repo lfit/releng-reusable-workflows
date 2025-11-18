@@ -125,9 +125,9 @@ jobs:
           python-version: "3.8"
       - name: Run Maven
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/maven-build-action@21dee35da5cf13331dad63a2c81ae5bb6d023f95 # v0.2.25
+        uses: lfreleng-actions/maven-build-action@5be56aed8bed4f0bf9d699f2817eaef37c94ac02 # v0.2.0
         with:
-          jdk-version: ${{ inputs.JDK_VERSION }}
+          java-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
           mvn-params: ${{ inputs.MVN_PARAMS }}
           mvn-phases: ${{ inputs.MVN_PHASES }}

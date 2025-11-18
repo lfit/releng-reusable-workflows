@@ -8,7 +8,7 @@ name: Verify Maven Workflows
 on:
   push:
     paths:
-      - '.github/actions/maven-build-action/**'
+
       - '.github/workflows/compose-maven-verify.yaml'
       - '.github/workflows/compose-maven-merge.yaml'
       - '.github/workflows/zzci-test-verify-maven.yaml'
@@ -16,7 +16,7 @@ on:
       - '.github/workflows/composed-maven-nexus-iq.yaml'
   pull_request:
     paths:
-      - '.github/actions/maven-build-action/**'
+
       - '.github/workflows/compose-maven-verify.yaml'
       - '.github/workflows/compose-maven-merge.yaml'
       - '.github/workflows/zzci-test-verify-maven.yaml'
