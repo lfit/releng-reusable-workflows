@@ -45,7 +45,7 @@ on:
         description: "Gerrit refspec of change"
         required: true
         type: string
-      # Inputs passed to tox-run-action.
+      # Inputs passed to lfreleng-actions/tox-run-action@v0.1.0.
       # These should be defined by the calling workflow ("with:"), not listed
       # as inputs.
       TARGET_REPO:
@@ -104,7 +104,7 @@ jobs:
       matrix:
         tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}
     env:
-      PRE_BUILD: "/dev/null"
+      PRE_BUILD: ""
 
     steps:
       - name: Gerrit checkout
@@ -117,12 +117,7 @@ jobs:
           delay: "0s"
           repository: ${{ inputs.TARGET_REPO }}
           ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
-      - name: Actions checkout # Needed for local action reference
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          repository: lfit/releng-reusable-workflows
-          sparse-checkout: .github/actions/tox-run-action
-          path: reusable-tox-run-action
+
       - name: Pre-build path
         if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
         # yamllint disable-line rule:line-length
@@ -141,10 +136,11 @@ jobs:
           chmod +x "${{ github.run_id }}.sh"
           echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
       - name: Run tox
-        uses: ./reusable-tox-run-action/.github/actions/tox-run-action
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/tox-run-action@796f342d67bf101c9f3f38e3e4c60344ed1fd7fc # v0.1.0
         with:
-          tox-dir: ${{ inputs.TOX_DIR }}
-          py-version: ${{ inputs.PYTHON_VERSION }}
+          path_prefix: ${{ inputs.TOX_DIR }}
+          python-version: ${{ inputs.PYTHON_VERSION }}
           tox-envs: ${{ matrix.tox-env }}
           parallel: ${{ inputs.PARALLEL }}
-          pre-build-script: "$PRE_BUILD"
+          pre-build-script: ${{ env.PRE_BUILD }}
