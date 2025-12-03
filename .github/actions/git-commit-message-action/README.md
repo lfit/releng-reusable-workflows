@@ -27,9 +27,9 @@ actions/workflows.
 
 <!-- markdownlint-disable MD013 -->
 
-| Variable Name  | Mandatory  | Default | Description                                        |
-| -------------- | -----------| ------- | -------------------------------------------------- |
-| COMMIT_NUMBER  | False      | 1       | String of the last/current Git commit message body |
+| Variable Name | Mandatory | Default | Description                                        |
+| ------------- | --------- | ------- | -------------------------------------------------- |
+| COMMIT_NUMBER | False     | 1       | String of the last/current Git commit message body |
 
 <!-- markdownlint-enable MD013 -->
 
