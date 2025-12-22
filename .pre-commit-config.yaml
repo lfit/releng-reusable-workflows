@@ -50,7 +50,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 36243b70e5ce219623c3503f5afba0f8c96fda55  # frozen: v0.14.7
+    rev: 5ba58aca0bd5bc7c0e1c0fc45af2e88d6a2bde83  # frozen: v0.14.10
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -59,7 +59,7 @@ repos:
         files: ^(scripts|tests|custom_components)/.+\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: c2738302f5cf2bfb559c1f210950badb133613ea  # frozen: v1.19.0
+    rev: a66e98df7b4aeeb3724184b332785976d062b92e  # frozen: v1.19.1
     hooks:
       - id: mypy
 
@@ -75,7 +75,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: c8fd5003603dd6f12447314ecd935ba87c09aff5  # frozen: v0.46.0
+    rev: 76b3d32d3f4b965e1d6425253c59407420ae2c43  # frozen: v0.47.0
     hooks:
       - id: markdownlint
         args: ["--fix"]
