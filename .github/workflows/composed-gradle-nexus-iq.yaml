@@ -86,7 +86,7 @@ jobs:
           submodules: "true"
       - name: Run gradle build and CLM scan
         # yamllint disable-line rule:line-length
-        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@9612048260707ee9a004d849426ab293263cc39a # v0.2.27
+        uses: lfit/releng-reusable-workflows/.github/actions/gradle-build-action@b4c8bfdea114d034bfa6ed2fe2c9775bc091d5ca # v0.2.28
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           distribution: ${{ inputs.DISTRIBUTION }}
