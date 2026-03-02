@@ -50,7 +50,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 45ef068da5f21267bb2a7ec4a623092959f09ce5  # frozen: v0.14.14
+    rev: 0839f92796ae388643a08a21640a029b322be5c2  # frozen: v0.15.2
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -88,6 +88,6 @@ repos:
   # Replaces: https://github.com/rhysd/actionlint
   # Permits actionlint to run both locally and with precommit.ci/GitHub
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: 85c37735ea69e5baf0681530e57e63deee0ce733  # frozen: v1.7.10.24
+    rev: 694e2c0dfb4253d51f3c6c54b8f9fec0a16764dc  # frozen: v1.7.11.24
     hooks:
       - id: actionlint
