@@ -1,0 +1,59 @@
+---
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+name: 'Autolabeler'
+
+# yamllint disable-line rule:truthy
+on:
+  # pull_request is required for autolabeler
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  # pull_request_target is required for autolabeler on PRs from forks
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions: {}
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: ${{ format('al-{0}-pr-{1}', github.event_name, github.event.pull_request.number) }}
+  cancel-in-progress: true
+
+jobs:
+  autolabel:
+    name: 'Autolabel PR'
+    # Run on pull_request_target for forks, or pull_request for same-repo PRs
+    # This prevents duplicate runs for same-repo PRs
+    # yamllint disable rule:line-length
+    if: >
+      (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.fork) ||
+      (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork)
+    # yamllint enable rule:line-length
+    # SECURITY: pull_request_target with write permissions is safe here because:
+    # 1. This workflow does NOT checkout any code from the PR
+    # 2. The workflow code itself runs from the base branch (not the fork)
+    # 3. release-drafter only makes GitHub API calls (no code execution)
+    # 4. pull_request_target is needed ONLY for autolabeling fork PRs
+    permissions:
+      # write permission is required for autolabeler
+      pull-requests: write
+      # read is sufficient; autolabeler does not create releases
+      contents: read
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 3
+    steps:
+      # Harden the runner used by this workflow
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+        with:
+          egress-policy: 'audit'
+
+      # yamllint disable-line rule:line-length
+      - uses: release-drafter/release-drafter/autolabeler@44a942e465867c7465b76aa808ddca6e0acae5da # v7.1.0
