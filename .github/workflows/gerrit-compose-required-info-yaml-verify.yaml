@@ -112,10 +112,12 @@ jobs:
           python yaml-verify-schema.py \
               -s info-schema.yaml \
               -y INFO.yaml
-          # Verfiy that there is only one repository and that it matches $PROJECT
+          # Verify that there is only one repository and that it matches $PROJECT_INPUT
+          # Support subproject repos (e.g. integration/distribution) where
+          # INFO.yaml lists the parent project (e.g. integration)
           REPO_LIST="$(yq -r '.repositories[]' INFO.yaml)"
           while IFS= read -r project; do
-              if [[ "$project" == "$PROJECT_INPUT" ]]; then
+              if [[ "$project" == "$PROJECT_INPUT" || "$PROJECT_INPUT" == "$project/"* ]]; then
                   echo "$project is valid"
               else
                   echo "ERROR: $project is invalid"
