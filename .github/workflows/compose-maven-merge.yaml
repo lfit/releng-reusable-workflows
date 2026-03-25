@@ -152,13 +152,13 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Nexus
         # yamllint disable-line rule:line-length
-        uses: lfit/nexus-upload-action@977af1a1db8719876f12ed6d83fa453fcabb2f7a # v0.1.8
+        uses: lfreleng-actions/nexus-publish-action@b53a4638789cba03279c97aeab7f0ce10dbfa991 # v0.1.4
         with:
           nexus_server: ${{ vars.NEXUS_SERVER }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          nexus_repository: ${{ env.NEXUS_REPO }}
-          upload_directory: ${{ inputs.ARTIFACT_DIR }}
+          repository_name: ${{ env.NEXUS_REPO }}
+          files_path: ${{ inputs.ARTIFACT_DIR }}
 
   publish-artifactory:
     needs: maven-merge
@@ -196,10 +196,10 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Maven Central
         # yamllint disable-line rule:line-length
-        uses: lfit/nexus-upload-action@977af1a1db8719876f12ed6d83fa453fcabb2f7a # v0.1.8
+        uses: lfreleng-actions/nexus-publish-action@b53a4638789cba03279c97aeab7f0ce10dbfa991 # v0.1.4
         with:
           nexus_server: ${{ vars.CENTRAL_SERVER }}
           nexus_username: ${{ secrets.CENTRAL_USERNAME }}
           nexus_password: ${{ secrets.CENTRAL_PASSWORD }}
-          nexus_repository: ${{ env.NEXUS_REPO }}
-          upload_directory: ${{ inputs.ARTIFACT_DIR }}
+          repository_name: ${{ env.NEXUS_REPO }}
+          files_path: ${{ inputs.ARTIFACT_DIR }}
