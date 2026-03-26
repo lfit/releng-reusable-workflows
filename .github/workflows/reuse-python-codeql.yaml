@@ -7,6 +7,12 @@ name: "[R] CodeQL Python Scan"
 # yamllint disable-line rule:truthy
 on:
   workflow_call:
+    inputs:
+      codeql_config:
+        description: "Path to a CodeQL config file (relative to repo root)"
+        required: false
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -55,6 +61,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          config-file: ${{ inputs.codeql_config }}
 
       - name: "Perform CodeQL Analysis: ${{ matrix.language }}"
         # yamllint disable-line rule:line-length
