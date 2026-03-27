@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gerrit-review-action@c9df844dc6efe28b85b297c1c6d40390bfa4a378 # v1.0.0
+        uses: lfreleng-actions/gerrit-review-action@3a1b27891502e0786a3e2e5a2d0cb0bff1f30c25 # v1.0.0
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
@@ -95,7 +95,7 @@ jobs:
 
       - name: Report workflow conclusion
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gerrit-review-action@c9df844dc6efe28b85b297c1c6d40390bfa4a378 # v1.0.0
+        uses: lfreleng-actions/gerrit-review-action@3a1b27891502e0786a3e2e5a2d0cb0bff1f30c25 # v1.0.0
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
