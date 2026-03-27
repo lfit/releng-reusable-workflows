@@ -45,7 +45,7 @@ jobs:
 
       - name: 'Checkout repository'
         # yamllint disable-line rule:line-length
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v.6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: 'Cache dependencies'
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -57,7 +57,7 @@ jobs:
 
       - name: 'Initialize CodeQL'
         # yamllint disable-line rule:line-length
-        uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+        uses: github/codeql-action/init@b8bb9f28b8d3f992092362369c57161b755dea45  # v4.35.0
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: "Perform CodeQL Analysis: ${{ matrix.language }}"
         # yamllint disable-line rule:line-length
-        uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+        uses: github/codeql-action/analyze@b8bb9f28b8d3f992092362369c57161b755dea45  # v4.35.0
         with:
           output: codeql-results  # Specify the output directory for results
 

@@ -73,7 +73,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+        uses: lfreleng-actions/checkout-gerrit-change-action@a42e7b28e20da2644d2c5d90f1294d0634a71d9c  # v1.0.0
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -100,7 +100,7 @@ jobs:
       - name: Export env variables
         if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
+        uses: infovista-opensource/vars-to-env-action@28db16e6138358faca56bbe963587e9782c38302  # 1.0.2
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Double base64 decode credentials as store as environment variables
