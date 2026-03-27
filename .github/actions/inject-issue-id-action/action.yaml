@@ -73,7 +73,7 @@ runs:
 
     - name: "Get ticket from JSON lookup table"
       if: env.PRESENT == 'false' && inputs.INJECT == 'true'
-      uses: lfit/releng-reusable-workflows/.github/actions/json-key-value-lookup-action@aaaa328529e216e5ede459a1091abdbaf09c7f69  # v0.3.0
+      uses: lfreleng-actions/json-key-value-lookup-action@ed95008d49173ba450865d6c8faad0aabf07a39c  # v0.1.0
       with:
         json: ${{ inputs.issue_id_lookup_json }}
         key: ${{ env.key }}
