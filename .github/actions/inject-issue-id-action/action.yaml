@@ -39,7 +39,7 @@ runs:
     - name: "Get GIT commit message body"
       id: commit-message
       # yamllint disable rule:line-length
-      uses: lfit/releng-reusable-workflows/.github/actions/git-commit-message-action@aaaa328529e216e5ede459a1091abdbaf09c7f69  # v0.3.0
+      uses: lfreleng-actions/git-commit-message-action@c1740ca14a10e815de65f439f539f9f9cbb7bcd8  # v0.1.0
 
     - name: "Check commit message for issue tracker reference"
       shell: bash
@@ -80,7 +80,7 @@ runs:
 
     - name: "Configure GIT user for commit"
       if: env.PRESENT == 'false' && inputs.INJECT == 'true'
-      uses: lfit/releng-reusable-workflows/.github/actions/git-configure-action@aaaa328529e216e5ede459a1091abdbaf09c7f69  # v0.3.0
+      uses: lfreleng-actions/git-configure-action@0e0eb0c79709d98729770e412bc2fd588cacd05a  # v0.1.0
 
     - name: "Adding issue tracker to commit message"
       id: inject
