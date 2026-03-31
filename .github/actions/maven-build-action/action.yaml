@@ -62,27 +62,27 @@ runs:
     - name: Setup JDK
       id: setup-jdk
       # yamllint disable-line rule:line-length
-      uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
+      uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654  # v5.2.0
       with:
         java-version: ${{ inputs.jdk-version }}
         distribution: "temurin"
     - name: Setup Maven
       id: setup-maven
       # yamllint disable-line rule:line-length
-      uses: s4u/setup-maven-action@4f7fb9d9675e899ca81c6161dadbba0189a4ebb1 # v1.18.0
+      uses: s4u/setup-maven-action@6c4e9964d4ecb8f1026310cd8618791fd51a8016  # v1.19.0
       with:
         java-version: ${{ inputs.jdk-version }}
         maven-version: ${{ inputs.mvn-version }}
     - name: Export env variables
       id: export-env-variables
       # yamllint disable-line rule:line-length
-      uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
+      uses: infovista-opensource/vars-to-env-action@28db16e6138358faca56bbe963587e9782c38302  # 1.0.2
       with:
         secrets: ${{ inputs.env-vars }}
     - name: Export env secrets
       id: export-env-secrets
       # yamllint disable-line rule:line-length
-      uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
+      uses: infovista-opensource/vars-to-env-action@28db16e6138358faca56bbe963587e9782c38302  # 1.0.2
       with:
         secrets: ${{ inputs.env-secrets }}
     - name: Build code with Maven
@@ -107,7 +107,7 @@ runs:
       id: jacoco
       if: ${{ !env.ACT && inputs.run-jacoco }} # skip during local testing
       # yamllint disable-line rule:line-length
-      uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 # v2.11.0
+      uses: cicirello/jacoco-badge-generator@72266185b7ee48a6fd74eaf0238395cc8b14fef8  # v2.12.1
       with:
         badges-directory: badges
         generate-branches-badge: true
