@@ -107,7 +107,7 @@ jobs:
   run-tox:
     name: "Run TOX"
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@aaaa328529e216e5ede459a1091abdbaf09c7f69 # v0.3.0
+    uses: lfit/releng-reusable-workflows/.github/workflows/gerrit-compose-required-tox-verify.yaml@37bbdea5cca2f21e502f7ff580306c78307d1d41 # v0.3.1
     permissions:
       contents: read
     with:
