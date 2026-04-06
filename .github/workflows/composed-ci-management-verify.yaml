@@ -132,7 +132,7 @@ jobs:
     # use compose-packer-verify from the v0.4 series of
     # releng-reusable-workflows
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@aaaa328529e216e5ede459a1091abdbaf09c7f69 # v0.3.0
+    uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@37bbdea5cca2f21e502f7ff580306c78307d1d41 # v0.3.1
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
