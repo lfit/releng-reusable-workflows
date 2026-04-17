@@ -107,13 +107,13 @@ jobs:
       - name: Export env variables
         id: export-env-variables
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@28db16e6138358faca56bbe963587e9782c38302  # 1.0.2
+        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa  # 2.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
         id: export-env-secrets
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@28db16e6138358faca56bbe963587e9782c38302  # 1.0.2
+        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa  # 2.0.0
         with:
           secrets: ${{ inputs.ENV_SECRETS }}
       - name: Run pre-build-script
