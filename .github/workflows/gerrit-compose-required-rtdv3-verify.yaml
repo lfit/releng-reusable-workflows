@@ -163,8 +163,8 @@ jobs:
                   TOX_OPTIONS_LIST=$TOX_OPTIONS_LIST" --parallel ${PARALLEL} --parallel-live";;
           esac
 
-          # $TOX_OPTIONS_LIST are intentionnaly not surrounded by quotes
-          # to correcly pass options to tox
+          # $TOX_OPTIONS_LIST are intentionally not surrounded by quotes
+          # to correctly pass options to tox
           # shellcheck disable=SC2086
           tox $TOX_OPTIONS_LIST
 

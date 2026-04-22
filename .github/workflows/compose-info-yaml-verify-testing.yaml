@@ -111,7 +111,7 @@ jobs:
           python yaml-verify-schema.py \
               -s info-schema.yaml \
               -y INFO.yaml
-          # Verfiy that there is only one repository and that it matches $PROJECT
+          # Verify that there is only one repository and that it matches $PROJECT
           REPO_LIST="$(yq -r '.repositories[]' INFO.yaml)"
           while IFS= read -r project; do
               if [[ "$project" == "$PROJECT_INPUT" ]]; then

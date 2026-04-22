@@ -153,7 +153,7 @@ jobs:
 
           echo "INFO: Performing merge action"
 
-          # This retuns null if project exists.
+          # This returns null if project exists.
           project_exists=false
           project_created=false
 
