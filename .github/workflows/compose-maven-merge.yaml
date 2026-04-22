@@ -152,7 +152,7 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Nexus
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/nexus-publish-action@1459938e4a6d52ac6ce7e5fb566ff80b4660b371 # v0.1.5
+        uses: lfreleng-actions/nexus-publish-action@89e0b16b8b99210aef9ac8fbc37abca2adc83772 # v0.1.6
         with:
           nexus_server: ${{ vars.NEXUS_SERVER }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
@@ -196,7 +196,7 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Maven Central
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/nexus-publish-action@1459938e4a6d52ac6ce7e5fb566ff80b4660b371 # v0.1.5
+        uses: lfreleng-actions/nexus-publish-action@89e0b16b8b99210aef9ac8fbc37abca2adc83772 # v0.1.6
         with:
           nexus_server: ${{ vars.CENTRAL_SERVER }}
           nexus_username: ${{ secrets.CENTRAL_USERNAME }}
