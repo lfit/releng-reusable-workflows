@@ -40,7 +40,7 @@ on:
         type: boolean
         required: false
         default: false
-    # Re-usable workflow requires secrets be explicitly passed
+    # Reusable workflow requires secrets be explicitly passed
     secrets:
       sonar_token:
         description: "SonarQube API key/token"

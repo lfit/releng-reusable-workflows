@@ -13,7 +13,7 @@ Optionally runs a shell script before the build to install prerequisites.
 The default configuration supplies a pre-build script that runs GNU Autotools to generate the configure shell script.
 Must be overridden if that script is in the version-control system.
 
-The worflow verifies a project by configuring the build system with autotools and analyzing
+The workflow verifies a project by configuring the build system with autotools and analyzing
 code quality with SonarCloud. The workflow triggers when the merge job completes.
 
 1. Set up the environment for autotools and SonarCloud.

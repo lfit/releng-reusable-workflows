@@ -40,7 +40,7 @@ on:
         required: false
         type: boolean
         default: false
-    # Re-usable workflow requires secrets be explicitly passed
+    # Reusable workflow requires secrets be explicitly passed
     secrets:
       nexus_iq_password:
         description: "Nexus IQ Password"
