@@ -1,0 +1,480 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# GitHub Actions security audit using zizmor.
+#
+# Mode:
+#   - Format: SARIF, uploaded to GitHub code scanning on default-branch
+#     pushes only (i.e. after merge). PR runs are advisory.
+#   - Severity: medium and above (informational/low filtered out)
+#   - Persona: regular (default; high-signal, low-noise)
+#   - Advisory: zizmor exits 0 in SARIF mode, so this workflow does NOT
+#     block merges. Code-scanning alerts can be made blocking later via
+#     a code-scanning ruleset once the existing backlog is resolved.
+#
+# Deployment note (REVIEWERS / COPILOT: please verify):
+#   This workflow resolves its zizmor version pin in one of two ways
+#   (see the pin-resolution comment in the audit job below):
+#
+#     * If the repository carries a LOCAL pin file at
+#       .github/dependabot/zizmor-requirements.txt, that file MUST be
+#       paired with a `pip` ecosystem entry in .github/dependabot.yml,
+#       scoped to /.github/dependabot AND restricted to direct
+#       dependencies:
+#
+#         - package-ecosystem: 'pip'
+#           directory: '/.github/dependabot'
+#           schedule:
+#             interval: 'weekly'
+#           allow:
+#             - dependency-type: 'direct'
+#
+#       The `allow: direct` filter is mandatory: the pin file is read
+#       by grep at run-time and never installed, so there is no
+#       lockfile. Without the filter Dependabot fails the pip job with
+#       "can't update vulnerable dependencies without a lockfile" the
+#       moment a transitive of zizmor carries a security advisory, and
+#       the failure is only visible in the GitHub Dependabot UI.
+#
+#     * If the repository has NO local pin file, the workflow fetches
+#       the canonical pin from lfreleng-actions/.github at run-time and
+#       NO dependabot.yml entry is required (adding one would error,
+#       as there is no local manifest for Dependabot to track).
+#
+#   When reviewing a PR that adds or copies this workflow, confirm the
+#   dependabot.yml state matches whichever mode the repository uses.
+
+name: '🌈 Zizmor Scan'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch: {}
+  pull_request: {}
+  push: {}
+
+# Default to no permissions; each job grants the minimum it needs.
+permissions: {}
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: 'Audit workflows'
+    # Skip pushes to non-default branches and tags: the audit produces
+    # no useful output for those events because the upload job is
+    # gated to default-branch pushes. PR and workflow_dispatch events
+    # still run.
+    if: >-
+      github.event_name != 'push'
+      || github.ref_name == github.event.repository.default_branch
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 10
+    permissions:
+      # Only the bare minimum for the audit itself: clone the repo
+      # under audit. SARIF upload runs in a separate, gated job.
+      contents: read
+    steps:
+      # Harden the runner used by this workflow.
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'audit'
+
+      - name: 'Checkout repository under audit'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: 'Install uv (provides uvx)'
+        # Disable the uv cache: each run installs zizmor fresh from
+        # PyPI (a small package) and audited repositories generally
+        # do not contain Python lockfiles, so leaving the cache on
+        # produces a noisy "no file matched" warning on every run.
+        # yamllint disable-line rule:line-length
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          enable-cache: false
+
+      - name: 'Run zizmor (SARIF, advisory)'
+        # zizmor reads GH_TOKEN/GITHUB_TOKEN to enable online audits
+        # (e.g. resolving tag references for unpinned-uses checks).
+        # SARIF output causes zizmor to always exit 0; merge-blocking
+        # is delegated to code-scanning rulesets.
+        #
+        # Write to a tmp file and only move the SARIF into place if
+        # zizmor exits cleanly. Direct redirection (`> zizmor.sarif`)
+        # would truncate the destination before the command ran, so a
+        # mid-run failure (network, install, etc.) would leave an
+        # empty/partial file that downstream steps would then try to
+        # parse and upload, masking the real failure.
+        id: 'zizmor'
+        env:
+          GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+        run: |
+          set -euo pipefail
+          sarif="${GITHUB_WORKSPACE}/zizmor.sarif"
+          tmp_sarif="$(mktemp -t zizmor.XXXXXX.sarif)"
+          # The zizmor version pin is resolved at runtime so the
+          # workflow file itself stays free of a static version
+          # string. Resolution order:
+          #
+          #   1. A workspace file at
+          #      .github/dependabot/zizmor-requirements.txt
+          #      if the audited repo carries one (optional; lets
+          #      that repo override the org-wide pin and test pin
+          #      changes via PR).
+          #   2. Otherwise fetch the canonical pin from the `main`
+          #      branch of lfreleng-actions/.github, where it is
+          #      kept current by Dependabot's pip ecosystem.
+          #
+          # Most consuming repos will not have the workspace file
+          # and will use the remote fallback.
+          local_pin_file='.github/dependabot/zizmor-requirements.txt'
+          if [ -f "${local_pin_file}" ]; then
+            pin_file="${local_pin_file}"
+            pin_source="workspace (${local_pin_file})"
+          else
+            pin_ref='main'
+            pin_url="https://raw.githubusercontent.com/lfreleng-actions/.github/${pin_ref}/.github/dependabot/zizmor-requirements.txt"
+            pin_file="$(mktemp -t zizmor-pin.XXXXXX.txt)"
+            # Bounded retries + timeouts so a transient network blip
+            # does not hang or spuriously fail the audit.
+            curl --fail --silent --show-error \
+              --retry 3 --retry-delay 2 --retry-connrefused \
+              --connect-timeout 10 --max-time 30 \
+              -o "${pin_file}" "${pin_url}"
+            pin_source="lfreleng-actions/.github@${pin_ref}"
+          fi
+          # `|| true` keeps grep's no-match exit (1) from tripping
+          # `set -e`; the explicit empty check below produces a clearer
+          # error than a bare grep failure.
+          pin="$(grep -E '^zizmor==' "${pin_file}" || true)"
+          if [ -z "${pin}" ]; then
+            echo "error: no zizmor pin found in ${pin_source}" >&2
+            exit 2
+          fi
+          echo "Using ${pin} (from ${pin_source})"
+          uvx --from "${pin}" zizmor \
+            --persona=regular \
+            --min-severity=medium \
+            --format=sarif \
+            . > "${tmp_sarif}"
+          # Cheap structural sanity check before publishing the file.
+          python3 -c 'import json,sys; json.load(open(sys.argv[1]))' \
+            "${tmp_sarif}"
+          mv "${tmp_sarif}" "${sarif}"
+          bytes=$(wc -c < "${sarif}" | tr -d ' ')
+          echo "Wrote ${sarif} (${bytes} bytes)"
+          echo '::group::SARIF preview (first 40 lines)'
+          head -n 40 "${sarif}" || true
+          echo '::endgroup::'
+
+      - name: 'Summarise zizmor findings'
+        # Parse the SARIF locally and write a human-readable summary
+        # to GITHUB_STEP_SUMMARY so every run has visible output, not
+        # just default-branch pushes (which also publish to code
+        # scanning). Also emits workflow-command annotations for the
+        # top findings so they surface as inline PR annotations.
+        # Stdlib-only: no pip install, no extra dependencies.
+        #
+        # The Python parser is embedded as base64 so this workflow
+        # is self-contained: it runs as a required workflow across
+        # many repositories that do not (and should not need to)
+        # carry the script. The canonical source of both this
+        # workflow and the parser lives in the
+        # lfreleng-actions/actions-template repository at
+        # .github/scripts/zizmor_summary.py; the embedded copy there
+        # is regenerated from the script via
+        # `python3 .github/scripts/zizmor_summary.py --regen-workflow`
+        # and the refreshed workflow is then propagated to consuming
+        # repositories.
+        if: >-
+          always()
+          && steps.zizmor.outcome == 'success'
+          && hashFiles('zizmor.sarif') != ''
+        env:
+          ZIZMOR_SARIF: '${{ github.workspace }}/zizmor.sarif'
+          ZIZMOR_PERSONA: 'regular'
+          ZIZMOR_MIN_SEVERITY: 'medium'
+          # Maximum number of findings to render in the detail table
+          # and as inline PR annotations. Counts and rule histogram
+          # always cover the full set.
+          ZIZMOR_TOP_N: '10'
+          ZIZMOR_SUMMARY_B64: |
+            IyBTUERYLUxpY2Vuc2UtSWRlbnRpZmllcjogQXBhY2hlLTIuMAojIFNQRFgtRmlsZUNvcHlyaWdo
+            dFRleHQ6IDIwMjYgVGhlIExpbnV4IEZvdW5kYXRpb24KIiIiU3VtbWFyaXNlIGEgeml6bW9yIFNB
+            UklGIHJlcG9ydCBmb3IgdGhlIEdpdEh1YiBBY3Rpb25zIHN0ZXAgc3VtbWFyeS4KCkRlZmF1bHQg
+            bW9kZSAobm8gYXJndW1lbnRzKTogcmVhZCB0aGUgU0FSSUYgZmlsZSBhdCBgYCRaSVpNT1JfU0FS
+            SUZgYAphbmQgd3JpdGUgYSBodW1hbi1yZWFkYWJsZSBtYXJrZG93biBzdW1tYXJ5IHRvIGBgJEdJ
+            VEhVQl9TVEVQX1NVTU1BUllgYC4KQWxzbyBlbWl0IGEgY29tcGFjdCBsaXN0aW5nIHRvIHN0ZG91
+            dCBhbmQKYGA6Ondhcm5pbmdgYC9gYDo6ZXJyb3JgYC9gYDo6bm90aWNlYGAgd29ya2Zsb3cgY29t
+            bWFuZHMgZm9yIHRoZSB0b3AKZmluZGluZ3Mgc28gdGhleSBzdXJmYWNlIGFzIGlubGluZSBQUiBh
+            bm5vdGF0aW9ucy4KCkhlbHBlciBtb2RlIChgYC0tcmVnZW4td29ya2Zsb3dgYCk6IHJlZ2VuZXJh
+            dGUgdGhlIGJhc2U2NC1lbmNvZGVkIGNvcHkKb2YgdGhpcyBzY3JpcHQgdGhhdCBsaXZlcyBpbiBg
+            YC5naXRodWIvd29ya2Zsb3dzL3ppem1vci55YW1sYGAgdW5kZXIKYGBlbnYuWklaTU9SX1NVTU1B
+            UllfQjY0YGAuIFRoZSB3b3JrZmxvdyBmaWxlIGVtYmVkcyB0aGUgcGFyc2VyIGFzCmJhc2U2NCBi
+            ZWNhdXNlIGl0IGlzIGludm9rZWQgYXMgYSByZXF1aXJlZCB3b3JrZmxvdyBhZ2FpbnN0IHJlcG9z
+            IHRoYXQKZG8gbm90IGNvbnRhaW4gdGhpcyBzY3JpcHQuIEFmdGVyIGVkaXRpbmcgdGhpcyBmaWxl
+            LCBydW46OgoKICAgIHB5dGhvbjMgLmdpdGh1Yi9zY3JpcHRzL3ppem1vcl9zdW1tYXJ5LnB5IC0t
+            cmVnZW4td29ya2Zsb3cKCnRoZW4gY29tbWl0IGJvdGggZmlsZXMgdG9nZXRoZXIuCiIiIgppbXBv
+            cnQgYXJncGFyc2UKaW1wb3J0IGJhc2U2NAppbXBvcnQganNvbgppbXBvcnQgb3MKaW1wb3J0IHJl
+            CmltcG9ydCBzeXMKZnJvbSBjb2xsZWN0aW9ucyBpbXBvcnQgQ291bnRlcgpmcm9tIHBhdGhsaWIg
+            aW1wb3J0IFBhdGgKZnJvbSBwb3NpeHBhdGggaW1wb3J0IGJhc2VuYW1lCmZyb20gdXJsbGliLnBh
+            cnNlIGltcG9ydCBxdW90ZQoKIyBNYXJrZXIgdXNlZCBieSAtLXJlZ2VuLXdvcmtmbG93IHRvIGxv
+            Y2F0ZSB0aGUgZW1iZWRkZWQgYmFzZTY0IGJsb2NrLgpfQjY0X01BUktFUiA9ICJaSVpNT1JfU1VN
+            TUFSWV9CNjQ6IHwiCl9CNjRfSU5ERU5UID0gIiAiICogMTIKCkxFVkVMX0xBQkVMID0gewogICAg
+            ImVycm9yIjogIlx1MjZkNCBIaWdoIiwKICAgICJ3YXJuaW5nIjogIlx1MjZhMFx1ZmUwZiBNZWRp
+            dW0iLAogICAgIm5vdGUiOiAiXFUwMDAxZjRkZCBMb3ciLAogICAgIm5vbmUiOiAiXHUyMTM5XHVm
+            ZTBmIEluZm8iLAp9CkxFVkVMX09SREVSID0gWyJlcnJvciIsICJ3YXJuaW5nIiwgIm5vdGUiLCAi
+            bm9uZSJdCldBUk5fQ01EID0gewogICAgImVycm9yIjogImVycm9yIiwgIndhcm5pbmciOiAid2Fy
+            bmluZyIsCiAgICAibm90ZSI6ICJub3RpY2UiLCAibm9uZSI6ICJub3RpY2UiLAp9CgoKZGVmIHN0
+            cmlwX3J1bGVfcHJlZml4KHJpZDogc3RyKSAtPiBzdHI6CiAgICAiIiJEcm9wIHRoZSBgYHppem1v
+            ci9gYCBwcmVmaXggZnJvbSBhIHJ1bGUgaWQgZm9yIHRpZ2h0ZXIgdGFibGVzLiIiIgogICAgaWYg
+            cmlkLnN0YXJ0c3dpdGgoInppem1vci8iKToKICAgICAgICByZXR1cm4gcmlkW2xlbigieml6bW9y
+            LyIpOl0KICAgIHJldHVybiByaWQKCgpkZWYgX2VzY2FwZV93Zl9kYXRhKHZhbHVlOiBvYmplY3Qp
+            IC0+IHN0cjoKICAgICIiIkVzY2FwZSB0aGUgbWVzc2FnZSBib2R5IG9mIGEgR2l0SHViIHdvcmtm
+            bG93IGNvbW1hbmQuCgogICAgUGVyIEdpdEh1YidzIHdvcmtmbG93LWNvbW1hbmQgcnVsZXMsIGBg
+            JWBgLCBgYENSYGAgYW5kIGBgTEZgYCBtdXN0CiAgICBiZSBwZXJjZW50LWVuY29kZWQgaW4gdGhl
+            IGRhdGEgKHBvc3QtYGA6OmBgKSBwb3J0aW9uLgogICAgIiIiCiAgICByZXR1cm4gKAogICAgICAg
+            IHN0cih2YWx1ZSkKICAgICAgICAucmVwbGFjZSgiJSIsICIlMjUiKQogICAgICAgIC5yZXBsYWNl
+            KCJcciIsICIlMEQiKQogICAgICAgIC5yZXBsYWNlKCJcbiIsICIlMEEiKQogICAgKQoKCmRlZiBf
+            ZXNjYXBlX3dmX3Byb3BlcnR5KHZhbHVlOiBvYmplY3QpIC0+IHN0cjoKICAgICIiIkVzY2FwZSBh
+            IHByb3BlcnR5IHZhbHVlIG9mIGEgR2l0SHViIHdvcmtmbG93IGNvbW1hbmQuCgogICAgUHJvcGVy
+            dGllcyBsaXZlIGluIHRoZSBjb21tYS1zZXBhcmF0ZWQgYGBrZXk9dmFsdWVgYCBsaXN0IGJlZm9y
+            ZQogICAgYGA6OmBgLiBJbiBhZGRpdGlvbiB0byB0aGUgZGF0YS1lc2NhcGVzLCBgYCxgYCBhbmQg
+            YGA6YGAgbXVzdCBiZQogICAgZW5jb2RlZCBzbyB0aGV5IGNhbm5vdCB0ZXJtaW5hdGUgdGhlIHBy
+            b3BlcnR5IGxpc3Qgb3IgdGhlIGNvbW1hbmQKICAgIHByZWZpeC4KICAgICIiIgogICAgcmV0dXJu
+            ICgKICAgICAgICBfZXNjYXBlX3dmX2RhdGEodmFsdWUpCiAgICAgICAgLnJlcGxhY2UoIjoiLCAi
+            JTNBIikKICAgICAgICAucmVwbGFjZSgiLCIsICIlMkMiKQogICAgKQoKCmRlZiBfcmVuZGVyX2xp
+            bmsoZmlsZTogc3RyLCBsaW5lLCByZXBvOiBzdHIsIHNoYTogc3RyLCBzZXJ2ZXI6IHN0cikgLT4g
+            c3RyOgogICAgIiIiUmVuZGVyIGEgcGF0aDpsaW5lIGxpbmsgd2l0aCB0aGUgYmFzZW5hbWUgYXMg
+            dmlzaWJsZSB0ZXh0LiIiIgogICAgaWYgbm90IGZpbGU6CiAgICAgICAgcmV0dXJuICIiCiAgICBz
+            aG9ydCA9IGJhc2VuYW1lKGZpbGUpIG9yIGZpbGUKICAgIGxhYmVsID0gc2hvcnQgKyAoZiI6e2xp
+            bmV9IiBpZiBsaW5lIGVsc2UgIiIpCiAgICBpZiBub3QgcmVwbyBvciBub3Qgc2hhOgogICAgICAg
+            IHJldHVybiBmImB7bGFiZWx9YCIKICAgIGFuY2hvciA9IGYiI0x7bGluZX0iIGlmIGxpbmUgZWxz
+            ZSAiIgogICAgdXJsID0gZiJ7c2VydmVyfS97cmVwb30vYmxvYi97c2hhfS97cXVvdGUoZmlsZSl9
+            e2FuY2hvcn0iCiAgICByZXR1cm4gZiJbYHtsYWJlbH1gXSh7dXJsfSkiCgoKZGVmIF9sb2FkX2Zp
+            bmRpbmdzKHNhcmlmX3BhdGg6IFBhdGgpOgogICAgIiIiUGFyc2UgU0FSSUYgYW5kIHJldHVybiAo
+            ZmluZGluZ3MsIGxldmVsX2NvdW50cywgcnVsZV9jb3VudHMpLiIiIgogICAgd2l0aCBzYXJpZl9w
+            YXRoLm9wZW4oKSBhcyBmaDoKICAgICAgICBkYXRhID0ganNvbi5sb2FkKGZoKQoKICAgIGZpbmRp
+            bmdzID0gW10KICAgIHJ1bGVfbWV0YSA9IHt9CiAgICBmb3IgcnVuIGluIGRhdGEuZ2V0KCJydW5z
+            IiwgW10pOgogICAgICAgIHRvb2wgPSBydW4uZ2V0KCJ0b29sIiwge30pLmdldCgiZHJpdmVyIiwg
+            e30pCiAgICAgICAgZm9yIHJ1bGUgaW4gdG9vbC5nZXQoInJ1bGVzIiwgW10pOgogICAgICAgICAg
+            ICBydWxlX21ldGFbcnVsZS5nZXQoImlkIiwgIiIpXSA9IHJ1bGUKICAgICAgICBmb3IgcmVzdWx0
+            IGluIHJ1bi5nZXQoInJlc3VsdHMiLCBbXSk6CiAgICAgICAgICAgIHJpZCA9IHJlc3VsdC5nZXQo
+            InJ1bGVJZCIsICI/IikKICAgICAgICAgICAgbGV2ZWwgPSAoCiAgICAgICAgICAgICAgICByZXN1
+            bHQuZ2V0KCJsZXZlbCIpCiAgICAgICAgICAgICAgICBvciBydWxlX21ldGEuZ2V0KHJpZCwge30p
+            CiAgICAgICAgICAgICAgICAgICAgLmdldCgiZGVmYXVsdENvbmZpZ3VyYXRpb24iLCB7fSkKICAg
+            ICAgICAgICAgICAgICAgICAuZ2V0KCJsZXZlbCIsICJ3YXJuaW5nIikKICAgICAgICAgICAgKQog
+            ICAgICAgICAgICBtc2cgPSAocmVzdWx0LmdldCgibWVzc2FnZSIpIG9yIHt9KS5nZXQoInRleHQi
+            LCAiIikuc3RyaXAoKQogICAgICAgICAgICBsb2MgPSAocmVzdWx0LmdldCgibG9jYXRpb25zIikg
+            b3IgW3t9XSlbMF0KICAgICAgICAgICAgcGxvYyA9IGxvYy5nZXQoInBoeXNpY2FsTG9jYXRpb24i
+            LCB7fSkKICAgICAgICAgICAgYXJ0aWZhY3QgPSBwbG9jLmdldCgiYXJ0aWZhY3RMb2NhdGlvbiIs
+            IHt9KS5nZXQoInVyaSIsICIiKQogICAgICAgICAgICByZWdpb24gPSBwbG9jLmdldCgicmVnaW9u
+            Iiwge30pIG9yIHt9CiAgICAgICAgICAgIGxpbmUgPSByZWdpb24uZ2V0KCJzdGFydExpbmUiKQog
+            ICAgICAgICAgICBlbmRsaW5lID0gcmVnaW9uLmdldCgiZW5kTGluZSIpIG9yIGxpbmUKICAgICAg
+            ICAgICAgZmluZGluZ3MuYXBwZW5kKHsKICAgICAgICAgICAgICAgICJydWxlIjogcmlkLAogICAg
+            ICAgICAgICAgICAgImxldmVsIjogbGV2ZWwsCiAgICAgICAgICAgICAgICAibXNnIjogbXNnLAog
+            ICAgICAgICAgICAgICAgImZpbGUiOiBhcnRpZmFjdCwKICAgICAgICAgICAgICAgICJsaW5lIjog
+            bGluZSwKICAgICAgICAgICAgICAgICJlbmRsaW5lIjogZW5kbGluZSwKICAgICAgICAgICAgfSkK
+            CiAgICBkZWYgc29ydF9rZXkoZik6CiAgICAgICAgdHJ5OgogICAgICAgICAgICBpZHggPSBMRVZF
+            TF9PUkRFUi5pbmRleChmWyJsZXZlbCJdKQogICAgICAgIGV4Y2VwdCBWYWx1ZUVycm9yOgogICAg
+            ICAgICAgICBpZHggPSA5OQogICAgICAgIHJldHVybiAoaWR4LCBmWyJydWxlIl0sIGZbImZpbGUi
+            XSwgZlsibGluZSJdIG9yIDApCgogICAgZmluZGluZ3Muc29ydChrZXk9c29ydF9rZXkpCiAgICBs
+            ZXZlbF9jb3VudHMgPSBDb3VudGVyKGZbImxldmVsIl0gZm9yIGYgaW4gZmluZGluZ3MpCiAgICBy
+            dWxlX2NvdW50cyA9IENvdW50ZXIoZlsicnVsZSJdIGZvciBmIGluIGZpbmRpbmdzKQogICAgcmV0
+            dXJuIGZpbmRpbmdzLCBsZXZlbF9jb3VudHMsIHJ1bGVfY291bnRzCgoKZGVmIHN1bW1hcmlzZSgp
+            IC0+IGludDoKICAgICIiIlJlYWQgU0FSSUYgYW5kIHdyaXRlIHN1bW1hcnk7IHJldHVybiBwcm9j
+            ZXNzIGV4aXQgY29kZS4iIiIKICAgIHNhcmlmX3BhdGggPSBQYXRoKG9zLmVudmlyb25bIlpJWk1P
+            Ul9TQVJJRiJdKQogICAgdG9wX24gPSBpbnQob3MuZW52aXJvbi5nZXQoIlpJWk1PUl9UT1BfTiIs
+            ICIxMCIpKQogICAgc3VtbWFyeV9wYXRoID0gb3MuZW52aXJvbi5nZXQoIkdJVEhVQl9TVEVQX1NV
+            TU1BUlkiKQogICAgc2VydmVyID0gb3MuZW52aXJvbi5nZXQoIkdJVEhVQl9TRVJWRVJfVVJMIiwg
+            Imh0dHBzOi8vZ2l0aHViLmNvbSIpCiAgICByZXBvID0gb3MuZW52aXJvbi5nZXQoIkdJVEhVQl9S
+            RVBPU0lUT1JZIiwgIiIpCiAgICBzaGEgPSBvcy5lbnZpcm9uLmdldCgiR0lUSFVCX1NIQSIsICIi
+            KQogICAgcGVyc29uYSA9IG9zLmVudmlyb24uZ2V0KCJaSVpNT1JfUEVSU09OQSIsICJyZWd1bGFy
+            IikKICAgIG1pbl9zZXZlcml0eSA9IG9zLmVudmlyb24uZ2V0KCJaSVpNT1JfTUlOX1NFVkVSSVRZ
+            IiwgIm1lZGl1bSIpCgogICAgZmluZGluZ3MsIGxldmVsX2NvdW50cywgcnVsZV9jb3VudHMgPSBf
+            bG9hZF9maW5kaW5ncyhzYXJpZl9wYXRoKQogICAgdG90YWwgPSBzdW0obGV2ZWxfY291bnRzLnZh
+            bHVlcygpKQogICAgc2hvcnRfc2hhID0gc2hhWzo3XSBpZiBzaGEgZWxzZSAiPyIKCiAgICBvdXQg
+            PSBbIiMgXFUwMDAxZjMwOCBaaXptb3IgU2NhbiIsICIiXQogICAgaWYgdG90YWwgPT0gMDoKICAg
+            ICAgICBvdXQuYXBwZW5kKGYiTm8gZmluZGluZ3MgYXQgb3IgYWJvdmUgYHttaW5fc2V2ZXJpdHl9
+            YCBcdTI3MDUiKQogICAgZWxzZToKICAgICAgICBvdXQuYXBwZW5kKAogICAgICAgICAgICBmInt0
+            b3RhbH0gZmluZGluZyhzKSBhdCBvciBhYm92ZSBge21pbl9zZXZlcml0eX1gIFx1MjZhMFx1ZmUw
+            ZiIKICAgICAgICApCiAgICBvdXQuZXh0ZW5kKFsKICAgICAgICAiIiwKICAgICAgICBmImB7cmVw
+            b31Ae3Nob3J0X3NoYX1gIiwKICAgICAgICBmInBlcnNvbmE6IGB7cGVyc29uYX1gIiwKICAgICAg
+            ICBmIm1pbi1zZXZlcml0eTogYHttaW5fc2V2ZXJpdHl9YCIsCiAgICAgICAgIiIsCiAgICBdKQoK
+            ICAgIGlmIHRvdGFsID4gMDoKICAgICAgICBvdXQuYXBwZW5kKCIjIyBDb3VudHMgYnkgc2V2ZXJp
+            dHkiKQogICAgICAgIG91dC5hcHBlbmQoIiIpCiAgICAgICAgb3V0LmFwcGVuZCgifCBTZXZlcml0
+            eSB8IENvdW50IHwiKQogICAgICAgIG91dC5hcHBlbmQoInwgLS0tIHwgLS0tOiB8IikKICAgICAg
+            ICBmb3IgbHZsIGluIExFVkVMX09SREVSOgogICAgICAgICAgICBpZiBsdmwgaW4gbGV2ZWxfY291
+            bnRzOgogICAgICAgICAgICAgICAgb3V0LmFwcGVuZCgKICAgICAgICAgICAgICAgICAgICBmInwg
+            e0xFVkVMX0xBQkVMLmdldChsdmwsIGx2bCl9IHwge2xldmVsX2NvdW50c1tsdmxdfSB8IgogICAg
+            ICAgICAgICAgICAgKQogICAgICAgIG91dC5hcHBlbmQoIiIpCiAgICAgICAgb3V0LmFwcGVuZCgi
+            IyMgQ291bnRzIGJ5IHJ1bGUiKQogICAgICAgIG91dC5hcHBlbmQoIiIpCiAgICAgICAgb3V0LmFw
+            cGVuZCgifCBSdWxlIHwgQ291bnQgfCIpCiAgICAgICAgb3V0LmFwcGVuZCgifCAtLS0gfCAtLS06
+            IHwiKQogICAgICAgIGZvciByaWQsIG4gaW4gcnVsZV9jb3VudHMubW9zdF9jb21tb24oKToKICAg
+            ICAgICAgICAgb3V0LmFwcGVuZChmInwgYHtzdHJpcF9ydWxlX3ByZWZpeChyaWQpfWAgfCB7bn0g
+            fCIpCiAgICAgICAgb3V0LmFwcGVuZCgiIikKICAgICAgICBzaG93biA9IGZpbmRpbmdzWzp0b3Bf
+            bl0KICAgICAgICBleHRyYSA9IHRvdGFsIC0gbGVuKHNob3duKQogICAgICAgIGhlYWRpbmcgPSBm
+            IiMjIFRvcCB7bGVuKHNob3duKX0gZmluZGluZ3MiCiAgICAgICAgaWYgZXh0cmEgPiAwOgogICAg
+            ICAgICAgICBoZWFkaW5nICs9IGYiIChvZiB7dG90YWx9OyB7ZXh0cmF9IG1vcmUgaW4gU0FSSUYp
+            IgogICAgICAgIG91dC5hcHBlbmQoaGVhZGluZykKICAgICAgICBvdXQuYXBwZW5kKCIiKQogICAg
+            ICAgIG91dC5hcHBlbmQoInwgU2V2ZXJpdHkgfCBSdWxlIHwgTG9jYXRpb24gfCBNZXNzYWdlIHwi
+            KQogICAgICAgIG91dC5hcHBlbmQoInwgLS0tIHwgLS0tIHwgLS0tIHwgLS0tIHwiKQogICAgICAg
+            IGZvciBmIGluIHNob3duOgogICAgICAgICAgICBsYWJlbCA9IExFVkVMX0xBQkVMLmdldChmWyJs
+            ZXZlbCJdLCBmWyJsZXZlbCJdKQogICAgICAgICAgICBtc2cgPSBmWyJtc2ciXS5yZXBsYWNlKCJ8
+            IiwgIlxcfCIpLnJlcGxhY2UoIlxuIiwgIiAiKQogICAgICAgICAgICBpZiBsZW4obXNnKSA+IDIw
+            MDoKICAgICAgICAgICAgICAgIG1zZyA9IG1zZ1s6MTk3XSArICIuLi4iCiAgICAgICAgICAgIHJ1
+            bGVfc2hvcnQgPSBzdHJpcF9ydWxlX3ByZWZpeChmWyJydWxlIl0pCiAgICAgICAgICAgIGxvYyA9
+            IF9yZW5kZXJfbGluayhmWyJmaWxlIl0sIGZbImxpbmUiXSwgcmVwbywgc2hhLCBzZXJ2ZXIpCiAg
+            ICAgICAgICAgIG91dC5hcHBlbmQoCiAgICAgICAgICAgICAgICBmInwge2xhYmVsfSB8IGB7cnVs
+            ZV9zaG9ydH1gIHwge2xvY30gfCB7bXNnfSB8IgogICAgICAgICAgICApCgogICAgc3VtbWFyeSA9
+            ICJcbiIuam9pbihvdXQpICsgIlxuIgogICAgaWYgc3VtbWFyeV9wYXRoOgogICAgICAgIHdpdGgg
+            b3BlbihzdW1tYXJ5X3BhdGgsICJhIiwgZW5jb2Rpbmc9InV0Zi04IikgYXMgZmg6CiAgICAgICAg
+            ICAgIGZoLndyaXRlKHN1bW1hcnkpCgogICAgcHJpbnQoIjo6Z3JvdXA6Onppem1vciBzdW1tYXJ5
+            IikKICAgIGJ5X2xldmVsID0ge0xFVkVMX0xBQkVMLmdldChrLCBrKTogdiBmb3IgaywgdiBpbiBs
+            ZXZlbF9jb3VudHMuaXRlbXMoKX0KICAgIHByaW50KAogICAgICAgIGYiVG90YWw6IHt0b3RhbH0g
+            IGJ5LWxldmVsOiB7YnlfbGV2ZWx9ICBydWxlczoge2xlbihydWxlX2NvdW50cyl9IgogICAgKQog
+            ICAgZm9yIGYgaW4gZmluZGluZ3NbOnRvcF9uXToKICAgICAgICBsYWJlbCA9IExFVkVMX0xBQkVM
+            LmdldChmWyJsZXZlbCJdLCBmWyJsZXZlbCJdKQogICAgICAgIGxvY19zdHIgPSBmWyJmaWxlIl0g
+            KyAoZiI6e2ZbJ2xpbmUnXX0iIGlmIGZbImxpbmUiXSBlbHNlICIiKQogICAgICAgIHJ1bGVfc2hv
+            cnQgPSBzdHJpcF9ydWxlX3ByZWZpeChmWyJydWxlIl0pCiAgICAgICAgcHJpbnQoZiIgIHtsYWJl
+            bH0gIHtydWxlX3Nob3J0OjwyOH0gIHtsb2Nfc3RyfSIpCiAgICBwcmludCgiOjplbmRncm91cDo6
+            IikKCiAgICAjIFdvcmtmbG93IGNvbW1hbmRzIGtlZXAgdGhlIGZ1bGwgcnVsZSBpZCBpbiB0aGUg
+            dGl0bGUgc2luY2UKICAgICMgR2l0SHViIHNob3dzIHRoZW0gb3V0IG9mIGNvbnRleHQgKGUuZy4g
+            aW4gUFIgZmlsZSBhbm5vdGF0aW9ucykuCiAgICAjIFByb3BlcnR5IHZhbHVlcyBhcmUgZXNjYXBl
+            ZCBwZXIgR2l0SHViJ3Mgd29ya2Zsb3ctY29tbWFuZCBydWxlcwogICAgIyBzbyBgYCxgYCBhbmQg
+            YGA6YGAgaW4gdGl0bGVzIG9yIHBhdGhzIGNhbm5vdCBicmVhayB0aGUgZm9ybWF0LgogICAgZm9y
+            IGYgaW4gZmluZGluZ3NbOnRvcF9uXToKICAgICAgICBjbWQgPSBXQVJOX0NNRC5nZXQoZlsibGV2
+            ZWwiXSwgIndhcm5pbmciKQogICAgICAgIHBhcnRzID0gW10KICAgICAgICBpZiBmWyJmaWxlIl06
+            CiAgICAgICAgICAgIHBhcnRzLmFwcGVuZChmImZpbGU9e19lc2NhcGVfd2ZfcHJvcGVydHkoZlsn
+            ZmlsZSddKX0iKQogICAgICAgIGlmIGZbImxpbmUiXToKICAgICAgICAgICAgcGFydHMuYXBwZW5k
+            KGYibGluZT17ZlsnbGluZSddfSIpCiAgICAgICAgaWYgZlsiZW5kbGluZSJdIGFuZCBmWyJlbmRs
+            aW5lIl0gIT0gZlsibGluZSJdOgogICAgICAgICAgICBwYXJ0cy5hcHBlbmQoZiJlbmRMaW5lPXtm
+            WydlbmRsaW5lJ119IikKICAgICAgICB0aXRsZSA9IGYieml6bW9yOiB7ZlsncnVsZSddfSIKICAg
+            ICAgICBwYXJ0cy5hcHBlbmQoZiJ0aXRsZT17X2VzY2FwZV93Zl9wcm9wZXJ0eSh0aXRsZSl9IikK
+            ICAgICAgICBtc2cgPSBmWyJtc2ciXS5yZXBsYWNlKCJcbiIsICIgIikuc3RyaXAoKSBvciBmWyJy
+            dWxlIl0KICAgICAgICBwcmludChmIjo6e2NtZH0geycsJy5qb2luKHBhcnRzKX06OntfZXNjYXBl
+            X3dmX2RhdGEobXNnKX0iKQoKICAgIHJldHVybiAwCgoKZGVmIHJlZ2VuX3dvcmtmbG93KAogICAg
+            d29ya2Zsb3dfcGF0aDogUGF0aCB8IE5vbmUgPSBOb25lLAogICAgc2NyaXB0X3BhdGg6IFBhdGgg
+            fCBOb25lID0gTm9uZSwKKSAtPiBpbnQ6CiAgICAiIiJSZXBsYWNlIHRoZSBlbWJlZGRlZCBiYXNl
+            NjQgYmxvY2sgaW4gdGhlIHdvcmtmbG93IGZpbGUgaW4gcGxhY2UuCgogICAgUmV0dXJucyAwIGlm
+            IHRoZSB3b3JrZmxvdyBhbHJlYWR5IG1hdGNoZWQgKG5vIHdyaXRlIG5lZWRlZCkgb3Igd2FzCiAg
+            ICByZXdyaXR0ZW4sIGFuZCBhIG5vbi16ZXJvIGNvZGUgb24gaGFyZCBlcnJvcnMgKG1pc3Npbmcg
+            ZmlsZXMsCiAgICBtaXNzaW5nIG1hcmtlciBibG9jaykuCiAgICAiIiIKICAgIGhlcmUgPSBQYXRo
+            KF9fZmlsZV9fKS5yZXNvbHZlKCkKICAgIHJlcG9fcm9vdCA9IGhlcmUucGFyZW50LnBhcmVudC5w
+            YXJlbnQKICAgIGlmIHNjcmlwdF9wYXRoIGlzIE5vbmU6CiAgICAgICAgc2NyaXB0X3BhdGggPSBo
+            ZXJlCiAgICBpZiB3b3JrZmxvd19wYXRoIGlzIE5vbmU6CiAgICAgICAgd29ya2Zsb3dfcGF0aCA9
+            IHJlcG9fcm9vdCAvICIuZ2l0aHViIiAvICJ3b3JrZmxvd3MiIC8gInppem1vci55YW1sIgoKICAg
+            IGlmIG5vdCBzY3JpcHRfcGF0aC5pc19maWxlKCk6CiAgICAgICAgcHJpbnQoZiJlcnJvcjogc2Ny
+            aXB0IG5vdCBmb3VuZDoge3NjcmlwdF9wYXRofSIsIGZpbGU9c3lzLnN0ZGVycikKICAgICAgICBy
+            ZXR1cm4gMgogICAgaWYgbm90IHdvcmtmbG93X3BhdGguaXNfZmlsZSgpOgogICAgICAgIHByaW50
+            KAogICAgICAgICAgICBmImVycm9yOiB3b3JrZmxvdyBub3QgZm91bmQ6IHt3b3JrZmxvd19wYXRo
+            fSIsIGZpbGU9c3lzLnN0ZGVycgogICAgICAgICkKICAgICAgICByZXR1cm4gMgoKICAgIHNvdXJj
+            ZSA9IHNjcmlwdF9wYXRoLnJlYWRfYnl0ZXMoKQogICAgYjY0ID0gYmFzZTY0LmI2NGVuY29kZShz
+            b3VyY2UpLmRlY29kZSgiYXNjaWkiKQogICAgY2h1bmtzID0gW2I2NFtpOmkgKyA3Nl0gZm9yIGkg
+            aW4gcmFuZ2UoMCwgbGVuKGI2NCksIDc2KV0KICAgIGJsb2NrID0gIlxuIi5qb2luKF9CNjRfSU5E
+            RU5UICsgYyBmb3IgYyBpbiBjaHVua3MpICsgIlxuIgoKICAgIHdvcmtmbG93ID0gd29ya2Zsb3df
+            cGF0aC5yZWFkX3RleHQoKQogICAgcGF0dGVybiA9IHJlLmNvbXBpbGUoCiAgICAgICAgcmUuZXNj
+            YXBlKF9CNjRfTUFSS0VSKQogICAgICAgICsgciJcbig/OiIKICAgICAgICArIHJlLmVzY2FwZShf
+            QjY0X0lOREVOVCkKICAgICAgICArIHIiW0EtWmEtejAtOSsvPV0rXG4pKyIsCiAgICAgICAgcmUu
+            TVVMVElMSU5FLAogICAgKQogICAgbSA9IHBhdHRlcm4uc2VhcmNoKHdvcmtmbG93KQogICAgaWYg
+            bSBpcyBOb25lOgogICAgICAgIHByaW50KAogICAgICAgICAgICAiZXJyb3I6IGNvdWxkIG5vdCBm
+            aW5kIFpJWk1PUl9TVU1NQVJZX0I2NCBibG9jayBpbiAiCiAgICAgICAgICAgIGYie3dvcmtmbG93
+            X3BhdGh9IiwKICAgICAgICAgICAgZmlsZT1zeXMuc3RkZXJyLAogICAgICAgICkKICAgICAgICBy
+            ZXR1cm4gMgoKICAgIHJlcGxhY2VtZW50ID0gX0I2NF9NQVJLRVIgKyAiXG4iICsgYmxvY2sKICAg
+            IG5ld193b3JrZmxvdyA9IHdvcmtmbG93WzogbS5zdGFydCgpXSArIHJlcGxhY2VtZW50ICsgd29y
+            a2Zsb3dbbS5lbmQoKTpdCiAgICBpZiBuZXdfd29ya2Zsb3cgPT0gd29ya2Zsb3c6CiAgICAgICAg
+            cHJpbnQoZiJ1bmNoYW5nZWQ6IHt3b3JrZmxvd19wYXRofSIpCiAgICAgICAgcmV0dXJuIDAKICAg
+            IHdvcmtmbG93X3BhdGgud3JpdGVfdGV4dChuZXdfd29ya2Zsb3cpCiAgICBwcmludCgKICAgICAg
+            ICBmInJld3JvdGUge3dvcmtmbG93X3BhdGh9ICIKICAgICAgICBmIihlbWJlZGRlZCB7bGVuKHNv
+            dXJjZSl9IGJ5dGVzLCBiYXNlNjQge2xlbihiNjQpfSBjaGFycykiCiAgICApCiAgICByZXR1cm4g
+            MAoKCmRlZiBtYWluKGFyZ3Y6IGxpc3Rbc3RyXSB8IE5vbmUgPSBOb25lKSAtPiBpbnQ6CiAgICBw
+            YXJzZXIgPSBhcmdwYXJzZS5Bcmd1bWVudFBhcnNlcigKICAgICAgICBkZXNjcmlwdGlvbj0oCiAg
+            ICAgICAgICAgICJTdW1tYXJpc2UgYSB6aXptb3IgU0FSSUYgcmVwb3J0LiBXaXRoIG5vIGFyZ3Vt
+            ZW50cywgcmVhZCAiCiAgICAgICAgICAgICIkWklaTU9SX1NBUklGIGFuZCB3cml0ZSBhIG1hcmtk
+            b3duIHN1bW1hcnkgdG8gIgogICAgICAgICAgICAiJEdJVEhVQl9TVEVQX1NVTU1BUlkuIFdpdGgg
+            LS1yZWdlbi13b3JrZmxvdywgcmVmcmVzaCB0aGUgIgogICAgICAgICAgICAiYmFzZTY0LWVuY29k
+            ZWQgY29weSBvZiB0aGlzIHNjcmlwdCBlbWJlZGRlZCBpbiAiCiAgICAgICAgICAgICIuZ2l0aHVi
+            L3dvcmtmbG93cy96aXptb3IueWFtbC4iCiAgICAgICAgKQogICAgKQogICAgcGFyc2VyLmFkZF9h
+            cmd1bWVudCgKICAgICAgICAiLS1yZWdlbi13b3JrZmxvdyIsCiAgICAgICAgYWN0aW9uPSJzdG9y
+            ZV90cnVlIiwKICAgICAgICBoZWxwPSgKICAgICAgICAgICAgInJlZ2VuZXJhdGUgdGhlIGVtYmVk
+            ZGVkIGJhc2U2NCBpbiAiCiAgICAgICAgICAgICIuZ2l0aHViL3dvcmtmbG93cy96aXptb3IueWFt
+            bCBmcm9tIHRoaXMgc2NyaXB0IGFuZCBleGl0IgogICAgICAgICksCiAgICApCiAgICBhcmdzID0g
+            cGFyc2VyLnBhcnNlX2FyZ3MoYXJndikKICAgIGlmIGFyZ3MucmVnZW5fd29ya2Zsb3c6CiAgICAg
+            ICAgcmV0dXJuIHJlZ2VuX3dvcmtmbG93KCkKICAgIHJldHVybiBzdW1tYXJpc2UoKQoKCmlmIF9f
+            bmFtZV9fID09ICJfX21haW5fXyI6CiAgICBzeXMuZXhpdChtYWluKCkpCg==
+        run: |
+          set -euo pipefail
+          script="$(mktemp -t zizmor_summary.XXXXXX.py)"
+          printf '%s' "${ZIZMOR_SUMMARY_B64}" | base64 -d > "${script}"
+          python3 "${script}"
+          rm -f "${script}"
+
+      - name: 'Upload SARIF artifact for downstream job'
+        # Only upload the artifact on default-branch pushes; on PRs
+        # and feature-branch pushes there is no consumer for it.
+        if: >-
+          always()
+          && steps.zizmor.outcome == 'success'
+          && hashFiles('zizmor.sarif') != ''
+          && github.event_name == 'push'
+          && github.ref_name == github.event.repository.default_branch
+        # yamllint disable-line rule:line-length
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: 'zizmor-sarif'
+          path: 'zizmor.sarif'
+          retention-days: 1
+          if-no-files-found: 'error'
+
+  upload-sarif:
+    name: 'Upload SARIF to GitHub'
+    needs: 'audit'
+    # Only run after default-branch pushes. PR runs and feature-branch
+    # pushes do not reach this job, so the elevated permissions below
+    # are never granted to those events. This matters most for fork
+    # PRs, where GITHUB_TOKEN does not get security-events: write.
+    if: >-
+      github.event_name == 'push'
+      && github.ref_name == github.event.repository.default_branch
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 5
+    permissions:
+      # Required for github/codeql-action/upload-sarif to publish
+      # results to the repository's code-scanning alerts.
+      security-events: write
+      # Needed for upload-sarif to read workflow run information on
+      # private repositories. Harmless for public repositories.
+      actions: read
+    steps:
+      # Harden the runner used by this workflow.
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'audit'
+
+      - name: 'Download SARIF artifact'
+        # Set an explicit `path:` so the SARIF lands at a predictable
+        # location regardless of the artifact name. Without this,
+        # download-artifact would extract under `./zizmor-sarif/` and
+        # the upload-sarif step's `sarif_file:` would not find it.
+        # yamllint disable-line rule:line-length
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: 'zizmor-sarif'
+          path: '.'
+
+      - name: 'Upload SARIF to code scanning'
+        # continue-on-error so a transient upload failure does not
+        # block other required checks on the calling repository.
+        continue-on-error: true
+        # yamllint disable-line rule:line-length
+        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
+        with:
+          sarif_file: 'zizmor.sarif'
+          category: 'zizmor'
