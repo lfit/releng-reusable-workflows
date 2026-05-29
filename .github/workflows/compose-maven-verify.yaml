@@ -101,6 +101,21 @@ on:
         required: false
         default: "{}"
         type: string
+      POST_BUILD_SCRIPT:
+        description: "Post-build script to run after Maven build"
+        required: false
+        default: ""
+        type: string
+      POST_BUILD_SCRIPT_PATH:
+        description: "Path to post-build script to run after Maven build"
+        required: false
+        default: ""
+        type: string
+      POST_BUILD_SCRIPT_URL:
+        description: "URL of post-build script to run after Maven build"
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -110,6 +125,8 @@ concurrency:
 jobs:
   maven-verify:
     runs-on: ubuntu-latest
+    env:
+      POST_BUILD: ""
     steps:
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/checkout-gerrit-change-action@8523d768952d9690702b4696a8310d2a84b1be39  # v1.0.1
@@ -137,3 +154,33 @@ jobs:
           env-vars: ${{ inputs.ENV_VARS }}
           env-secrets: ${{ inputs.ENV_SECRETS }}
           global-settings: ${{ inputs.MVN_GLOBAL_SETTINGS }}
+      - name: Post-build path
+        if: ${{ inputs.POST_BUILD_SCRIPT_PATH != '' }}
+        # yamllint disable rule:line-length
+        run: |
+          echo "POST_BUILD=${{ inputs.POST_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Post-build script
+        if: ${{ inputs.POST_BUILD_SCRIPT != '' }}
+        run: |
+          cat > "${{ github.run_id }}.sh" << 'EOF'
+          ${{ inputs.POST_BUILD_SCRIPT }}
+          EOF
+          chmod +x "${{ github.run_id }}.sh"
+          echo "POST_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+      - name: Post-build URL
+        if: ${{ inputs.POST_BUILD_SCRIPT_URL != '' }}
+        # yamllint disable rule:line-length
+        run: |
+          curl -fsSL "${{ inputs.POST_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
+          chmod +x "${{ github.run_id }}.sh"
+          echo "POST_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Run post-build
+        if: ${{ env.POST_BUILD != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::group::Post-build script output"
+          bash "$POST_BUILD"
+          echo "::endgroup::"
