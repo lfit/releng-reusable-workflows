@@ -1,0 +1,217 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Validates that a pull request title follows the Conventional Commits
+# convention (with capitalised types). Improves on a bare call to
+# amannn/action-semantic-pull-request by tolerating Dependabot's truncated
+# single-commit subjects for long dependency names (e.g. reusable workflow
+# paths), which otherwise trip validateSingleCommitMatchesPrTitle.
+#
+# Caller requirement: the job that calls this workflow MUST grant the
+# GITHUB_TOKEN both `contents: read` and `pull-requests: read`. A called
+# workflow's token permissions are capped by the caller, so omitting
+# `pull-requests: read` in the caller can cause the gate's PR API calls
+# to fail with 403 on repositories that default the token to minimal
+# permissions.
+name: '[R] Semantic Pull Request'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      types:
+        # yamllint disable-line rule:line-length
+        description: 'Newline-separated list of allowed Conventional Commit types'
+        required: false
+        type: string
+        default: |
+          Fix
+          Feat
+          Chore
+          Docs
+          Style
+          Refactor
+          Perf
+          Test
+          Revert
+          CI
+          Build
+      validate_single_commit:
+        # yamllint disable-line rule:line-length
+        description: 'Validate the single-commit message when a PR has one commit'
+        required: false
+        type: boolean
+        default: true
+      validate_single_commit_matches_pr_title:
+        # yamllint disable-line rule:line-length
+        description: 'Require the single commit subject to match the PR title'
+        required: false
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  semantic-pull-request:
+    name: 'Semantic Pull Request'
+    permissions:
+      contents: read
+      # Required for the gate step's `gh api .../pulls/.../commits` call and
+      # the action's PR metadata lookups on repos that default the token to
+      # minimal permissions. The calling job must grant this too (see the
+      # caller requirement note at the top of this file).
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      # Load the egress allow-list out-of-band and publish it as
+      # $CONNECTION_ALLOW_LIST for the harden-runner step below to consume
+      # in 'block' mode. Loading out-of-band means the workflow no longer
+      # depends on any org-level GitHub variable being exposed at runtime
+      # (org variables are unreachable from workflows triggered by PRs
+      # raised from forks, which previously forced a fallback to audit
+      # mode). The 'config' input git-fetches the allow-list pinned to an
+      # immutable commit; the explicit path keeps the source independent of
+      # the consuming repository's org.
+      # yamllint disable-line rule:line-length
+      - uses: lfreleng-actions/harden-runner-block-action@42663a22f7abe31521cbc6120901353a4b2849bc  # v0.2.0
+        with:
+          # yamllint disable-line rule:line-length
+          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'  # v0.1.1
+
+      # Harden the runner with the just-loaded allow-list.
+      - name: 'Harden runner (block)'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      # Dependabot truncates the single-commit subject for long dependency
+      # names (e.g. reusable workflow paths), dropping the "from X to Y"
+      # suffix while the PR title keeps it. This makes the commit subject a
+      # leading substring of the PR title, which trips the action's exact
+      # validateSingleCommitMatchesPrTitle check. Detect ONLY that case and
+      # relax the exact match to a prefix match; all other scenarios are
+      # left untouched (strict exact match preserved).
+      - name: 'Evaluate dependabot single-commit title exception'
+        id: gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          VALIDATE_MATCH: ${{ inputs.validate_single_commit_matches_pr_title }}
+        run: |
+          # Inspecting pull request and commits
+          set -euo pipefail
+
+          # Defaults assume strict exact-match validation (unchanged).
+          relax=false
+          is_dependabot=false
+          commit_count='n/a'
+          subject=''
+          reason=''
+
+          if [ "${PR_AUTHOR}" = 'dependabot[bot]' ]; then
+            is_dependabot=true
+          fi
+
+          # Collect non-merge commit subjects (commits with fewer than 2
+          # parents), mirroring how GitHub picks the squash subject.
+          mapfile -t subjects < <(
+            gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/commits" \
+              --jq '.[] | select((.parents | length) < 2)
+                | .commit.message | split("\n")[0]'
+          )
+          commit_count="${#subjects[@]}"
+
+          echo "Non-merge commits: ${commit_count}"
+          if [ "${commit_count}" -eq 1 ]; then
+            subject="${subjects[0]}"
+            echo 'Single commit subject:'
+            echo "  ${subject}"
+          fi
+
+          # Relaxation applies ONLY to dependabot's truncated single-commit
+          # subject for a long dependency name, which becomes a leading
+          # substring of the PR title.
+          if [ "${is_dependabot}" = 'true' ]; then
+            echo '✅ Dependabot is PR author'
+            if [ "${commit_count}" -ne 1 ]; then
+              reason='PR does not have exactly one non-merge commit'
+            elif [ "${PR_TITLE}" = "${subject}" ]; then
+              reason='Commit subject already matches the PR title exactly'
+            else
+              prefix="${PR_TITLE:0:${#subject}}"
+              boundary="${PR_TITLE:${#subject}:1}"
+              if [ "${prefix}" = "${subject}" ] \
+                && [ "${boundary}" = ' ' ]; then
+                relax=true
+                reason='Commit subject is a leading substring of the PR title'
+              else
+                reason='Commit subject is not a leading substring of PR title'
+              fi
+            fi
+          else
+            echo '⏩ Author is NOT dependabot'
+            reason='PR author is not dependabot[bot]'
+          fi
+
+          # The effective validateSingleCommitMatchesPrTitle value also
+          # depends on the caller's input, so reflect that here.
+          if [ "${VALIDATE_MATCH}" != 'true' ]; then
+            match_setting=false
+            echo 'ℹ️ Caller disabled single-commit/PR-title matching'
+          elif [ "${relax}" = 'true' ]; then
+            match_setting=false
+            echo '⏩ Relaxing title matching rules'
+          else
+            match_setting=true
+            echo '✅ Strict exact title match retained'
+          fi
+
+          echo "relax=${relax}" >> "${GITHUB_OUTPUT}"
+
+          # Human-readable summary on the run page. Controlled fields go in
+          # a table; the untrusted PR title and commit subject are rendered
+          # in an indented code block so any embedded Markdown/HTML is shown
+          # literally and cannot spoof the summary or trigger fetches.
+          {
+            echo '### Semantic Pull Request gate'
+            echo ''
+            echo '| Field | Value |'
+            echo '| ----- | ----- |'
+            echo "| PR author | ${PR_AUTHOR} |"
+            echo "| Treated as dependabot | ${is_dependabot} |"
+            echo "| Non-merge commits | ${commit_count} |"
+            echo "| Decision | ${reason} |"
+            echo "| validateSingleCommitMatchesPrTitle | ${match_setting} |"
+            echo ''
+            echo 'PR title:'
+            echo ''
+            printf '    %s\n' "${PR_TITLE}"
+            if [ -n "${subject}" ]; then
+              echo ''
+              echo 'Single commit subject:'
+              echo ''
+              printf '    %s\n' "${subject}"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: 'Validate pull request title'
+        # yamllint disable-line rule:line-length
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: ${{ inputs.types }}
+          validateSingleCommit: ${{ inputs.validate_single_commit }}
+          # Honour the caller's setting, but relax to a prefix match for the
+          # detected Dependabot truncation case (see the gate step above).
+          # yamllint disable-line rule:line-length
+          validateSingleCommitMatchesPrTitle: ${{ inputs.validate_single_commit_matches_pr_title && steps.gate.outputs.relax != 'true' }}
