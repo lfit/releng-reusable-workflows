@@ -116,6 +116,21 @@ on:
         required: false
         default: ""
         type: string
+      PRE_BUILD_SCRIPT:
+        description: "Pre-build script to run before Maven build"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_PATH:
+        description: "Path to pre-build script to run before Maven build"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_URL:
+        description: "URL of pre-build script to run before Maven build"
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -126,6 +141,7 @@ jobs:
   maven-verify:
     runs-on: ubuntu-latest
     env:
+      PRE_BUILD: ""
       POST_BUILD: ""
     steps:
       # yamllint disable-line rule:line-length
@@ -140,6 +156,35 @@ jobs:
         id: setup-python
         with:
           python-version: "3.8"
+      - name: Pre-build path
+        if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        # yamllint disable rule:line-length
+        run: |
+          echo "PRE_BUILD=${{ inputs.PRE_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Pre-build script
+        if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        run: |
+          cat > "${{ github.run_id }}-pre.sh" << 'EOF'
+          ${{ inputs.PRE_BUILD_SCRIPT }}
+          EOF
+          chmod +x "${{ github.run_id }}-pre.sh"
+          echo "PRE_BUILD=${{ github.run_id }}-pre.sh" >> "$GITHUB_ENV"
+      - name: Pre-build URL
+        if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        # yamllint disable rule:line-length
+        run: |
+          curl -fsSL "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}-pre.sh"
+          chmod +x "${{ github.run_id }}-pre.sh"
+          echo "PRE_BUILD=${{ github.run_id }}-pre.sh" >> "$GITHUB_ENV"
+        # yamllint enable rule:line-length
+      - name: Run pre-build
+        if: ${{ env.PRE_BUILD != '' }}
+        shell: bash
+        run: |
+          echo "::group::Pre-build script output"
+          bash -euo pipefail "$PRE_BUILD"
+          echo "::endgroup::"
       - name: Run Maven
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/maven-build-action@3e8765bbc2685951fb7c2be03964304179106b70 # v0.2.1
@@ -180,7 +225,6 @@ jobs:
         if: ${{ env.POST_BUILD != '' }}
         shell: bash
         run: |
-          set -euo pipefail
           echo "::group::Post-build script output"
-          bash "$POST_BUILD"
+          bash -euo pipefail "$POST_BUILD"
           echo "::endgroup::"
