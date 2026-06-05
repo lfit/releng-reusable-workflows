@@ -21,33 +21,25 @@ jobs:
         run: ${{ steps.get_actionlint.outputs.executable }} -color
         shell: bash
 
+  semantic-pull-request:
+    name: Semantic Pull Request
+    if: github.event_name == 'pull_request'
+    # Dogfood the shared reusable workflow this repository publishes. It
+    # tolerates Dependabot's truncated single-commit subjects for long
+    # dependency names that otherwise trip
+    # validateSingleCommitMatchesPrTitle.
+    # yamllint disable-line rule:line-length
+    uses: ./.github/workflows/reuse-semantic-pull-request.yaml
+    permissions:
+      contents: read
+      # The called workflow's token is capped by the caller; without this the
+      # gate step's PR API calls fail with 403 on minimal-permission repos.
+      pull-requests: read
+
   commit-message:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - name: Check PR for semantic commit message
-        # yamllint disable-line rule:line-length
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          # Requires the type to be capitlized, but accept any of the standard
-          # types
-          types: |
-            Fix
-            Feat
-            Chore
-            Docs
-            Style
-            Refactor
-            Perf
-            Test
-            Revert
-            CI
-            Build
-          validateSingleCommit: true
-          validateSingleCommitMatchesPrTitle: false
-
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:

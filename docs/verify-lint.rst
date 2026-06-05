@@ -25,12 +25,22 @@ This workflow automatically lints GitHub Actions workflows and ensures that comm
      - **Download actionlint**: Downloads the `actionlint` tool for linting workflow files.
      - **Check workflow files**: Runs `actionlint` on all the workflow files to ensure they meet standards.
 
-#### 2. **commit-message**:
+#### 2. **semantic-pull-request**:
+   - **Condition**: This job runs when a pull request event occurs (`github.event_name == 'pull_request'`).
+   - **Purpose**: Validates that the pull request title follows the
+     Conventional Commits convention (with capitalised types) and, for a
+     single-commit PR, that the commit subject matches the title.
+   - **Implementation**: Delegates to the shared
+     ``reuse-semantic-pull-request`` reusable workflow published by this
+     repository, which tolerates Dependabot's truncated single-commit
+     subjects for long dependency names that would otherwise trip the
+     exact title-match check.
+
+#### 3. **commit-message**:
    - **Runs-on**: `ubuntu-latest`
    - **Condition**: This job runs when a pull request event occurs (`github.event_name == 'pull_request'`).
-   - **Purpose**: This job checks the commit message for conformity to semantic versioning conventions and ensures the commit message matches the PR title.
+   - **Purpose**: This job checks that the pull request commits conform to the project's commit message rules.
    - **Steps**:
-     - **Check PR for semantic commit message**: Ensures that the pull request has a semantic commit message using the `action-semantic-pull-request` action.
      - **Checkout the PR code**: Checks out the pull request at the last commit to review commit messages.
      - **Install gitlint**: Installs the `gitlint` tool to review commit messages.
      - **Run gitlint**: Runs `gitlint` on the commits to ensure they conform to the project’s commit message rules.
