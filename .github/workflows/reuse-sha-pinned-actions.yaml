@@ -1,0 +1,92 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Verifies that action/workflow calls are pinned to full commit SHAs.
+#
+# workflow_call counterpart to the standalone sha-pinned-actions.yaml, and
+# a more descriptively named duplicate of reuse-verify-github-actions.yaml.
+# Unlike that workflow it exposes the underlying
+# lfreleng-actions/pinned-versions-action inputs so callers can tune the
+# scan (scope, full vs changed-files, linter version) without forking.
+#
+# The check installs gha-workflow-linter from PyPI (via uv) and queries the
+# GitHub API to validate action references. The curated egress allow-list
+# applied in block mode already permits those endpoints (api.github.com,
+# pypi.org, files.pythonhosted.org, astral.sh).
+
+name: '[R] SHA Pinned Actions 📌'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      harden_runner_config:
+        # yamllint disable-line rule:line-length
+        description: "Allow-list source for harden-runner-block-action 'config' input"
+        required: false
+        type: string
+        # yamllint disable-line rule:line-length
+        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'  # v0.1.1
+      path_prefix:
+        description: "Directory location containing project code"
+        required: false
+        type: string
+        default: '.'
+      full_scan:
+        description: "Scan the whole tree even on pull_request events"
+        required: false
+        type: boolean
+        default: false
+      linter_version:
+        # yamllint disable-line rule:line-length
+        description: "gha-workflow-linter version from PyPI (empty = latest)"
+        required: false
+        type: string
+        default: ''
+      no_checkout:
+        description: "Skip repository checkout (testing only)"
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  check-actions:
+    name: 'Pinned Versions'
+    runs-on: 'ubuntu-24.04'
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      # Load the egress allow-list out-of-band from
+      # lfreleng-actions/.github and publish it as
+      # $CONNECTION_ALLOW_LIST for the harden-runner step below
+      # to consume in 'block' mode. Loading out-of-band means
+      # the workflow no longer depends on any org-level GitHub
+      # variable being exposed at runtime (org variables are
+      # unreachable from workflows triggered by PRs raised from
+      # forks, which previously forced a fallback to audit mode).
+      # yamllint disable-line rule:line-length
+      - uses: lfreleng-actions/harden-runner-block-action@42663a22f7abe31521cbc6120901353a4b2849bc  # v0.2.0
+        with:
+          config: ${{ inputs.harden_runner_config }}
+
+      # Harden the runner with the just-loaded allow-list.
+      - name: 'Harden runner (block)'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      - name: 'Check Pinned Versions'
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/pinned-versions-action@66ea7b539a436895f3110e3bfb78d945b2f5d927  # v0.2.0
+        with:
+          path_prefix: ${{ inputs.path_prefix }}
+          full_scan: ${{ inputs.full_scan }}
+          linter_version: ${{ inputs.linter_version }}
+          no_checkout: ${{ inputs.no_checkout }}
