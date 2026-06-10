@@ -1,0 +1,174 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Reusable GitHub Actions security audit using zizmor.
+#
+# This is the reusable (workflow_call) counterpart to zizmor.yaml. It
+# delegates to the lfreleng-actions/zizmor-scan-action composite action,
+# which downloads a verified, attested zizmor binary, audits the calling
+# repository's workflows in SARIF mode, and writes a findings summary.
+# The action bundles (and pins) the zizmor version it installs.
+#
+# Mode: SARIF, advisory (zizmor exits 0, so this does not block merges).
+# The audit job runs with contents: read. Publishing results to the code
+# scanning dashboard is OPTIONAL and disabled by default; when enabled
+# via the upload_sarif input it runs in a separate job holding
+# security-events: write, gated to default-branch pushes (i.e. after
+# merge). Pull request runs stay advisory.
+#
+# Critical configuration is exposed as pass-through inputs so callers can
+# override the harden-runner allow-list source and the SARIF upload
+# behaviour without forking this workflow.
+
+name: '[R] Zizmor Scan 🌈'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      harden_runner_config:
+        # yamllint disable-line rule:line-length
+        description: "Allow-list source for harden-runner-block-action 'config' input"
+        required: false
+        type: string
+        # yamllint disable-line rule:line-length
+        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'  # v0.1.1
+      upload_sarif:
+        # yamllint disable-line rule:line-length
+        description: "Publish SARIF results to code scanning (default-branch pushes only)"
+        required: false
+        type: boolean
+        default: false
+      sarif_category:
+        description: "Category used to group results in code scanning"
+        required: false
+        type: string
+        default: 'zizmor'
+      artifact_name:
+        description: "Name of the SARIF artifact passed between jobs"
+        required: false
+        type: string
+        default: 'zizmor-sarif'
+      artifact_retention_days:
+        description: "Retention period (in days) for the SARIF artifact"
+        required: false
+        type: number
+        default: 5
+
+# Default to no permissions; each job grants the minimum it needs.
+permissions: {}
+
+jobs:
+  audit:
+    name: 'Audit Workflows'
+    # Skip pushes to non-default branches and tags: the optional SARIF
+    # upload is gated to default-branch pushes, so those events produce
+    # no publishable output. Pull request and workflow_dispatch events
+    # still run the advisory audit.
+    if: >-
+      github.event_name != 'push'
+      || github.ref_name == github.event.repository.default_branch
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 10
+    permissions:
+      # Only the bare minimum for the audit itself: clone the repo
+      # under audit. SARIF upload runs in a separate, gated job.
+      contents: read
+    steps:
+      # Load the egress allow-list out-of-band and publish it as
+      # $CONNECTION_ALLOW_LIST for the harden-runner step below to consume
+      # in 'block' mode. The 'config' input (overridable via the
+      # harden_runner_config workflow input) git-fetches the allow-list
+      # pinned to an immutable commit; loading out-of-band keeps the
+      # source independent of any org-level GitHub variable, which is
+      # unreachable from workflows triggered by PRs raised from forks.
+      # yamllint disable-line rule:line-length
+      - uses: lfreleng-actions/harden-runner-block-action@42663a22f7abe31521cbc6120901353a4b2849bc  # v0.2.0
+        with:
+          config: ${{ inputs.harden_runner_config }}
+
+      # Harden the runner with the just-loaded allow-list.
+      - name: 'Harden runner (block)'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      - name: 'Checkout repository under audit'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: 'Run zizmor audit'
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/zizmor-scan-action@cb80d31aa241207c718fb34f37282acaf8bb9bdb  # v0.1.1
+
+      - name: 'Upload SARIF artifact'
+        # Only needed when SARIF publishing is enabled on a default-branch
+        # push, where the upload job consumes it; all other runs skip the
+        # upload entirely, so there is no point producing the artifact.
+        if: >-
+          inputs.upload_sarif
+          && github.event_name == 'push'
+          && github.ref_name == github.event.repository.default_branch
+        # yamllint disable-line rule:line-length
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: '${{ inputs.artifact_name }}'
+          path: '${{ github.workspace }}/zizmor.sarif'
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: 'error'
+
+  upload:
+    name: 'Publish SARIF'
+    needs: 'audit'
+    if: >-
+      inputs.upload_sarif
+      && github.event_name == 'push'
+      && github.ref_name == github.event.repository.default_branch
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 5
+    permissions:
+      security-events: write  # publish SARIF to code scanning
+      actions: read  # upload-sarif reads run info on private repos
+    steps:
+      # Load the egress allow-list out-of-band and publish it as
+      # $CONNECTION_ALLOW_LIST for the harden-runner step below to consume
+      # in 'block' mode. The 'config' input (overridable via the
+      # harden_runner_config workflow input) git-fetches the allow-list
+      # pinned to an immutable commit; loading out-of-band keeps the
+      # source independent of any org-level GitHub variable, which is
+      # unreachable from workflows triggered by PRs raised from forks.
+      # yamllint disable-line rule:line-length
+      - uses: lfreleng-actions/harden-runner-block-action@42663a22f7abe31521cbc6120901353a4b2849bc  # v0.2.0
+        with:
+          config: ${{ inputs.harden_runner_config }}
+
+      # Harden the runner with the just-loaded allow-list.
+      - name: 'Harden runner (block)'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      - name: 'Download SARIF artifact'
+        # yamllint disable-line rule:line-length
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: '${{ inputs.artifact_name }}'
+          path: '.'
+
+      - name: 'Upload SARIF to code scanning'
+        # yamllint disable-line rule:line-length
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4.36.2
+        with:
+          sarif_file: 'zizmor.sarif'
+          # Category groups these results in code scanning.
+          category: '${{ inputs.sarif_category }}'
+        continue-on-error: true
