@@ -1,0 +1,106 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Reusable pull request autolabeler.
+#
+# workflow_call counterpart to the standalone autolabeler.yaml. It applies
+# labels to pull requests using release-drafter's autolabeler entrypoint,
+# behind a block-mode harden-runner step.
+#
+# Caller requirements:
+#   - Trigger the calling workflow on BOTH pull_request and
+#     pull_request_target (opened, synchronize, reopened). The job below
+#     keys off github.event_name and the PR fork flag so same-repo PRs are
+#     labelled via pull_request and fork PRs via pull_request_target, with
+#     no duplicate runs.
+#   - The calling job inherits the permissions granted here
+#     (pull-requests: write, contents: read).
+#
+# SECURITY: it is safe to call this workflow from a pull_request_target
+# context because:
+#   1. It never checks out PR code (no actions/checkout), so no
+#      PR-provided source ever runs.
+#   2. Its body is loaded from the base branch / pinned reusable ref, not
+#      from the PR head.
+#   3. Every step is pinned to a full commit SHA and runs only trusted,
+#      pinned action code: harden-runner-block-action fetches one
+#      allow-list file over HTTPS and publishes it as
+#      $CONNECTION_ALLOW_LIST; harden-runner installs the egress block;
+#      release-drafter/autolabeler makes only GitHub API calls against PR
+#      metadata. None of them read or execute PR head source.
+#   4. Permissions stay scoped to pull-requests: write and contents: read,
+#      and the runner egress is blocked before the autolabeler step runs.
+
+name: '[R] Auto Label 🏷️'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      harden_runner_config:
+        # yamllint disable-line rule:line-length
+        description: "Allow-list source for harden-runner-block-action 'config' input"
+        required: false
+        type: string
+        # yamllint disable-line rule:line-length
+        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'  # v0.1.1
+      config_name:
+        # yamllint disable-line rule:line-length
+        description: "release-drafter config file under .github/ used for labels"
+        required: false
+        type: string
+        default: 'release-drafter.yml'
+    secrets:
+      token:
+        # yamllint disable-line rule:line-length
+        description: "Token for the autolabeler; defaults to the job's GITHUB_TOKEN"
+        required: false
+
+permissions: {}
+
+jobs:
+  autolabel:
+    name: 'Label PR'
+    # Run on pull_request_target for forks, or pull_request for same-repo
+    # PRs. This prevents duplicate runs for same-repo PRs.
+    # yamllint disable rule:line-length
+    if: >
+      (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.fork) ||
+      (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork)
+    # yamllint enable rule:line-length
+    permissions:
+      pull-requests: write  # apply labels to the pull request
+      contents: read  # read the autolabeler config from the repo
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 3
+    steps:
+      # Load the egress allow-list out-of-band from
+      # lfreleng-actions/.github and publish it as
+      # $CONNECTION_ALLOW_LIST for the harden-runner step below
+      # to consume in 'block' mode. Loading out-of-band means
+      # the workflow no longer depends on any org-level GitHub
+      # variable being exposed at runtime (org variables are
+      # unreachable from workflows triggered by PRs raised from
+      # forks, which previously forced a fallback to audit mode).
+      # yamllint disable-line rule:line-length
+      - uses: lfreleng-actions/harden-runner-block-action@42663a22f7abe31521cbc6120901353a4b2849bc  # v0.2.0
+        with:
+          config: ${{ inputs.harden_runner_config }}
+
+      # Harden the runner with the just-loaded allow-list.
+      - name: 'Harden runner (block)'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      - name: 'Apply pull request labels'
+        # yamllint disable-line rule:line-length
+        uses: release-drafter/release-drafter/autolabeler@693d20e7c1ce1a81d3a41962f85914253b518449  # v7.3.1
+        with:
+          config-name: ${{ inputs.config_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
