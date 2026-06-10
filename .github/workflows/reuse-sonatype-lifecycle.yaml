@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2024 The Linux Foundation
 
 # Runs a Sonatype Lifecycle (Nexus IQ) scan
-name: "[R] sonatype-lifecycle"
+name: "[R] Sonatype Lifecycle ♻️"
 
 # yamllint disable-line rule:truthy
 on:

@@ -14,7 +14,7 @@
 # `pull-requests: read` in the caller can cause the gate's PR API calls
 # to fail with 403 on repositories that default the token to minimal
 # permissions.
-name: '[R] Semantic Pull Request'
+name: '[R] Semantic Pull Request 🛠️'
 
 # yamllint disable-line rule:truthy
 on:

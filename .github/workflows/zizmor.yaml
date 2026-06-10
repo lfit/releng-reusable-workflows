@@ -21,7 +21,7 @@
 # pin is now bundled in the action, so no local pin file or `pip`
 # Dependabot entry is required here.
 
-name: '🌈 Zizmor Scan'
+name: 'Zizmor Scan 🌈'
 
 # yamllint disable-line rule:truthy
 on:
@@ -38,7 +38,7 @@ concurrency:
 
 jobs:
   audit:
-    name: 'Audit workflows'
+    name: 'Audit Workflows'
     # Skip pushes to non-default branches and tags: the SARIF upload is
     # gated to default-branch pushes, so those events produce no useful
     # output. Pull request and workflow_dispatch events still run.
@@ -98,7 +98,7 @@ jobs:
           if-no-files-found: 'error'
 
   upload:
-    name: 'Publish SARIF to code scanning'
+    name: 'Publish SARIF'
     needs: 'audit'
     if: >-
       github.event_name == 'push'

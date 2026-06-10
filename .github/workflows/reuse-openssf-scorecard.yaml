@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2024 The Linux Foundation
 
-name: 🔐 [R] OpenSSF Scorecard
+name: "[R] OpenSSF Scorecard 🔐"
 
 # yamllint disable-line rule:truthy
 on:

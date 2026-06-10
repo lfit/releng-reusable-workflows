@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2024 The Linux Foundation
 
 # Checks the commit message body for an Issue-ID, adds one when NOT present
-name: "🎟️ [R] Inject Issue-ID"
+name: "[R] Inject Issue-ID 🎟️"
 
 # yamllint disable-line rule:truthy
 on:

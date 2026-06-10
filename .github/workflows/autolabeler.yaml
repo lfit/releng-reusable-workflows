@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-name: 'Autolabeler'
+name: 'Auto Label 🏷️'
 
 # yamllint disable-line rule:truthy
 on:
@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   autolabel:
-    name: 'Autolabel PR'
+    name: 'Label PR'
     # Run on pull_request_target for forks, or pull_request for same-repo PRs
     # This prevents duplicate runs for same-repo PRs
     # yamllint disable rule:line-length

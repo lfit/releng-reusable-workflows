@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2024 The Linux Foundation
 
 # Runs a SonarQube Cloud scan
-name: "[R] SonarQube Cloud"
+name: "[R] SonarQube Cloud ☁️"
 
 # yamllint disable-line rule:truthy
 on:
