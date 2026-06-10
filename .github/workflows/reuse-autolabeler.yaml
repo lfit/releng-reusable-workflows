@@ -16,6 +16,11 @@
 #     no duplicate runs.
 #   - The calling job inherits the permissions granted here
 #     (pull-requests: write, contents: read).
+#   - A pull_request_target caller trips zizmor's dangerous-triggers
+#     audit; that finding is safe to silence with
+#     `# zizmor: ignore[dangerous-triggers]` on the caller's trigger,
+#     for the reasons in the SECURITY note below. A reusable workflow
+#     has no trigger of its own to annotate.
 #
 # SECURITY: it is safe to call this workflow from a pull_request_target
 # context because:
