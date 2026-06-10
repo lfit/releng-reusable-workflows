@@ -61,7 +61,7 @@ jobs:
       # the action's PR metadata lookups on repos that default the token to
       # minimal permissions. The calling job must grant this too (see the
       # caller requirement note at the top of this file).
-      pull-requests: read
+      pull-requests: read  # read PR commits and metadata for the gate
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:

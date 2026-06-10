@@ -46,10 +46,16 @@ on:
         description: "SonarQube API key/token"
         required: true
 
+# Declare default permissions as none; jobs grant the minimum they need.
+permissions: {}
+
 jobs:
   sonarqube-cloud:
     name: "Scan"
     runs-on: ubuntu-24.04
+    permissions:
+      # The scan action checks out the repository under analysis.
+      contents: read
     steps:
       # Load the egress allow-list out-of-band from
       # lfreleng-actions/.github and publish it as

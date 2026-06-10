@@ -106,11 +106,8 @@ jobs:
     runs-on: 'ubuntu-latest'
     timeout-minutes: 5
     permissions:
-      # Required to publish results to the code scanning dashboard.
-      security-events: write
-      # Lets upload-sarif read workflow run information on private
-      # repositories (harmless on public ones).
-      actions: read
+      security-events: write  # publish SARIF to code scanning
+      actions: read  # upload-sarif reads run info on private repos
     steps:
       # Load the egress allow-list out-of-band and publish it as
       # $CONNECTION_ALLOW_LIST for the harden-runner step below to consume
