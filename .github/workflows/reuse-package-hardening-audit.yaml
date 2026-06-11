@@ -1,0 +1,106 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Reusable package manager supply-chain hardening audit.
+#
+# The reusable (workflow_call) counterpart to the Package Hardening Audit
+# wrapper. It delegates to the jordanconway/package-manager-hardening
+# composite action, which runs a Python-stdlib-only auditor over the
+# calling repository's package manager configuration (lockfiles, exact
+# pins, minimum release age, Dependabot cooldowns, Harden-Runner
+# coverage, ...) and writes a findings table with remediation hints to
+# the job summary. The action is stdlib-only, so there is no install
+# step and the egress allow-list stays minimal. It uses bash and
+# python3, so runs_on must target a Linux or macOS runner (the default
+# ubuntu-latest); Windows is not supported.
+#
+# Mode: advisory by default (warn_only: true) -- the audit reports
+# findings without failing, so it can be a required check that never
+# blocks merges while validation rules are refined. Set warn_only: false
+# to turn it into an enforcing gate.
+#
+# Every knob is exposed as a pass-through input so consumers can fully
+# control the audit without forking this workflow.
+
+name: '[R] Package Hardening Audit 🛡️'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: "Path to the repository root to audit"
+        required: false
+        type: string
+        default: '.'
+      warn_only:
+        description: "Report findings without failing the job (advisory)"
+        required: false
+        type: boolean
+        default: true
+      runs_on:
+        description: "Runner label for the audit job (Linux or macOS)"
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      timeout_minutes:
+        description: "Timeout (minutes) for the audit job"
+        required: false
+        type: number
+        default: 5
+      harden_runner_config:
+        # yamllint disable-line rule:line-length
+        description: "Allow-list source for harden-runner-block-action 'config' input"
+        required: false
+        type: string
+        # yamllint disable-line rule:line-length
+        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'  # v0.1.1
+
+# Default to no permissions; the job grants the minimum it needs.
+permissions: {}
+
+jobs:
+  audit:
+    name: 'Audit package manager hardening'
+    runs-on: '${{ inputs.runs_on }}'
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    permissions:
+      # Only the bare minimum: clone the repository under audit.
+      contents: read
+    steps:
+      # Load the egress allow-list out-of-band and publish it as
+      # $CONNECTION_ALLOW_LIST for the harden-runner step below to consume
+      # in 'block' mode. The 'config' input (overridable via the
+      # harden_runner_config workflow input) git-fetches the allow-list
+      # pinned to an immutable commit; loading out-of-band keeps the
+      # source independent of any org-level GitHub variable, which is
+      # unreachable from workflows triggered by PRs raised from forks.
+      # yamllint disable-line rule:line-length
+      - uses: lfreleng-actions/harden-runner-block-action@42663a22f7abe31521cbc6120901353a4b2849bc  # v0.2.0
+        with:
+          config: ${{ inputs.harden_runner_config }}
+
+      # Harden the runner with the just-loaded allow-list.
+      - name: 'Harden runner (block)'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      - name: 'Checkout repository under audit'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+
+      # Pinned to the v0.4.0 release commit (commit SHA, not the annotated
+      # tag object). Bump via the release tag's commit SHA.
+      - name: 'Run package manager hardening audit'
+        # yamllint disable-line rule:line-length
+        uses: jordanconway/package-manager-hardening@d8fa235d84827241a45a0f08ff21b815ffaf871c  # v0.4.0
+        with:
+          path: '${{ inputs.path }}'
+          warn-only: '${{ inputs.warn_only }}'
