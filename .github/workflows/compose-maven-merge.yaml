@@ -116,7 +116,7 @@ jobs:
           global-settings: ${{ vars.GLOBAL_SETTINGS }}
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
-        uses: lfit/sigul-sign-action@39307c0b992e7c92ca4d2558409da96c0cc2bc15 # v1.0.0
+        uses: lfit/sigul-sign-action@6921b6b0e6cc572967729a7ce562553c641d8d19 # v1.1.0
         # Though inputs.SIGUL_SIGN is defined as a boolean, there is an issue
         # with inputs always being strings. Therefore we will only run if the
         # input is defined as string 'true.'
