@@ -27,7 +27,7 @@ on:
         required: false
         type: string
         # yamllint disable-line rule:line-length
-        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'  # v0.1.1
+        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@ad6501e25f5a30746ad50a77c663115ddc94dc62'  # v0.3.0
       path_prefix:
         description: "Directory location containing project code"
         required: false
