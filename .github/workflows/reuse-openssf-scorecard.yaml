@@ -111,4 +111,4 @@ jobs:
         # The upstream action does not provide any useful summary output
         # the action below adds a hyperlink to the OpenSSF Scorecard/report
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/openssf-scorecard-summary-action@0985db543f90ce527ba6e673f994630a5fcad435 # v0.1.0
+        uses: lfreleng-actions/openssf-scorecard-summary-action@307b3f6d85f7cde3e85731b76bd32612707c894d # v0.1.1
