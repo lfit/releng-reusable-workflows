@@ -99,6 +99,6 @@ jobs:
     name: "Sonatype Lifecycle Scan"
     needs: [run-gradle-clm]
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@b2adc11cd90f0ca72a34202589a06d374b5d8366 # v0.5.0
+    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@f43b219b8a91dcd082f26419008c8bf5544ec212 # v0.6.0
     secrets:
       NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
