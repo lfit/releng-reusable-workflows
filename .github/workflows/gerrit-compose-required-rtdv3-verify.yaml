@@ -84,33 +84,153 @@ jobs:
           delay: "0s"
           submodules: "true"
 
-      - name: Get Python version from TOX configuration
-        # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/file-grep-regex-action@ba13750798b15e6acf23f3342a280ffc8148b950 # v0.1.4
-        id: python-version-from-tox
-        with:
-          # https://regex101.com/r/axPzef/1
-          flags: "-oP -m1"
-          regex: '(?<=^\[testenv:docs\])*basepython = python\K(.*)'
-          filename: "docs/tox.ini"
-          no_fail: "true"
+      # Parse the documentation Python version from both docs/tox.ini and
+      # .readthedocs.yaml, compare them, and warn when they diverge. The tox
+      # verification job must exercise the same Python version that
+      # ReadTheDocs uses, otherwise the two jobs are not testing the same
+      # thing. The resolved version is fed to setup-python so the interpreter
+      # tox needs is actually installed on the runner.
+      - name: Compare TOX and ReadTheDocs Python versions
+        # yamllint disable rule:line-length
+        id: docs-python
+        run: |
+          set -euo pipefail
 
-      - name: Setup Python [DOCS/TOX.INI]
+          TOX_FILE="docs/tox.ini"
+          RTD_FILE=".readthedocs.yaml"
+
+          # Normalise a tox basepython token to a bare X.Y version. Returns an
+          # empty string for generic interpreters (py3, python3, python).
+          normalise_version() {
+            local v
+            v="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+            v="${v#python}"
+            v="${v#py}"
+            if printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+$'; then
+              printf '%s' "$v"
+            elif printf '%s' "$v" | grep -Eq '^[0-9]{2,3}$'; then
+              printf '%s.%s' "${v:0:1}" "${v:1}"
+            else
+              printf ''
+            fi
+          }
+
+          # Extract basepython from the [testenv:docs] section only.
+          tox_raw=""
+          if [ -f "$TOX_FILE" ]; then
+            tox_raw="$(awk '
+              /^[[:space:]]*\[testenv:docs\][[:space:]]*$/ {f=1; next}
+              /^[[:space:]]*\[/ {f=0}
+              f && /^[[:space:]]*basepython[[:space:]]*=/ {
+                sub(/^[^=]*=[[:space:]]*/, "")
+                sub(/[#;].*/, "")
+                gsub(/[[:space:]]/, "")
+                print
+                exit
+              }
+            ' "$TOX_FILE")"
+          fi
+          tox_py="$(normalise_version "$tox_raw")"
+
+          # Extract build.tools.python from the ReadTheDocs configuration.
+          # Track indentation so only build: -> tools: -> python: matches,
+          # never a similarly named key elsewhere in the document.
+          rtd_py=""
+          if [ -f "$RTD_FILE" ]; then
+            rtd_line="$(awk '
+              /^[[:space:]]*$/ { next }
+              /^[[:space:]]*#/ { next }
+              {
+                n = match($0, /[^ ]/)
+                indent = (n > 0) ? n - 1 : 0
+                content = $0
+                sub(/^ +/, "", content)
+              }
+              indent == 0 {
+                in_build = (content ~ /^build:/) ? 1 : 0
+                in_tools = 0
+                next
+              }
+              in_build && content ~ /^tools:/ { in_tools = 1; tools_indent = indent; next }
+              in_build && in_tools && indent <= tools_indent { in_tools = 0 }
+              in_build && in_tools && content ~ /^python:/ { print content; exit }
+            ' "$RTD_FILE")"
+            rtd_py="$(printf '%s' "$rtd_line" | sed -E 's/#.*//' | grep -oE '[0-9]+\.[0-9]+' | head -n1 || true)"
+          fi
+
+          # Decide which version to install for the tox run.
+          if [ -n "$tox_py" ]; then
+            setup_py="$tox_py"
+          elif [ -n "$rtd_py" ]; then
+            setup_py="$rtd_py"
+          else
+            setup_py="${DEFAULT_PYTHON}"
+          fi
+
+          # Compare and build a warning message when the versions diverge.
+          mismatch="false"
+          warn_msg=""
+          if [ -n "$rtd_py" ]; then
+            if [ -n "$tox_py" ] && [ "$tox_py" != "$rtd_py" ]; then
+              mismatch="true"
+              warn_msg="Documentation Python version mismatch: ${TOX_FILE} [testenv:docs] basepython '${tox_raw}' (Python ${tox_py}) does not match ${RTD_FILE} build.tools.python '${rtd_py}'. The tox verification job and the ReadTheDocs build are NOT testing the same Python version. Align ${TOX_FILE} with ${RTD_FILE}."
+            elif [ -z "$tox_py" ]; then
+              mismatch="true"
+              if [ -n "$tox_raw" ]; then
+                warn_msg="${TOX_FILE} [testenv:docs] uses a generic interpreter ('basepython = ${tox_raw}') while ${RTD_FILE} pins Python ${rtd_py}. Set 'basepython = python${rtd_py}' so the tox verification job matches the ReadTheDocs build."
+              else
+                warn_msg="${TOX_FILE} [testenv:docs] does not set basepython while ${RTD_FILE} pins Python ${rtd_py}. Set 'basepython = python${rtd_py}' so the tox verification job matches the ReadTheDocs build."
+              fi
+            fi
+          fi
+
+          # Surface findings in the job log.
+          echo "INFO: ${TOX_FILE} basepython: '${tox_raw:-<unset>}' (resolved: ${tox_py:-generic})"
+          echo "INFO: ${RTD_FILE} python: '${rtd_py:-<none>}'"
+          echo "INFO: Python version selected for tox run: ${setup_py}"
+
+          # Surface findings in the run summary for reviewers.
+          {
+            echo "### Documentation Python version check"
+            echo ""
+            echo "| Source | Configured | Resolved |"
+            echo "| ------ | ---------- | -------- |"
+            echo "| \`${TOX_FILE}\` \`[testenv:docs]\` basepython | \`${tox_raw:-<unset>}\` | ${tox_py:-generic} |"
+            echo "| \`${RTD_FILE}\` \`build.tools.python\` | \`${rtd_py:-<none>}\` | ${rtd_py:-n/a} |"
+            echo "| Python installed for tox run | | \`${setup_py}\` |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$mismatch" = "true" ]; then
+            echo "::warning title=Docs Python version mismatch::${warn_msg}"
+            {
+              echo "> [!WARNING]"
+              echo "> ${warn_msg}"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$rtd_py" ] && [ -n "$tox_py" ]; then
+            echo "INFO: ${TOX_FILE} and ${RTD_FILE} Python versions are aligned (${tox_py})."
+            {
+              echo "\`${TOX_FILE}\` and \`${RTD_FILE}\` Python versions are aligned (\`${tox_py}\`)."
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          {
+            echo "tox_python_raw=${tox_raw}"
+            echo "tox_python=${tox_py}"
+            echo "rtd_python=${rtd_py}"
+            echo "setup_python=${setup_py}"
+            echo "mismatch=${mismatch}"
+          } >> "$GITHUB_OUTPUT"
+        # yamllint enable rule:line-length
+
+      - name: Setup Python [docs build]
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        id: setup-python-from-tox
-        if: steps.python-version-from-tox.outputs.extracted_string != ''
+        id: setup-python
         with:
-          # yamllint disable-line rule:line-length
-          python-version: "${{ steps.python-version-from-tox.outputs.extracted_string }}"
-
-      - name: Setup Python [DEFAULT]
-        # yamllint disable-line rule:line-length
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        id: setup-default-python
-        if: steps.python-version-from-tox.outputs.extracted_string == ''
-        with:
-          python-version: "${{ env.default_python }}"
+          python-version: "${{ steps.docs-python.outputs.setup_python }}"
 
       - name: Install graphviz
         # yamllint disable-line rule:line-length
