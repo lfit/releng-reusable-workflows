@@ -86,7 +86,7 @@ jobs:
           submodules: "true"
       - name: Run gradle build and CLM scan
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gradle-build-action@2d8ed7b3f257a930a01aa365296420906264f8fa # v0.4.0
+        uses: lfreleng-actions/gradle-build-action@0e844f5c498403579bfba3a2eaf2ff7705719ff5 # v0.4.1
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           distribution: ${{ inputs.DISTRIBUTION }}
