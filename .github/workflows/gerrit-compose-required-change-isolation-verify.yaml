@@ -1,0 +1,138 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: Gerrit Compose Required Change Isolation Verify
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: true
+        type: string
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: compose-required-isolation-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}-${{ inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  isolation-validation:
+    name: Verify change isolation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Gerrit Checkout
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/checkout-gerrit-change-action@f87b90a3370e62dad310797fedc7fd3700c75832  # v1.0.2
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+          repository: ${{ inputs.TARGET_REPO }}
+          ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
+      # yamllint disable-line rule:line-length
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        id: setup-python
+        with:
+          python-version: "3.11"
+      # INFO.yaml changes must remain isolated to a single, dedicated
+      # Gerrit change. The /INFO.yaml pattern anchors to the repository
+      # root so only the top-level INFO.yaml triggers the requirement.
+      - name: "Isolate INFO.yaml changes"
+        id: info-isolation
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/change-isolation-action@c306341947f8a600f4f070b81162f0033128e206  # v0.1.0
+        with:
+          paths: "/INFO.yaml"
+      # CI/CD changes under .github must likewise remain isolated. This
+      # runs even when the INFO.yaml check above fails so the change
+      # author receives both isolation results for a single patchset.
+      - name: "Isolate .github (CI/CD) changes"
+        id: github-isolation
+        if: ${{ !cancelled() }}
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/change-isolation-action@c306341947f8a600f4f070b81162f0033128e206  # v0.1.0
+        with:
+          paths: ".github/**"
+      # yamllint disable rule:line-length
+      - name: Download Valid Schema
+        if: steps.info-isolation.outputs.scanned == 'true'
+        # Download info-schema.yaml and yaml-verify-schema.py
+        run: |
+          wget -q https://raw.githubusercontent.com/lfit/releng-global-jjb/master/schema/info-schema.yaml \
+          https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
+      - name: Info File Validation
+        if: steps.info-isolation.outputs.scanned == 'true'
+        env:
+          PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
+        run: |
+          set -e -o pipefail
+          pip install jsonschema yq
+          yamllint INFO.yaml
+          python yaml-verify-schema.py \
+              -s info-schema.yaml \
+              -y INFO.yaml
+          # Verify that there is only one repository and that it matches $PROJECT_INPUT
+          # Support subproject repos (e.g. integration/distribution) where
+          # INFO.yaml lists the parent project (e.g. integration)
+          REPO_LIST="$(yq -r '.repositories[]' INFO.yaml)"
+          REPO_COUNT="$(printf '%s\n' "$REPO_LIST" | grep -c . || true)"
+          if [[ "$REPO_COUNT" -ne 1 ]]; then
+              echo "ERROR: INFO.yaml must list exactly one repository"
+              echo "Found $REPO_COUNT repositories"
+              exit 1
+          fi
+          while IFS= read -r project; do
+              if [[ "$project" == "$PROJECT_INPUT" || "$PROJECT_INPUT" == "$project/"* ]]; then
+                  echo "$project is valid"
+              else
+                  echo "ERROR: $project is invalid"
+                  echo "INFO.yaml file may only list one repository"
+                  echo "Repository must match $PROJECT_INPUT"
+                  exit 1
+              fi
+          done <<< "$REPO_LIST"
