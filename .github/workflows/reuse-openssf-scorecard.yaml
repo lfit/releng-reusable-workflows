@@ -25,28 +25,37 @@ jobs:
       # contents: read
       # actions: read
     steps:
-      # Load the egress allow-list out-of-band from
-      # lfreleng-actions/.github and publish it as
-      # $CONNECTION_ALLOW_LIST for the harden-runner step below
-      # to consume in 'block' mode. Loading out-of-band means
-      # the workflow no longer depends on any org-level GitHub
-      # variable being exposed at runtime (org variables are
-      # unreachable from workflows triggered by PRs raised from
-      # forks, which previously forced a fallback to audit mode).
-      # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/harden-runner-block-action@6db537b3e6d060c3287c5a3ce2c28b55b0af330d  # v0.2.1
-        with:
-          # yamllint disable-line rule:line-length
-          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@ad6501e25f5a30746ad50a77c663115ddc94dc62'  # v0.3.0
-
-      # Harden the runner with the just-loaded allow-list.
+      # ossf/scorecard-action publishing imposes strict workflow
+      # restrictions on THIS job (the one running scorecard-action):
+      # only actions/checkout, actions/upload-artifact,
+      # github/codeql-action/upload-sarif, ossf/scorecard-action and
+      # step-security/harden-runner are permitted as steps. The
+      # org-wide harden-runner-block-action loader CANNOT be used
+      # here; the publish API rejects the run with HTTP 400
+      # 'job has unallowed step: lfreleng-actions/harden-runner-block-action'.
+      # We therefore keep egress 'block' mode but pass an explicit,
+      # curated allow-list covering only the endpoints Scorecard
+      # itself needs, rather than loading the full org allow-list.
+      # See https://github.com/ossf/scorecard-action#workflow-restrictions
       - name: 'Harden runner (block)'
         # yamllint disable-line rule:line-length
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
         with:
           egress-policy: 'block'
+          # Curated egress allow-list for ossf/scorecard-action only.
+          # Artifact and SARIF uploads use GitHub Actions control-plane
+          # endpoints that harden-runner permits by default.
           allowed-endpoints: >
-            ${{ env.CONNECTION_ALLOW_LIST }}
+            api.github.com:443
+            github.com:443
+            *.githubusercontent.com:443
+            api.osv.dev:443
+            api.scorecard.dev:443
+            www.bestpractices.dev:443
+            oss-fuzz-build-logs.storage.googleapis.com:443
+            *.sigstore.dev:443
+            tuf-repo.github.com:443
+            prod.app-api.stepsecurity.io:443
 
       - name: "Checkout code"
         # yamllint disable-line rule:line-length
@@ -96,7 +105,7 @@ jobs:
       - uses: lfreleng-actions/harden-runner-block-action@6db537b3e6d060c3287c5a3ce2c28b55b0af330d  # v0.2.1
         with:
           # yamllint disable-line rule:line-length
-          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@ad6501e25f5a30746ad50a77c663115ddc94dc62'  # v0.3.0
+          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@9daeea15f1cce57566d8c91ebaf24a4a190da2e2'  # v0.4.0
 
       # Harden the runner with the just-loaded allow-list.
       - name: 'Harden runner (block)'
