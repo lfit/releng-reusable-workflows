@@ -100,7 +100,7 @@ jobs:
       # tag object). Bump via the release tag's commit SHA.
       - name: 'Run package manager hardening audit'
         # yamllint disable-line rule:line-length
-        uses: jordanconway/package-manager-hardening@ae4a2c6bbcafacf474fdb7daf27d41c22e825d21  # v0.4.2
+        uses: jordanconway/package-manager-hardening@e8e3fe3a0b3826d4b42bf11536ad0e730cf98309  # v0.4.3
         with:
           path: '${{ inputs.path }}'
           warn-only: '${{ inputs.warn_only }}'
