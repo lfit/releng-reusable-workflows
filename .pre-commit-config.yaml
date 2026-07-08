@@ -101,12 +101,12 @@ repos:
       - id: codespell
 
   - repo: https://github.com/lfreleng-actions/gha-workflow-linter
-    rev: 7be2cdacfacf04d67a01e8424012adcc79ca9a86  # frozen: v1.2.1
+    rev: 4c3079dcb6e9e3c295f961ce5bd5b8585db698ca  # frozen: v1.2.2
     hooks:
       - id: gha-workflow-linter
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 8ef330cbb7204d388aa7a620f9549bcea8009663  # frozen: 0.37.3
+    rev: 1a4bb160cab6417b3045e1b37b6b72449243e658  # frozen: 0.37.4
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
