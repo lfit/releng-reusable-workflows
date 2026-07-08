@@ -85,7 +85,7 @@ jobs:
       - name: "Isolate INFO.yaml changes"
         id: info-isolation
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/change-isolation-action@c306341947f8a600f4f070b81162f0033128e206  # v0.1.0
+        uses: lfreleng-actions/change-isolation-action@5c2b23154b856dca369edb7667dd4a37211e3a34  # v0.2.0
         with:
           paths: "/INFO.yaml"
       # CI/CD changes under .github must likewise remain isolated. This
@@ -95,18 +95,18 @@ jobs:
         id: github-isolation
         if: ${{ !cancelled() }}
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/change-isolation-action@c306341947f8a600f4f070b81162f0033128e206  # v0.1.0
+        uses: lfreleng-actions/change-isolation-action@5c2b23154b856dca369edb7667dd4a37211e3a34  # v0.2.0
         with:
           paths: ".github/**"
       # yamllint disable rule:line-length
       - name: Download Valid Schema
-        if: steps.info-isolation.outputs.scanned == 'true'
+        if: steps.info-isolation.outputs.triggered == 'true'
         # Download info-schema.yaml and yaml-verify-schema.py
         run: |
           wget -q https://raw.githubusercontent.com/lfit/releng-global-jjb/master/schema/info-schema.yaml \
           https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
       - name: Info File Validation
-        if: steps.info-isolation.outputs.scanned == 'true'
+        if: steps.info-isolation.outputs.triggered == 'true'
         env:
           PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
         run: |
