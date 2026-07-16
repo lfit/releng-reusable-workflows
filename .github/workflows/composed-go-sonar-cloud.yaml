@@ -1,0 +1,209 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# Gerrit-aware SonarQube Cloud scan for Go projects. Checks out the
+# Gerrit change/patchset under review (rather than the branch tip),
+# generates Go test coverage, then runs the SonarQube Cloud scan so
+# per-patchset results are available before a change merges.
+name: Composed Go Sonar Cloud
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      # gerrit-to-platform required
+      GERRIT_BRANCH:
+        description: "Branch that change is against"
+        required: true
+        type: string
+      GERRIT_CHANGE_ID:
+        description: "The ID for the change"
+        required: true
+        type: string
+      GERRIT_CHANGE_NUMBER:
+        description: "The Gerrit number"
+        required: true
+        type: string
+      GERRIT_CHANGE_URL:
+        description: "URL to the change"
+        required: true
+        type: string
+      GERRIT_EVENT_TYPE:
+        description: "Type of Gerrit event"
+        required: true
+        type: string
+      GERRIT_PATCHSET_NUMBER:
+        description: "The patch number for the change"
+        required: true
+        type: string
+      GERRIT_PATCHSET_REVISION:
+        description: "The revision sha"
+        required: true
+        type: string
+      GERRIT_PROJECT:
+        description: "Project in Gerrit"
+        required: true
+        type: string
+      GERRIT_REFSPEC:
+        description: "Gerrit refspec of change"
+        required: true
+        type: string
+      # Optional
+      TARGET_REPO:
+        # yamllint disable-line rule:line-length
+        description: "The target GitHub repository needing the required workflow"
+        required: false
+        default: ${{ github.repository }}
+        type: string
+      GO_VERSION:
+        # yamllint disable-line rule:line-length
+        description: "Go version to install (when empty, uses the go.mod file)"
+        required: false
+        default: ""
+        type: string
+      TEST_COMMAND:
+        description: "Command generating Go test coverage for the scan"
+        required: false
+        default: "go test -p 1 -coverprofile=coverage.out ./..."
+        type: string
+      PRE_BUILD_SCRIPT:
+        description: "Pre-build script to trigger before the scan"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_PATH:
+        description: "Path to pre-build script to trigger before the scan"
+        required: false
+        default: ""
+        type: string
+      PRE_BUILD_SCRIPT_URL:
+        description: "URL of pre-build script to trigger before the scan"
+        required: false
+        default: ""
+        type: string
+      SONAR_ARGS:
+        description: "Additional arguments to the SonarQube Cloud scanner"
+        required: false
+        type: string
+        default: "-Dsonar.scanner.cache.enabled=false"
+      SONAR_PROJECTBASEDIR:
+        description: "Set the sonar.projectBaseDir analysis property"
+        required: false
+        type: string
+        default: "."
+    # Reusable workflow requires secrets be explicitly passed
+    secrets:
+      SONAR_TOKEN:
+        description: "SonarQube Cloud access token"
+        required: true
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: composed-go-sonar-cloud-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}-${{ inputs.GERRIT_CHANGE_ID || github.run_id }}
+  cancel-in-progress: true
+
+# Declare default permissions as none; jobs grant the minimum they need.
+permissions: {}
+
+jobs:
+  run-go-sonar-scan:
+    name: "Go SonarQube Cloud scan"
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to check out the repository and Gerrit change under scan.
+      contents: read
+    env:
+      PRE_BUILD: ""
+    steps:
+      # Egress cannot run in 'block' mode: Go module downloads and the
+      # scanner CLI reach arbitrary endpoints that vary per project.
+      - name: "Harden runner (audit)"
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: "audit"
+
+      # Fetches the Gerrit change/patchset on top of the target branch so
+      # the scan reflects the code under review, not the branch tip.
+      - name: "Gerrit checkout"
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/checkout-gerrit-change-action@f87b90a3370e62dad310797fedc7fd3700c75832  # v1.0.2
+        with:
+          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: "0s"
+          repository: ${{ inputs.TARGET_REPO }}
+          ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
+
+      - name: "Setup Go (explicit version)"
+        if: ${{ inputs.GO_VERSION != '' }}
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: ${{ inputs.GO_VERSION }}
+
+      - name: "Setup Go (from go.mod)"
+        if: ${{ inputs.GO_VERSION == '' }}
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          # Resolve go.mod relative to the scan base directory so Go
+          # modules in subdirectories (monorepos) work without an
+          # explicit GO_VERSION input.
+          go-version-file: "${{ inputs.SONAR_PROJECTBASEDIR }}/go.mod"
+
+      - name: "Pre-build path"
+        if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        env:
+          PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
+        run: |
+          # Reject multi-line values to prevent environment file injection
+          if [ "$(printf '%s' "$PRE_BUILD_SCRIPT_PATH" | wc -l)" -ne 0 ]; then
+            echo "Error: PRE_BUILD_SCRIPT_PATH must be a single line ❌"
+            exit 1
+          fi
+          printf 'PRE_BUILD=%s\n' "$PRE_BUILD_SCRIPT_PATH" >> "$GITHUB_ENV"
+      - name: "Pre-build script"
+        if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        env:
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
+        run: |
+          printf '%s\n' "$PRE_BUILD_SCRIPT" > "$GITHUB_RUN_ID.sh"
+          chmod +x "$GITHUB_RUN_ID.sh"
+          echo "PRE_BUILD=$GITHUB_RUN_ID.sh" >> "$GITHUB_ENV"
+      - name: "Pre-build URL"
+        if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        env:
+          PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
+        run: |
+          curl -fsSL "$PRE_BUILD_SCRIPT_URL" > "$GITHUB_RUN_ID.sh"
+          chmod +x "$GITHUB_RUN_ID.sh"
+          echo "PRE_BUILD=$GITHUB_RUN_ID.sh" >> "$GITHUB_ENV"
+      - name: "Run pre-build script"
+        if: ${{ env.PRE_BUILD != '' }}
+        shell: bash
+        run: bash -euo pipefail -- "$PRE_BUILD"
+
+      # Generates coverage.out (or equivalent) referenced by the project's
+      # sonar-project.properties (sonar.go.coverage.reportPaths). Runs in
+      # the scan base directory so the report lands where the scanner
+      # (and any subdirectory Go module) expects it.
+      - name: "Go test coverage"
+        if: ${{ inputs.TEST_COMMAND != '' }}
+        shell: bash
+        working-directory: ${{ inputs.SONAR_PROJECTBASEDIR }}
+        env:
+          TEST_COMMAND: ${{ inputs.TEST_COMMAND }}
+        run: bash -euo pipefail -c "$TEST_COMMAND"
+
+      - name: "SonarQube Cloud Scan"
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@6138cf1252b714849809c85854a576974f6436f2 # v1.1.1
+        with:
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          # The Gerrit change is already checked out by the step above.
+          no_checkout: "true"
+          project_base_dir: ${{ inputs.SONAR_PROJECTBASEDIR }}
+          args: ${{ inputs.SONAR_ARGS }}
