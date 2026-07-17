@@ -33,7 +33,7 @@ on:
         required: false
         type: string
         # yamllint disable-line rule:line-length
-        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@9daeea15f1cce57566d8c91ebaf24a4a190da2e2'  # v0.4.0
+        default: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@ca8ce369a97afc64b6895266f10df9b5f5969743'  # v0.6.0
       upload_sarif:
         # yamllint disable-line rule:line-length
         description: "Publish SARIF results to code scanning (default-branch pushes only)"

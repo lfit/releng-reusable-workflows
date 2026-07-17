@@ -97,7 +97,7 @@ jobs:
       - uses: lfreleng-actions/harden-runner-block-action@6db537b3e6d060c3287c5a3ce2c28b55b0af330d  # v0.2.1
         with:
           # yamllint disable-line rule:line-length
-          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@9daeea15f1cce57566d8c91ebaf24a4a190da2e2'  # v0.4.0
+          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@ca8ce369a97afc64b6895266f10df9b5f5969743'  # v0.6.0
 
       # Harden the runner with the just-loaded allow-list.
       - name: 'Harden runner (block)'
