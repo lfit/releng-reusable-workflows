@@ -123,6 +123,6 @@ jobs:
         run: ${{ inputs.PRE_BUILD_SCRIPT }}
       - name: Run Sonar Cloud scan
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonarqube-cloud-scan-action@6138cf1252b714849809c85854a576974f6436f2 # v1.1.1
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@b8d74f08d2222acb4556b71f9f3cd3e80bc8109b # v1.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
