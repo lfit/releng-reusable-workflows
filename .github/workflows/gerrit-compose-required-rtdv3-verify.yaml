@@ -50,6 +50,12 @@ on:
         required: false
         default: ${{ github.repository }}
         type: string
+      PARALLEL:
+        # yamllint disable-line rule:line-length
+        description: "Run tox environments in parallel; set to 'false' to run serially and avoid races between environments sharing state"
+        required: false
+        default: "true"
+        type: string
     secrets:
       RTD_TOKEN:
         description: "RTD API user token"
@@ -66,7 +72,6 @@ env:
   TOX_ENVS: docs,docs-linkcheck
   TOX_DIR: docs/
   DOC_DIR: _build/html
-  PARALLEL: true
   DEFAULT_VERSION: latest
   MASTER_RTD_PROJECT: doc
 
@@ -253,6 +258,8 @@ jobs:
       - name: Running tox
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
+        env:
+          PARALLEL: ${{ inputs.PARALLEL }}
         run: |
           PATH="${GITHUB_WORKSPACE}/.local/bin:${PATH}"
 
@@ -269,7 +276,6 @@ jobs:
           #Useful debug
           tox --version
 
-          PARALLEL=${{ env.PARALLEL }}
           TOX_OPTIONS_LIST=""
           if [[ -n ${{ env.TOX_ENVS }} ]]; then
               TOX_OPTIONS_LIST=${TOX_OPTIONS_LIST}" -e ${{ env.TOX_ENVS }}"
