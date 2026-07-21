@@ -52,7 +52,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06  # frozen: v0.15.21
+    rev: 2700fd5671c633760d912769c041bfcde2b9a01b  # frozen: v0.15.22
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -77,7 +77,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: a4d5d37e66ebcd6b3705204a1d6dbb56dea66338  # frozen: v0.49.0
+    rev: 5b5dddc4fb0f83c3ea1fc5616fa63e115dce83e0  # frozen: v0.49.1
     hooks:
       - id: markdownlint
         args: ["--fix"]
@@ -96,12 +96,12 @@ repos:
 
   # Check for misspellings in source and documentation files
   - repo: https://github.com/codespell-project/codespell
-    rev: 2ccb47ff45ad361a21071a7eedda4c37e6ae8c5a  # frozen: v2.4.2
+    rev: 57b21406f092110c18776e39b0bda50d37c945c8  # frozen: v2.4.3
     hooks:
       - id: codespell
 
   - repo: https://github.com/lfreleng-actions/gha-workflow-linter
-    rev: 4c3079dcb6e9e3c295f961ce5bd5b8585db698ca  # frozen: v1.2.2
+    rev: cec679e88cd818179079f52925ba80b9e6cb705c  # frozen: v1.2.3
     hooks:
       - id: gha-workflow-linter
 
