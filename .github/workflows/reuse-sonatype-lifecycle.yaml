@@ -40,11 +40,126 @@ on:
         required: false
         type: boolean
         default: false
+      checkout:
+        # auto: standard checkout, or Gerrit checkout when a
+        #   gerrit_refspec is supplied (backwards-compatible default)
+        # standard: force actions/checkout (honours checkout_ref,
+        #   fetch_depth, submodules)
+        # gerrit: force the Gerrit-aware checkout
+        # none: perform no explicit checkout in this workflow; the
+        #   scan action performs its own plain checkout instead
+        description: "Checkout mode: auto, standard, gerrit, none"
+        required: false
+        type: string
+        default: "auto"
+      checkout_ref:
+        description: "Git ref to checkout (standard checkout mode)"
+        required: false
+        type: string
+        default: ""
+      fetch_depth:
+        description: "Fetch depth for standard checkout (0 = full)"
+        required: false
+        type: number
+        default: 1
+      submodules:
+        description: "Submodule checkout: false, true, recursive"
+        required: false
+        type: string
+        default: "false"
+      gerrit_refspec:
+        description: "Gerrit refspec of change to checkout/scan"
+        required: false
+        type: string
+        default: ""
+      gerrit_project:
+        description: "Gerrit project (required when gerrit_refspec set)"
+        required: false
+        type: string
+        default: ""
+      gerrit_delay:
+        description: "Delay before the Gerrit checkout (e.g. 0s, 5s)"
+        required: false
+        type: string
+        default: "0s"
+      build_type:
+        description: "Optional pre-scan build to run: none, maven"
+        required: false
+        type: string
+        default: "none"
+      build_java_distribution:
+        description: "JAVA SE distribution used for the pre-scan build"
+        required: false
+        type: string
+        default: "temurin"
+      build_java_version:
+        # Note: independent of java_version; Nexus IQ CLI 2.x
+        # requires Java 17, but projects may build with older JDKs
+        description: "Java version used for the pre-scan build"
+        required: false
+        type: number
+        default: 17
+      mvn_version:
+        description: "Maven version used for the pre-scan build"
+        required: false
+        type: string
+        default: "3.9.5"
+      mvn_phases:
+        description: "Maven phases/goals for the pre-scan build"
+        required: false
+        type: string
+        default: "clean package"
+      mvn_params:
+        description: "Maven parameters to pass to the mvn command"
+        required: false
+        type: string
+        default: ""
+      mvn_opts:
+        description: "Maven options"
+        required: false
+        type: string
+        default: ""
+      fail_on_build_error:
+        description: "Fail the workflow when the pre-scan build fails"
+        required: false
+        type: boolean
+        default: false
+      op_secret_reference:
+        # Loaded into environment variable NEXUS_SERVER_PASSWORD; a
+        # '{project}' placeholder is substituted with the project name
+        # derived from the repository-root .gitreview file
+        description: "1Password secret reference for Maven server password"
+        required: false
+        type: string
+        default: ""
+      egress_policy:
+        description: "Harden-runner egress policy: block, audit"
+        required: false
+        type: string
+        default: "block"
+      extra_allowed_endpoints:
+        description: "Extra endpoints permitted when egress policy blocks"
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description: "Timeout in minutes for the build/scan job"
+        required: false
+        type: number
+        default: 45
     # Reusable workflow requires secrets be explicitly passed
     secrets:
       nexus_iq_password:
         description: "Nexus IQ Password"
         required: true
+      global_settings:
+        # May reference environment variables for credentials, e.g.
+        # ${env.NEXUS_SERVER_PASSWORD} loaded via op_secret_reference
+        description: "Maven global settings content for pre-scan build"
+        required: false
+      op_service_account_token:
+        description: "1Password service account token"
+        required: false
 
 # Declare default permissions as none; jobs grant the minimum they need.
 permissions: {}
@@ -53,10 +168,121 @@ jobs:
   sonatype-cli:
     name: "Scan"
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
     permissions:
-      # The scan action checks out the repository under analysis.
+      # The workflow checks out the repository under analysis.
       contents: read
     steps:
+      # Validate caller-supplied inputs up front so misconfigurations
+      # fail with a clear message rather than surfacing as opaque
+      # errors inside a downstream action.
+      - name: 'Validate inputs'
+        shell: bash
+        env:
+          BUILD_TYPE: ${{ inputs.build_type }}
+          CHECKOUT: ${{ inputs.checkout }}
+          EGRESS_POLICY: ${{ inputs.egress_policy }}
+          TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
+          GERRIT_REFSPEC: ${{ inputs.gerrit_refspec }}
+          GERRIT_PROJECT: ${{ inputs.gerrit_project }}
+          GERRIT_URL: ${{ vars.GERRIT_URL }}
+          OP_SECRET_REFERENCE: ${{ inputs.op_secret_reference }}
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.op_service_account_token }}
+        run: |
+          # Validate inputs
+          error='false'
+
+          case "$BUILD_TYPE" in
+            none | maven) ;;
+            *)
+              echo "Error: build_type must be 'none' or 'maven'"
+              echo "  (received: '$BUILD_TYPE') ❌"
+              error='true'
+              ;;
+          esac
+
+          case "$CHECKOUT" in
+            auto | standard | gerrit | none) ;;
+            *)
+              echo "Error: checkout must be 'auto', 'standard',"
+              echo "  'gerrit' or 'none' (received: '$CHECKOUT') ❌"
+              error='true'
+              ;;
+          esac
+
+          # With checkout='none' this workflow performs no checkout;
+          # the scan action checks out later, after the pre-scan build
+          # and 1Password resolution steps run. Those steps need the
+          # workspace populated first, so reject the combination.
+          if [ "$CHECKOUT" = 'none' ]; then
+            if [ "$BUILD_TYPE" != 'none' ]; then
+              echo "Error: checkout 'none' cannot be combined with a"
+              echo "  pre-scan build (build_type: '$BUILD_TYPE') ❌"
+              error='true'
+            fi
+            if [ -n "$OP_SECRET_REFERENCE" ]; then
+              echo "Error: checkout 'none' cannot be combined with"
+              echo "  op_secret_reference (needs .gitreview present) ❌"
+              error='true'
+            fi
+          fi
+
+          case "$EGRESS_POLICY" in
+            block | audit) ;;
+            *)
+              echo "Error: egress_policy must be 'block' or 'audit'"
+              echo "  (received: '$EGRESS_POLICY') ❌"
+              error='true'
+              ;;
+          esac
+
+          if ! [[ "$TIMEOUT_MINUTES" =~ ^[0-9]+$ ]] || \
+             [ "$TIMEOUT_MINUTES" -lt 1 ] || \
+             [ "$TIMEOUT_MINUTES" -gt 360 ]; then
+            echo "Error: timeout_minutes must be an integer 1-360"
+            echo "  (received: '$TIMEOUT_MINUTES') ❌"
+            error='true'
+          fi
+
+          # A Gerrit checkout runs when explicitly requested, or in
+          # 'auto' mode when a gerrit_refspec is supplied. Validate the
+          # Gerrit inputs whenever that checkout will run.
+          gerrit_checkout='false'
+          if [ "$CHECKOUT" = 'gerrit' ] || \
+             { [ "$CHECKOUT" = 'auto' ] && [ -n "$GERRIT_REFSPEC" ]; }; then
+            gerrit_checkout='true'
+          fi
+
+          if [ "$gerrit_checkout" = 'true' ]; then
+            if [ -z "$GERRIT_REFSPEC" ]; then
+              echo "Error: gerrit_refspec required when checkout set"
+              echo "  to 'gerrit' ❌"
+              error='true'
+            fi
+            if [ -z "$GERRIT_PROJECT" ]; then
+              echo "Error: gerrit_project required for Gerrit checkout ❌"
+              error='true'
+            fi
+            if [ -z "$GERRIT_URL" ]; then
+              echo "Error: GERRIT_URL variable required for"
+              echo "  Gerrit checkout ❌"
+              error='true'
+            fi
+          fi
+
+          if [ -n "$OP_SECRET_REFERENCE" ] && \
+             [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+            echo "Error: op_service_account_token secret required when"
+            echo "  op_secret_reference set ❌"
+            error='true'
+          fi
+
+          if [ "$error" = 'true' ]; then
+            echo "One or more inputs failed validation ❌"
+            exit 1
+          fi
+          echo "All inputs validated ✅"
+
       # Load the egress allow-list out-of-band from
       # lfreleng-actions/.github and publish it as
       # $CONNECTION_ALLOW_LIST for the harden-runner step below
@@ -71,14 +297,104 @@ jobs:
           # yamllint disable-line rule:line-length
           config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@ca8ce369a97afc64b6895266f10df9b5f5969743'  # v0.6.0
 
-      # Harden the runner with the just-loaded allow-list.
-      - name: 'Harden runner (block)'
+      # Harden the runner with the just-loaded allow-list, plus any
+      # caller-supplied endpoints (e.g. project Nexus/artifact servers
+      # needed by the optional pre-scan build).
+      - name: 'Harden runner'
         # yamllint disable-line rule:line-length
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920  # v2.20.0
         with:
-          egress-policy: 'block'
+          egress-policy: ${{ inputs.egress_policy }}
           allowed-endpoints: >
             ${{ env.CONNECTION_ALLOW_LIST }}
+            ${{ inputs.extra_allowed_endpoints }}
+
+      - name: 'Checkout repository'
+        if: >
+          inputs.checkout == 'standard' ||
+          (inputs.checkout == 'auto' && inputs.gerrit_refspec == '')
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref }}
+          fetch-depth: ${{ inputs.fetch_depth }}
+          submodules: ${{ inputs.submodules }}
+
+      # Gerrit-aware checkout, used when a change refspec is provided
+      - name: 'Checkout Gerrit change'
+        if: >
+          inputs.checkout == 'gerrit' ||
+          (inputs.checkout == 'auto' && inputs.gerrit_refspec != '')
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/checkout-gerrit-change-action@f87b90a3370e62dad310797fedc7fd3700c75832  # v1.0.2
+        with:
+          gerrit-refspec: ${{ inputs.gerrit_refspec }}
+          gerrit-project: ${{ inputs.gerrit_project }}
+          gerrit-url: ${{ vars.GERRIT_URL }}
+          delay: ${{ inputs.gerrit_delay }}
+
+      # Substitute any '{project}' placeholder in the 1Password secret
+      # reference with the project name derived from .gitreview
+      - name: 'Resolve 1Password secret reference'
+        id: op-reference
+        if: inputs.op_secret_reference != ''
+        shell: bash
+        env:
+          OP_SECRET_REFERENCE: ${{ inputs.op_secret_reference }}
+        run: |
+          # Resolve 1Password secret reference
+          reference="$OP_SECRET_REFERENCE"
+          if [[ "$reference" == *'{project}'* ]]; then
+            if [ ! -f .gitreview ]; then
+              echo 'Error: .gitreview required for {project} placeholder ❌'
+              exit 1
+            fi
+            project=$(grep '^project=' .gitreview | cut -d'=' -f2 | \
+              sed 's/\.git$//' | tr '/' '-')
+            if [ -z "$project" ]; then
+              echo 'Error: could not extract project from .gitreview ❌'
+              exit 1
+            fi
+            echo "Derived project name: $project"
+            reference="${reference//\{project\}/$project}"
+          fi
+          echo "reference=$reference" >> "$GITHUB_OUTPUT"
+
+      # Loads the password used by the pre-scan build into the
+      # environment as NEXUS_SERVER_PASSWORD; reference it from the
+      # global_settings content as ${env.NEXUS_SERVER_PASSWORD}
+      - name: 'Load secret from 1Password'
+        if: inputs.op_secret_reference != ''
+        # yamllint disable-line rule:line-length
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556  # v4.0.1
+        with:
+          export-env: true
+          # Pin the 1Password CLI version (defaults to 'latest')
+          version: "2.31.1"
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.op_service_account_token }}
+          NEXUS_SERVER_PASSWORD: ${{ steps.op-reference.outputs.reference }}
+
+      # Optional build populating the workspace with resolved
+      # dependencies and artefacts prior to running the scan; runs
+      # with its own JDK, independent of the Nexus IQ CLI runtime
+      - name: 'Build with Maven'
+        if: inputs.build_type == 'maven'
+        continue-on-error: ${{ !inputs.fail_on_build_error }}
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/maven-build-action@c2ded37cb11ff1c2bb1eb7df7011906ddf97bd58  # v0.2.2
+        with:
+          java-version: ${{ inputs.build_java_version }}
+          distribution: ${{ inputs.build_java_distribution }}
+          mvn-version: ${{ inputs.mvn_version }}
+          mvn-phases: ${{ inputs.mvn_phases }}
+          mvn-params: ${{ inputs.mvn_params }}
+          mvn-opts: ${{ inputs.mvn_opts }}
+          global-settings: ${{ secrets.global_settings }}
+          run-jacoco: 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Sonatype Lifecycle Scan"
         # yamllint disable-line rule:line-length
@@ -93,3 +409,6 @@ jobs:
           application_id: ${{ inputs.application_id }}
           scan_targets: ${{ inputs.scan_targets }}
           debug: ${{ inputs.debug }}
+          # When checkout is 'none' the scan action performs its own
+          # checkout; otherwise this workflow has already checked out.
+          no_checkout: ${{ inputs.checkout == 'none' && 'false' || 'true' }}
