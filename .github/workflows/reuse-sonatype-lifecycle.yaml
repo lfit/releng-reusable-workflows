@@ -40,6 +40,33 @@ on:
         required: false
         type: boolean
         default: false
+      checkout:
+        # auto: standard checkout, or Gerrit checkout when a
+        #   gerrit_refspec is supplied (backwards-compatible default)
+        # standard: force actions/checkout (honours checkout_ref,
+        #   fetch_depth, submodules)
+        # gerrit: force the Gerrit-aware checkout
+        # none: perform no explicit checkout in this workflow; the
+        #   scan action performs its own plain checkout instead
+        description: "Checkout mode: auto, standard, gerrit, none"
+        required: false
+        type: string
+        default: "auto"
+      checkout_ref:
+        description: "Git ref to checkout (standard checkout mode)"
+        required: false
+        type: string
+        default: ""
+      fetch_depth:
+        description: "Fetch depth for standard checkout (0 = full)"
+        required: false
+        type: number
+        default: 1
+      submodules:
+        description: "Submodule checkout: false, true, recursive"
+        required: false
+        type: string
+        default: "false"
       gerrit_refspec:
         description: "Gerrit refspec of change to checkout/scan"
         required: false
@@ -50,6 +77,11 @@ on:
         required: false
         type: string
         default: ""
+      gerrit_delay:
+        description: "Delay before the Gerrit checkout (e.g. 0s, 5s)"
+        required: false
+        type: string
+        default: "0s"
       build_type:
         description: "Optional pre-scan build to run: none, maven"
         required: false
@@ -148,6 +180,7 @@ jobs:
         shell: bash
         env:
           BUILD_TYPE: ${{ inputs.build_type }}
+          CHECKOUT: ${{ inputs.checkout }}
           EGRESS_POLICY: ${{ inputs.egress_policy }}
           TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
           GERRIT_REFSPEC: ${{ inputs.gerrit_refspec }}
@@ -168,6 +201,32 @@ jobs:
               ;;
           esac
 
+          case "$CHECKOUT" in
+            auto | standard | gerrit | none) ;;
+            *)
+              echo "Error: checkout must be 'auto', 'standard',"
+              echo "  'gerrit' or 'none' (received: '$CHECKOUT') ❌"
+              error='true'
+              ;;
+          esac
+
+          # With checkout='none' this workflow performs no checkout;
+          # the scan action checks out later, after the pre-scan build
+          # and 1Password resolution steps run. Those steps need the
+          # workspace populated first, so reject the combination.
+          if [ "$CHECKOUT" = 'none' ]; then
+            if [ "$BUILD_TYPE" != 'none' ]; then
+              echo "Error: checkout 'none' cannot be combined with a"
+              echo "  pre-scan build (build_type: '$BUILD_TYPE') ❌"
+              error='true'
+            fi
+            if [ -n "$OP_SECRET_REFERENCE" ]; then
+              echo "Error: checkout 'none' cannot be combined with"
+              echo "  op_secret_reference (needs .gitreview present) ❌"
+              error='true'
+            fi
+          fi
+
           case "$EGRESS_POLICY" in
             block | audit) ;;
             *)
@@ -185,14 +244,28 @@ jobs:
             error='true'
           fi
 
-          if [ -n "$GERRIT_REFSPEC" ]; then
+          # A Gerrit checkout runs when explicitly requested, or in
+          # 'auto' mode when a gerrit_refspec is supplied. Validate the
+          # Gerrit inputs whenever that checkout will run.
+          gerrit_checkout='false'
+          if [ "$CHECKOUT" = 'gerrit' ] || \
+             { [ "$CHECKOUT" = 'auto' ] && [ -n "$GERRIT_REFSPEC" ]; }; then
+            gerrit_checkout='true'
+          fi
+
+          if [ "$gerrit_checkout" = 'true' ]; then
+            if [ -z "$GERRIT_REFSPEC" ]; then
+              echo "Error: gerrit_refspec required when checkout set"
+              echo "  to 'gerrit' ❌"
+              error='true'
+            fi
             if [ -z "$GERRIT_PROJECT" ]; then
-              echo "Error: gerrit_project required when gerrit_refspec set ❌"
+              echo "Error: gerrit_project required for Gerrit checkout ❌"
               error='true'
             fi
             if [ -z "$GERRIT_URL" ]; then
-              echo "Error: GERRIT_URL variable required when"
-              echo "  gerrit_refspec set ❌"
+              echo "Error: GERRIT_URL variable required for"
+              echo "  Gerrit checkout ❌"
               error='true'
             fi
           fi
@@ -237,22 +310,29 @@ jobs:
             ${{ inputs.extra_allowed_endpoints }}
 
       - name: 'Checkout repository'
-        if: inputs.gerrit_refspec == ''
+        if: >
+          inputs.checkout == 'standard' ||
+          (inputs.checkout == 'auto' && inputs.gerrit_refspec == '')
         # yamllint disable-line rule:line-length
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           persist-credentials: false
+          ref: ${{ inputs.checkout_ref }}
+          fetch-depth: ${{ inputs.fetch_depth }}
+          submodules: ${{ inputs.submodules }}
 
       # Gerrit-aware checkout, used when a change refspec is provided
       - name: 'Checkout Gerrit change'
-        if: inputs.gerrit_refspec != ''
+        if: >
+          inputs.checkout == 'gerrit' ||
+          (inputs.checkout == 'auto' && inputs.gerrit_refspec != '')
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/checkout-gerrit-change-action@f87b90a3370e62dad310797fedc7fd3700c75832  # v1.0.2
         with:
           gerrit-refspec: ${{ inputs.gerrit_refspec }}
           gerrit-project: ${{ inputs.gerrit_project }}
           gerrit-url: ${{ vars.GERRIT_URL }}
-          delay: "0s"
+          delay: ${{ inputs.gerrit_delay }}
 
       # Substitute any '{project}' placeholder in the 1Password secret
       # reference with the project name derived from .gitreview
@@ -329,4 +409,6 @@ jobs:
           application_id: ${{ inputs.application_id }}
           scan_targets: ${{ inputs.scan_targets }}
           debug: ${{ inputs.debug }}
-          no_checkout: "true"
+          # When checkout is 'none' the scan action performs its own
+          # checkout; otherwise this workflow has already checked out.
+          no_checkout: ${{ inputs.checkout == 'none' && 'false' || 'true' }}
