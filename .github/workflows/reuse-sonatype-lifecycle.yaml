@@ -23,7 +23,30 @@ on:
         description: "Specific version of Nexus CLI to setup/run"
         required: false
         type: string
-        default: "2.4.2-01"
+        default: "2.13.0-01"
+      ignore_scanning_errors:
+        description: "Ignore scanning errors (invalid/inaccessible files)"
+        required: false
+        type: boolean
+        default: false
+      ignore_system_errors:
+        description: "Ignore system errors (IO, network, server, etc.)"
+        required: false
+        type: boolean
+        default: false
+      fail_on_policy_warnings:
+        description: "Fail the scan when policy evaluation warnings occur"
+        required: false
+        type: boolean
+        default: false
+      advanced_properties:
+        # Values must not contain spaces: properties split on whitespace
+        # and newlines, so a space would break a value into two tokens
+        # yamllint disable-line rule:line-length
+        description: "System properties for the Nexus IQ CLI; one or more key=value pairs, space-separated or one per line"
+        required: false
+        type: string
+        default: ""
       application_id:
         description: "Organisation and project name in Nexus IQ"
         required: false
@@ -398,7 +421,7 @@ jobs:
 
       - name: "Sonatype Lifecycle Scan"
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonatype-lifecycle-scan-action@974066f00a3b7989013bd588cd56f7451933fed8  # v0.1.4
+        uses: lfreleng-actions/sonatype-lifecycle-scan-action@f5b35cbd1c76597611c426e7e788c147e11c8e98  # v0.2.0
         with:
           nexus_iq_server: ${{ vars.NEXUS_IQ_SERVER }}
           nexus_iq_username: ${{ vars.NEXUS_IQ_USERNAME }}
@@ -408,6 +431,10 @@ jobs:
           iq_cli_version: ${{ inputs.iq_cli_version }}
           application_id: ${{ inputs.application_id }}
           scan_targets: ${{ inputs.scan_targets }}
+          ignore_scanning_errors: ${{ inputs.ignore_scanning_errors }}
+          ignore_system_errors: ${{ inputs.ignore_system_errors }}
+          fail_on_policy_warnings: ${{ inputs.fail_on_policy_warnings }}
+          advanced_properties: ${{ inputs.advanced_properties }}
           debug: ${{ inputs.debug }}
           # When checkout is 'none' the scan action performs its own
           # checkout; otherwise this workflow has already checked out.
