@@ -49,6 +49,15 @@ on:
         description: "The target GitHub repository needing the required workflow"
         required: true
         type: string
+    secrets:
+      token:
+        # yamllint disable-line rule:line-length
+        description: >
+          Token used to check out TARGET_REPO; defaults to the job's
+          GITHUB_TOKEN. Callers must supply a token with read access when
+          TARGET_REPO is private, since GITHUB_TOKEN is scoped to the
+          calling repository only.
+        required: false
 
 concurrency:
   # yamllint disable-line rule:line-length
@@ -65,6 +74,7 @@ jobs:
       contents: read
     steps:
       - name: Gerrit Checkout
+        id: checkout
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/checkout-gerrit-change-action@f87b90a3370e62dad310797fedc7fd3700c75832  # v1.0.2
         with:
@@ -74,6 +84,7 @@ jobs:
           delay: "0s"
           repository: ${{ inputs.TARGET_REPO }}
           ref: refs/heads/${{ inputs.GERRIT_BRANCH }}
+          token: ${{ secrets.token || secrets.GITHUB_TOKEN }}
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         id: setup-python
@@ -91,9 +102,12 @@ jobs:
       # CI/CD changes under .github must likewise remain isolated. This
       # runs even when the INFO.yaml check above fails so the change
       # author receives both isolation results for a single patchset.
+      # It stays gated on the checkout, however: without a work tree the
+      # check cannot resolve HEAD~1 and would bury the real failure
+      # under a misleading base-ref error.
       - name: "Isolate .github (CI/CD) changes"
         id: github-isolation
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/change-isolation-action@5c2b23154b856dca369edb7667dd4a37211e3a34  # v0.2.0
         with:
