@@ -200,7 +200,7 @@ jobs:
 
       - name: "SonarQube Cloud Scan"
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonarqube-cloud-scan-action@b8d74f08d2222acb4556b71f9f3cd3e80bc8109b # v1.2.1
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@0f7a9fa8e3e77663a007d6f6f19752c8dacf7def # v1.4.0
         with:
           sonar_token: ${{ secrets.SONAR_TOKEN }}
           # The Gerrit change is already checked out by the step above.
