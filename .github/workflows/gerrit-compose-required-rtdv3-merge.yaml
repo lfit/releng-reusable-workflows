@@ -82,7 +82,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         id: setup-python
         with:
-          python-version: "3.8"
+          # This interpreter only runs lftools/yq to drive the Read the
+          # Docs API; it never builds the project's documentation, so it
+          # is unrelated to the Python version in the project's tox.ini
+          # or .readthedocs.yaml. It was pinned to 3.8, which reached
+          # end of life in October 2024 and consequently received a yq
+          # dependency that no longer imports on it.
+          python-version: "3.13"
       - name: Install graphviz
         # yamllint disable-line rule:line-length
         uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd # v1.0.0
@@ -97,9 +103,11 @@ jobs:
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
         run: |
           python -m pip install --upgrade pip
-          pip install lftools 'niet~=1.4.2' yq tox
+          # Invoke pip via the interpreter rather than PATH so these
+          # installs land in the interpreter configured above.
+          python -m pip install lftools 'niet~=1.4.2' yq tox
           # urllib3 needs to be pinned to avoid timeouts
-          pip install --upgrade urllib3~=1.26.15
+          python -m pip install --upgrade urllib3~=1.26.15
       - name: Running rtdv3
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}

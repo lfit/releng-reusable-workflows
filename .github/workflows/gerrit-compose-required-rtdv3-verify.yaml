@@ -67,7 +67,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DEFAULT_PYTHON: 3.9
+  # Fallback only, used when a project sets neither [testenv:docs]
+  # basepython nor build.tools.python. Was 3.9, which reached end of
+  # life in October 2025.
+  DEFAULT_PYTHON: 3.13
   READTHEDOCS_FOUND: true
   TOX_ENVS: docs,docs-linkcheck
   TOX_DIR: docs/
@@ -252,9 +255,19 @@ jobs:
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
         run: |
           python -m pip install --upgrade pip
-          pip install lftools 'niet~=1.4.2' yq tox
+          # This interpreter comes from the project's tox.ini or
+          # .readthedocs.yaml, so a consumer can still select an
+          # end-of-life Python here. argcomplete 3.7.1 (a yq dependency)
+          # declares requires_python >=3.8 but its source uses PEP 585
+          # generics, so importing it raises TypeError on 3.8. Constrain
+          # it for those projects only; the marker applies nowhere else
+          # and retires itself as projects move off 3.8.
+          # Invoke pip via the interpreter, not PATH: the marker is
+          # evaluated against whichever interpreter runs pip.
+          python -m pip install lftools 'niet~=1.4.2' yq tox \
+            'argcomplete<3.7.1; python_version < "3.9"'
           # urllib3 needs to be pinned to avoid timeouts
-          pip install --upgrade urllib3~=1.26.15
+          python -m pip install --upgrade urllib3~=1.26.15
       - name: Running tox
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
