@@ -101,7 +101,11 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           echo "---> docker-get-container-tag"
-          pip install yq
+          # argcomplete 3.7.1 (a yq dependency) declares requires_python
+          # >=3.8 but its source uses PEP 585 generics, so importing it
+          # raises TypeError on the Python 3.8 pinned by this job. The
+          # marker retires itself when this job moves off 3.8.
+          python -m pip install yq 'argcomplete<3.7.1; python_version < "3.9"'
           tag=''
           if [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "latest" ]]; then
               tag="latest"
