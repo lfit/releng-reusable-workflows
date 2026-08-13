@@ -124,7 +124,7 @@ jobs:
       - name: "Isolate INFO.yaml changes"
         id: info-isolation
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/change-isolation-action@5c2b23154b856dca369edb7667dd4a37211e3a34  # v0.2.0
+        uses: lfreleng-actions/change-isolation-action@5bfd05ac7871ab22902dca6ea2346e07a17c3e85  # v0.2.1
         with:
           paths: "/INFO.yaml"
       # CI/CD changes under .github must likewise remain isolated. This
@@ -137,7 +137,7 @@ jobs:
         id: github-isolation
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/change-isolation-action@5c2b23154b856dca369edb7667dd4a37211e3a34  # v0.2.0
+        uses: lfreleng-actions/change-isolation-action@5bfd05ac7871ab22902dca6ea2346e07a17c3e85  # v0.2.1
         with:
           paths: ".github/**"
       # yamllint disable rule:line-length
