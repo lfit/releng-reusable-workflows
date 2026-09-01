@@ -92,6 +92,50 @@ on:
         required: false
         default: "{}"
         type: string
+    # "secrets: inherit" only crosses repositories inside the same
+    # organisation/enterprise. Callers in another organisation must pass
+    # these explicitly, which is only possible if they are declared here.
+    # All are optional so a caller need only supply the ones its enabled
+    # PUSH_*/SIGUL_SIGN paths actually consume.
+    secrets:
+      NEXUS_USERNAME:
+        description: "Nexus user, required when PUSH_NEXUS is true"
+        required: false
+      NEXUS_PASSWORD:
+        description: "Nexus password, required when PUSH_NEXUS is true"
+        required: false
+      CENTRAL_USERNAME:
+        description: "Maven Central user, required when PUSH_CENTRAL is true"
+        required: false
+      CENTRAL_PASSWORD:
+        description: >
+          Maven Central password, required when PUSH_CENTRAL is true
+        required: false
+      ARTIFACTORY_ACCESS_TOKEN:
+        description: >
+          JFrog access token, required when PUSH_ARTIFACTORY is true
+        required: false
+      SIGUL_KEY:
+        description: "Sigul signing key name, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_IP:
+        description: "Sigul bridge address, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_URI:
+        description: "Sigul bridge URI, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_CONF:
+        description: "Sigul client config, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_PASS:
+        description: "Sigul key passphrase, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_PKI:
+        description: "Sigul PKI material, used when SIGUL_SIGN is true"
+        required: false
+      GHA_TOKEN:
+        description: "GitHub token used by the Sigul signing action"
+        required: false
 
 concurrency:
   # yamllint disable-line rule:line-length
