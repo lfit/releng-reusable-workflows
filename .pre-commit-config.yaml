@@ -52,7 +52,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: aab412d509121cb5f7533134b7e67f9fab59c682  # frozen: v0.16.4
+    rev: a56c0b927e6465d37cae3e97d35d4d18ab2b96cd  # frozen: v0.16.9
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -90,7 +90,7 @@ repos:
   # Replaces: https://github.com/rhysd/actionlint
   # Permits actionlint to run both locally and with precommit.ci/GitHub
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: c04ed26e40637cab1aa9879c693832a9c120fb20  # frozen: v1.7.12.24
+    rev: 357f7eec6dec49bf7693dc0dbec30212226d5492  # frozen: v1.7.12.25
     hooks:
       - id: actionlint
 
@@ -101,12 +101,12 @@ repos:
       - id: codespell
 
   - repo: https://github.com/lfreleng-actions/gha-workflow-linter
-    rev: 42aa4db931ab4c9da0930ae5ca2259ab08da79cb  # frozen: v1.5.2
+    rev: 0c582e431022f1c7004196fb4ea32744d1fe4843  # frozen: v1.7.0
     hooks:
       - id: gha-workflow-linter
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: c4654a7e007c9619a5eb63c39a456572a0fa1851  # frozen: 0.38.0
+    rev: 4f85d46a92dc17713078e5de73f8a13190edf6fc  # frozen: 0.38.2
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
