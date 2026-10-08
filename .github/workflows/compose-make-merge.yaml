@@ -72,7 +72,7 @@ jobs:
 
       - name: Run Maven
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/maven-make-build-action@ad0fc29bd32fc30cf225cf6d299275dd7633d3e0 # v0.3.0
+        uses: lfreleng-actions/maven-make-build-action@272b2809239d4709463a292ada1d574605db9553 # v0.4.2
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
