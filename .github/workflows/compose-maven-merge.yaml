@@ -13,9 +13,11 @@ on:
         required: true
         type: string
       ARTIFACT_DIR:
-        description: "Location of built artifacts"
+        description: >
+          Location of built artifacts. Relative paths resolve against the
+          workspace.
         required: false
-        default: "${GITHUB_WORKSPACE}/m2repo"
+        default: "m2repo"
         type: string
       JDK_VERSION:
         description: "OpenJDK version"
@@ -83,15 +85,75 @@ on:
         required: false
         default: ""
         type: string
+      ENV_VARS:
+        description: >
+          JSON key/value pairs exposed to the Maven build as environment
+          variables, e.g. toJSON(vars)
+        required: false
+        default: "{}"
+        type: string
+    # "secrets: inherit" only crosses repositories inside the same
+    # organisation/enterprise. Callers in another organisation must pass
+    # these explicitly, which is only possible if they are declared here.
+    # All are optional so a caller need only supply the ones its enabled
+    # PUSH_*/SIGUL_SIGN paths actually consume.
+    secrets:
+      NEXUS_USERNAME:
+        description: "Nexus user, required when PUSH_NEXUS is true"
+        required: false
+      NEXUS_PASSWORD:
+        description: "Nexus password, required when PUSH_NEXUS is true"
+        required: false
+      CENTRAL_USERNAME:
+        description: "Maven Central user, required when PUSH_CENTRAL is true"
+        required: false
+      CENTRAL_PASSWORD:
+        description: >
+          Maven Central password, required when PUSH_CENTRAL is true
+        required: false
+      ARTIFACTORY_ACCESS_TOKEN:
+        description: >
+          JFrog access token, required when PUSH_ARTIFACTORY is true
+        required: false
+      SIGUL_KEY:
+        description: "Sigul signing key name, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_IP:
+        description: "Sigul bridge address, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_URI:
+        description: "Sigul bridge URI, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_CONF:
+        description: "Sigul client config, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_PASS:
+        description: "Sigul key passphrase, used when SIGUL_SIGN is true"
+        required: false
+      SIGUL_PKI:
+        description: "Sigul PKI material, used when SIGUL_SIGN is true"
+        required: false
+      GHA_TOKEN:
+        description: "GitHub token used by the Sigul signing action"
+        required: false
 
 concurrency:
-  # yamllint disable-line rule:line-length
-  group: compose-maven-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
-  cancel-in-progress: true
+  # Keyed on the workflow_call inputs. In a reusable workflow
+  # github.event.inputs is the *caller's* triggering event, not the
+  # values passed in with:, so it is empty on schedule and push. That
+  # made the whole key collapse to github.run_id, which is identical
+  # for every job in a run, so a caller invoking this workflow more
+  # than once per run put every call in one group.
+  group: compose-maven-merge-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}
+  # Never cancel an in-flight deploy: a partially published artifact
+  # set leaves maven-metadata.xml inconsistent.
+  cancel-in-progress: false
 
 jobs:
   maven-merge:
     runs-on: ubuntu-latest
+    outputs:
+      group_path: ${{ steps.metadata.outputs.group_path }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,6 +164,76 @@ jobs:
         id: setup-python
         with:
           python-version: "3.10"
+      - name: Pre-fetch SNAPSHOT metadata
+        id: metadata
+        if: ${{ inputs.PUSH_NEXUS }}
+        env:
+          NEXUS_URL: ${{ vars.NEXUS_SERVER }}
+          NEXUS_REPO: ${{ vars.NEXUS_REPO }}
+          ARTIFACT_DIR: ${{ inputs.ARTIFACT_DIR }}
+          MVN_POM_FILE: ${{ inputs.MVN_POM_FILE }}
+        run: |
+          set -eu -o pipefail
+          # maven-deploy-plugin derives the next SNAPSHOT buildNumber from
+          # the maven-metadata.xml already published to Nexus. A clean
+          # runner has none, so each build restarts the counter at 1 and
+          # the publish clobbers the real SNAPSHOT history. Seed the local
+          # repository with the published metadata first.
+          #
+          # Read the project's own groupId, falling back to the parent's
+          # (Maven's inheritance rule). A plain grep for the first
+          # <groupId> returns the *parent* groupId instead.
+          group_id=$(python3 -c '
+          import os
+          import xml.etree.ElementTree as ET
+          ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+          root = ET.parse(os.environ["MVN_POM_FILE"]).getroot()
+          group = root.findtext("m:groupId", namespaces=ns) or \
+              root.findtext("m:parent/m:groupId", namespaces=ns)
+          print(group.strip().replace(".", "/"))
+          ')
+          echo "group_path=${group_id}" >> "$GITHUB_OUTPUT"
+
+          nexus_url="${NEXUS_URL}/content/repositories/${NEXUS_REPO}/${group_id}/"
+          m2repo="${ARTIFACT_DIR}/${group_id}"
+
+          echo "Fetching maven-metadata.xml from: ${nexus_url}"
+          mkdir -p "${m2repo}"
+
+          # Compute cut-dirs for wget:
+          # URL path (no host): content/repositories/<repo>/<group segments...>
+          # For org/opendaylight/infrautils: 3 + 3 = 6
+          segments=$(echo "${group_id}" | tr '/' '\n' | wc -l)
+          cut_dirs=$((3 + segments))
+
+          # Fetch existing metadata into the m2repo group directory.
+          # Ignore failures (404 = new project with no prior publishes).
+          pushd "${m2repo}"
+          wget -nv --recursive \
+               --accept maven-metadata.xml \
+               -R "index.html*" \
+               --execute robots=off \
+               --no-parent \
+               --no-host-directories \
+               --cut-dirs="${cut_dirs}" \
+               "${nexus_url}" 2>&1 || true
+          popd
+
+          # Keep a pristine copy so the publish step can tell which
+          # metadata this build actually changed.
+          rm -rf "${ARTIFACT_DIR}-backup"
+          mkdir -p "${ARTIFACT_DIR}-backup"
+          cp -a "${ARTIFACT_DIR}/." "${ARTIFACT_DIR}-backup/"
+
+          metadata_count=$(find "${m2repo}" -name "maven-metadata.xml" | wc -l)
+          echo "Pre-fetched ${metadata_count} maven-metadata.xml files"
+          if [ "${metadata_count}" -eq 0 ]; then
+            # Expected only for a project with no prior publishes.
+            # Otherwise the build restarts at buildNumber 1 and the
+            # published metadata clobbers the real SNAPSHOT history.
+            echo "::warning::No existing metadata found under" \
+              "${nexus_url} — SNAPSHOT buildNumber will restart at 1"
+          fi
       - name: Run Maven
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/maven-build-action@6a687d420895015a60abd139e37ba1ae7e78e8e8 # v0.3.1
@@ -114,14 +246,14 @@ jobs:
           mvn-pom-file: ${{ inputs.MVN_POM_FILE }}
           mvn-profiles: ${{ inputs.MVN_PROFILES }}
           global-settings: ${{ vars.GLOBAL_SETTINGS }}
+          env-vars: ${{ inputs.ENV_VARS }}
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
         uses: lfit/sigul-sign-action@6921b6b0e6cc572967729a7ce562553c641d8d19 # v1.1.0
-        # Though inputs.SIGUL_SIGN is defined as a boolean, there is an issue
-        # with inputs always being strings. Therefore we will only run if the
-        # input is defined as string 'true.'
-        # See https://github.com/actions/runner/issues/1483
-        if: ${{ inputs.SIGUL_SIGN == 'true' }}
+        # Typed workflow_call booleans arrive as real booleans, so
+        # compare truthiness directly. Casting a boolean against the
+        # string yields NaN, so the old comparison never matched.
+        if: ${{ inputs.SIGUL_SIGN }}
         with:
           sign-type: "sign-data"
           sign-object: ${{ inputs.ARTIFACT_DIR }}
@@ -132,6 +264,31 @@ jobs:
           sigul-conf: ${{ secrets.SIGUL_CONF }}
           sigul-pass: ${{ secrets.SIGUL_PASS }}
           sigul-pki: ${{ secrets.SIGUL_PKI }}
+      - name: Drop unmodified metadata
+        if: ${{ inputs.PUSH_NEXUS }}
+        env:
+          ARTIFACT_DIR: ${{ inputs.ARTIFACT_DIR }}
+        run: |
+          set -eu -o pipefail
+          # The pre-fetch seeded the local repository with every
+          # maven-metadata.xml already published for this group, most of
+          # which this build never touches. Re-uploading those would revert
+          # any sibling artifact published while this build was running, so
+          # drop the byte-identical ones and their checksums first.
+          backup="${ARTIFACT_DIR}-backup"
+          if [ ! -d "${backup}" ]; then
+            echo "No metadata backup; nothing to prune"
+            exit 0
+          fi
+          removed=0
+          while IFS= read -r f; do
+            [ -n "${f}" ] || continue
+            rm -f "${f}" "${f}".*
+            removed=$((removed + 1))
+          done < <(diff -sr "${ARTIFACT_DIR}" "${backup}" 2>/dev/null \
+            | sed -n 's/^Files \(.*\) and .* are identical$/\1/p')
+          echo "Dropped ${removed} unmodified metadata files"
+          find "${ARTIFACT_DIR}" -mindepth 1 -type d -empty -delete || true
       - name: Push build
         # yamllint disable-line rule:line-length
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -141,7 +298,7 @@ jobs:
 
   publish-nexus:
     needs: maven-merge
-    if: ${{ inputs.PUSH_NEXUS == 'true' }}
+    if: ${{ inputs.PUSH_NEXUS }}
     runs-on: ubuntu-latest
     steps:
       - name: Pull build
@@ -157,12 +314,17 @@ jobs:
           nexus_server: ${{ vars.NEXUS_SERVER }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          repository_name: ${{ env.NEXUS_REPO }}
-          files_path: ${{ inputs.ARTIFACT_DIR }}
+          repository_name: ${{ vars.NEXUS_REPO }}
+          repository_format: "maven2_upload"
+          # Scope to the group directory so the uploaded tree carries
+          # Maven coordinates rather than a workspace-relative prefix.
+          # yamllint disable-line rule:line-length
+          files_path: ${{ inputs.ARTIFACT_DIR }}/${{ needs.maven-merge.outputs.group_path }}
+          upload_path: ${{ needs.maven-merge.outputs.group_path }}
 
   publish-artifactory:
     needs: maven-merge
-    if: ${{ inputs.PUSH_ARTIFACTORY == 'true' }}
+    if: ${{ inputs.PUSH_ARTIFACTORY }}
     runs-on: ubuntu-latest
     steps:
       - name: Pull build
@@ -185,7 +347,7 @@ jobs:
 
   publish-central:
     needs: maven-merge
-    if: ${{ inputs.PUSH_CENTRAL == 'true' }}
+    if: ${{ inputs.PUSH_CENTRAL }}
     runs-on: ubuntu-latest
     steps:
       - name: Pull build
