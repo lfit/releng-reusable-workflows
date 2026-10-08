@@ -138,9 +138,16 @@ on:
         required: false
 
 concurrency:
-  # yamllint disable-line rule:line-length
-  group: compose-maven-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
-  cancel-in-progress: true
+  # Keyed on the workflow_call inputs. In a reusable workflow
+  # github.event.inputs is the *caller's* triggering event, not the
+  # values passed in with:, so it is empty on schedule and push. That
+  # made the whole key collapse to github.run_id, which is identical
+  # for every job in a run, so a caller invoking this workflow more
+  # than once per run put every call in one group.
+  group: compose-maven-merge-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}
+  # Never cancel an in-flight deploy: a partially published artifact
+  # set leaves maven-metadata.xml inconsistent.
+  cancel-in-progress: false
 
 jobs:
   maven-merge:
