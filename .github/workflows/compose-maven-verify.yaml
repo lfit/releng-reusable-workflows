@@ -187,7 +187,7 @@ jobs:
           echo "::endgroup::"
       - name: Run Maven
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/maven-build-action@af7e9ae0d4d6db98b31cb5d17432cfd8bb0e7257 # v0.4.1
+        uses: lfreleng-actions/maven-build-action@01a3700e14ee592694d1030c2305d0579e9df571 # v0.5.2
         with:
           java-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
