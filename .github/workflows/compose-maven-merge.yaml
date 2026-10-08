@@ -249,7 +249,7 @@ jobs:
           env-vars: ${{ inputs.ENV_VARS }}
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
-        uses: lfit/sigul-sign-action@6921b6b0e6cc572967729a7ce562553c641d8d19 # v1.1.0
+        uses: lfit/sigul-sign-action@cf9e2bbdbe8e71538f273a0517258d3db0a9ce3e # v2.0.0
         # Typed workflow_call booleans arrive as real booleans, so
         # compare truthiness directly. Casting a boolean against the
         # string yields NaN, so the old comparison never matched.
