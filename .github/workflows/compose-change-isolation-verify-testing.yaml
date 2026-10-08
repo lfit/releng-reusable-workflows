@@ -74,7 +74,7 @@ jobs:
       contents: read
     steps:
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/checkout-gerrit-change-action@298f53bbbc1d5f9e54df9feb484d110dc2b33197  # v1.1.0
+      - uses: lfreleng-actions/checkout-gerrit-change-action@35e98c8043ec411611e464e296bcfb441a5c5093  # v1.1.2
         id: checkout
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
