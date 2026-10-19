@@ -52,7 +52,7 @@ repos:
         types: [yaml]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: f12be1ebaa5351c1fc76472de98db2c3446c8253  # frozen: v0.16.10
+    rev: 38bfb07c0c64c304f47eb52090f8288150c77730  # frozen: v0.17.1
     hooks:
       - id: ruff
         files: ^(scripts|tests|custom_components)/.+\.py$
@@ -101,7 +101,7 @@ repos:
       - id: codespell
 
   - repo: https://github.com/lfreleng-actions/gha-workflow-linter
-    rev: b23b60e5884e985320a030e6114032152e2373cd  # frozen: v1.7.1
+    rev: 7bfe053dbc93ece6793014c594dfaf87c8712c47  # frozen: v1.8.3
     hooks:
       - id: gha-workflow-linter
 
