@@ -74,7 +74,7 @@ jobs:
     steps:
       - name: "Build Node.js project"
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/node-build-action@02ffec745cddf67291d0b28f64bd81990cae327f # v0.2.4
+        uses: lfreleng-actions/node-build-action@592a923aaf25853712b43b82e7e7cf7980728dcb # v0.2.5
 
   sonartype-lifecycle:
     name: "Sonatype Lifecycle Scan"
