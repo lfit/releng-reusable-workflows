@@ -92,6 +92,28 @@ on:
         required: false
         default: "{}"
         type: string
+      ARCHIVE_ARTIFACTS:
+        description: >
+          Paths or glob patterns, relative to the workspace, to publish to
+          the log server after every build, including failed ones. Separate
+          entries with spaces or newlines. The archives directory is always
+          included. Empty skips publishing. The calling job must grant
+          id-token: write.
+        required: false
+        default: ""
+        type: string
+      LOG_SUBDIR:
+        description: >
+          Optional directory name appended to the per-run log path. Set it
+          when a workflow calls this one more than once per run, so the
+          calls do not overwrite each other.
+        required: false
+        default: ""
+        type: string
+    outputs:
+      LOG_URL:
+        description: "URL of the published logs, empty when not published"
+        value: ${{ jobs.maven-merge.outputs.log_url }}
     # "secrets: inherit" only crosses repositories inside the same
     # organisation/enterprise. Callers in another organisation must pass
     # these explicitly, which is only possible if they are declared here.
@@ -154,6 +176,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       group_path: ${{ steps.metadata.outputs.group_path }}
+      log_url: ${{ steps.publish-logs.outputs.log_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -295,6 +318,67 @@ jobs:
         with:
           name: release-artifact
           path: ${{ inputs.ARTIFACT_DIR }}
+      # Equivalent of the Jenkins lf-infra-ship-logs builder. Runs after
+      # failed and cancelled builds too. Without OIDC (no AWS_LOG_ROLE_ARN,
+      # no id-token: write, or a fork) the logs go to a workflow artifact
+      # instead. A publishing failure never changes the build result.
+      - name: Resolve log path
+        id: log-path
+        if: ${{ always() && inputs.ARCHIVE_ARTIFACTS != '' }}
+        shell: bash
+        env:
+          ARCHIVE_ARTIFACTS: ${{ inputs.ARCHIVE_ARTIFACTS }}
+          LOG_SUBDIR: ${{ inputs.LOG_SUBDIR }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${LOG_SUBDIR}" \
+            && ! "${LOG_SUBDIR}" =~ ^[A-Za-z0-9_-][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::LOG_SUBDIR must be one path segment: ${LOG_SUBDIR}"
+            exit 1
+          fi
+          # Calling workflow's file name, e.g. gerrit-merge
+          workflow="${WORKFLOW_REF%@*}"
+          workflow="${workflow##*/}"
+          workflow="${workflow%.*}"
+          path="logs/gha/${GITHUB_REPOSITORY##*/}/${workflow}/${GITHUB_RUN_ID}"
+          artifact="build-logs"
+          if [ -n "${LOG_SUBDIR}" ]; then
+            path="${path}/${LOG_SUBDIR}"
+            artifact="${artifact}-${LOG_SUBDIR}"
+          fi
+          {
+            echo "s3_path=${path}"
+            echo "artifact_name=${artifact}"
+            echo "patterns<<__ARCHIVE_PATTERNS__"
+            printf '%s\n' "${ARCHIVE_ARTIFACTS}" | tr -s '[:space:]' '\n'
+            echo "__ARCHIVE_PATTERNS__"
+          } >> "$GITHUB_OUTPUT"
+      - name: Configure AWS credentials for log publishing
+        id: log-aws
+        # yamllint disable-line rule:line-length
+        if: ${{ always() && steps.log-path.outcome == 'success' && vars.AWS_LOG_ROLE_ARN != '' }}
+        continue-on-error: true
+        # yamllint disable-line rule:line-length
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_LOG_ROLE_ARN }}
+          aws-region: ${{ vars.S3_LOG_REGION || 'us-east-1' }}
+      - name: Publish logs
+        id: publish-logs
+        if: ${{ always() && steps.log-path.outcome == 'success' }}
+        continue-on-error: true
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/log-publish-action@d5c991ac33ac7285cbe0553408016598a3423dc4 # v0.1.0
+        with:
+          # yamllint disable-line rule:line-length
+          destination: ${{ steps.log-aws.outcome == 'success' && (vars.LOG_PUBLISH_DESTINATION || 's3') || 'artifact' }}
+          s3_bucket: ${{ vars.S3_LOG_BUCKET }}
+          s3_path: ${{ steps.log-path.outputs.s3_path }}
+          base_url: ${{ vars.LOG_BASE_URL }}
+          aws_region: ${{ vars.S3_LOG_REGION || 'us-east-1' }}
+          archive_patterns: ${{ steps.log-path.outputs.patterns }}
+          artifact_name: ${{ steps.log-path.outputs.artifact_name }}
 
   publish-nexus:
     needs: maven-merge

@@ -58,6 +58,18 @@ It verifies the integrity and correctness of Maven-based projects by running Mav
     :ENV_SECRETS: GitHub secrets to use as environment variables during
       the workflow execution.
         Default: "{}" (Optional)
+    :ARCHIVE_ARTIFACTS: Paths or glob patterns, relative to the workspace,
+      to publish to the log server after every build, including failed
+      ones. Separate entries with spaces or newlines. See `Log publishing`_.
+        Default: "" (Optional, publishing skipped)
+    :LOG_SUBDIR: Directory name appended to the per-run log path. Set it
+      when a workflow calls this one more than once per run.
+        Default: "" (Optional)
+
+:Outputs:
+
+    :LOG_URL: URL of the published logs. Empty when nothing published to S3,
+      for example on the workflow artifact fallback.
 
 :Required secrets:
 
@@ -86,6 +98,12 @@ It verifies the integrity and correctness of Maven-based projects by running Mav
 
     :vars.GERRIT_URL: The base URL for Gerrit (needed for the checkout step).
     :vars.GLOBAL_SETTINGS: Global settings for Maven.
+    :vars.AWS_LOG_ROLE_ARN: IAM role assumed through GitHub OIDC for log
+      publishing.
+    :vars.S3_LOG_BUCKET: Log bucket name.
+    :vars.S3_LOG_REGION: Bucket region. Default: us-east-1
+    :vars.LOG_BASE_URL: Public URL of the bucket, used to build LOG_URL.
+    :vars.LOG_PUBLISH_DESTINATION: s3, artifact or both. Default: s3
 
 :Example usage:
 
@@ -101,3 +119,42 @@ It verifies the integrity and correctness of Maven-based projects by running Mav
     1. Checkout the Gerrit change to get the latest code.
     2. Set up Python and Maven environments.
     3. Run Maven to verify the project.
+    4. Publish logs when ARCHIVE_ARTIFACTS has a value, even if the build failed.
+
+Log publishing
+==============
+
+This replaces the Jenkins ``lf-infra-ship-logs`` builder, using
+`log-publish-action <https://github.com/lfreleng-actions/log-publish-action>`_.
+When ARCHIVE_ARTIFACTS has a value, the job publishes the ``archives``
+directory and every file matching ARCHIVE_ARTIFACTS to
+``logs/gha/<repo>/<workflow>/<run_id>/[<LOG_SUBDIR>/]``. ``<workflow>``
+is the calling workflow's file name without its extension, for example
+``logs/gha/yangtools/gerrit-verify/38581567970/``. A link appears in the
+job summary and in the LOG_URL output, so later jobs and runs can find the
+files from the run ID alone. Re-running a workflow reuses the run ID, so a
+re-run overwrites files of the same name.
+
+The calling job must grant ``id-token: write`` so the job can assume the
+role through OIDC. Callers that leave ARCHIVE_ARTIFACTS unset need no
+change:
+
+.. code-block:: yaml
+
+    maven-verify:
+      permissions:
+        contents: read
+        id-token: write
+      uses: lfit/releng-reusable-workflows/.github/workflows/compose-maven-verify.yaml@<sha>
+      with:
+        ARCHIVE_ARTIFACTS: "allure-report/*.html target/surefire-reports/**"
+
+    report:
+      needs: maven-verify
+      runs-on: ubuntu-latest
+      steps:
+        - run: echo "Logs at ${{ needs.maven-verify.outputs.LOG_URL }}"
+
+Without OIDC, for example in a fork or without AWS_LOG_ROLE_ARN, the job
+uploads the logs as a ``build-logs`` workflow artifact instead. A
+publishing failure never changes the build result.
