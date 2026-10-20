@@ -31,3 +31,37 @@ jobs:
       GERRIT_CHANGE_ID: Ic8aaa0728a43936cd4c6e1ed590e01ba8f0fbf5b
       MVN_POM_FILE: test/maven-project/pom.xml
       MVN_GLOBAL_SETTINGS: "<settings/>"
+
+  # This repository has no AWS_LOG_ROLE_ARN, so the logs take the
+  # workflow artifact fallback, which the next job checks. It runs after
+  # test-maven-verify because both calls share one concurrency group.
+  test-maven-verify-logs:
+    needs: test-maven-verify
+    uses: ./.github/workflows/compose-maven-verify.yaml
+    with:
+      GERRIT_BRANCH: ${{ github.ref }}
+      GERRIT_CHANGE_ID: Ic8aaa0728a43936cd4c6e1ed590e01ba8f0fbf5b
+      MVN_POM_FILE: test/maven-project/pom.xml
+      MVN_GLOBAL_SETTINGS: "<settings/>"
+      ARCHIVE_ARTIFACTS: "test/maven-project/pom.xml **/no-such-file.log"
+      LOG_SUBDIR: ci
+
+  check-maven-verify-logs:
+    needs: test-maven-verify-logs
+    runs-on: ubuntu-latest
+    steps:
+      # yamllint disable-line rule:line-length
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: build-logs-ci
+          path: logs
+      - name: Check published content
+        shell: bash
+        env:
+          LOG_URL: ${{ needs.test-maven-verify-logs.outputs.LOG_URL }}
+        run: |
+          set -euo pipefail
+          find logs -type f | sort
+          test -f logs/test/maven-project/pom.xml
+          test -f logs/_build-details.log
+          test -z "${LOG_URL}"
