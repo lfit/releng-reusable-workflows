@@ -406,7 +406,7 @@ jobs:
         if: inputs.build_type == 'maven'
         continue-on-error: ${{ !inputs.fail_on_build_error }}
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/maven-build-action@840adcca1a3cfdaf155c4ed23e301943cef12bc0  # v0.5.4
+        uses: lfreleng-actions/maven-build-action@22149998fae8dd5ef1ffc8890ec0ce3785683983  # v0.5.5
         with:
           java-version: ${{ inputs.build_java_version }}
           distribution: ${{ inputs.build_java_distribution }}
