@@ -82,7 +82,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         id: setup-python
         with:
-          python-version: "3.8"
+          python-version: "3.11"
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/nexus-docker-login-action@e938f9ca846d9e419ca78fe30e6ec7cc269d2291 # v0.4.2
         with:
@@ -126,12 +126,7 @@ jobs:
           echo "INFO: Processing container release"
           docker --version
 
-          # argcomplete 3.7.1 (a yq dependency) declares requires_python
-          # >=3.8 but its source uses PEP 585 generics, so importing it
-          # raises TypeError on the Python 3.8 pinned by this job. The
-          # marker retires itself when this job moves off 3.8.
-          python -m pip install jsonschema twine yq readline \
-            'argcomplete<3.7.1; python_version < "3.9"'
+          python -m pip install jsonschema twine yq readline
 
           VERSION=$(yq -r ".container_release_tag" "${{ env.release_file }}")
 
