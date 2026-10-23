@@ -127,7 +127,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         id: setup-python
         with:
-          python-version: "3.8"
+          python-version: "3.11"
       - name: Run Maven
         # yamllint disable rule:line-length
         uses: lfreleng-actions/maven-build-action@22149998fae8dd5ef1ffc8890ec0ce3785683983 # v0.5.5
