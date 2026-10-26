@@ -114,7 +114,7 @@ jobs:
           fi
         # yamllint enable rule:line-length
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/verify-release-schema-action@d8166617b2566adb151a9594849440ebfb9a9183 # v1.1.0
+      - uses: lfreleng-actions/verify-release-schema-action@6defa50d0fd0f4c011b5ea0f625f0ba2b256dfb5 # v1.1.2
         if: env.MAKE_DOCKER_RELEASE == 'true'
         with:
           distribution-type: "container"
