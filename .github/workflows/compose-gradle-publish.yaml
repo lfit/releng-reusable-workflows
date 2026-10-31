@@ -88,23 +88,22 @@ jobs:
         id: setup-python
         with:
           python-version: "3.11"
-      - name: Setup JDK
-        id: setup-jdk
-        # yamllint disable-line rule:line-length
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          java-version: ${{ inputs.JDK_VERSION }}
-          distribution: "temurin"
       - name: Get global settings file
         shell: bash
         run: |
           echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
           cat global-settings.xml
-      - name: Setup Gradle
-        # yamllint disable-line rule:line-length
-        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
       - name: Build with Gradle
-        run: ./gradlew shadowJar
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/gradle-build-action@62e164ecb3db615191f718067a09efca6f2b3057 # v0.7.0
+        with:
+          java-version: ${{ inputs.JDK_VERSION }}
+          distribution: "temurin"
+          build-arguments: "shadowJar"
+          # Open source (MIT) caching; the default 'enhanced' is proprietary
+          cache-provider: "basic"
+          # shadowJar runs no tests, so there are no reports to upload
+          artifact-upload: "false"
       - name: Run Gradle publish
         # yamllint disable rule:line-length
         env:

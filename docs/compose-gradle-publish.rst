@@ -40,9 +40,9 @@ It triggers manually via GitHub's `workflow_call` event that is  and integrates 
 
 1. **Gerrit Checkout**: Check out the change from the Gerrit repository using the provided refspec, project, and other inputs.
 
-2. **Setup JDK and Python Environment**: Set up the specified JDK version and Python 3.8 for build operations.
+2. **Setup Python Environment**: Set up Python 3.11.
 
-3. **Build with Gradle**: Use Gradle to build the project, creating the necessary artifacts.
+3. **Build with Gradle**: Use ``lfreleng-actions/gradle-build-action`` to set up the specified JDK version (Temurin distribution), check the Gradle Wrapper checksums and run ``./gradlew shadowJar``, creating the necessary artifacts. Gradle caching uses the open-source ``basic`` provider.
 
 4. **Publish Artifacts**: Publish the built artifacts to the Nexus repository using the provided credentials and URL.
 
