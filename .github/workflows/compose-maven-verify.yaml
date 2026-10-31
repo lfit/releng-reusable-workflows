@@ -303,7 +303,7 @@ jobs:
         if: ${{ always() && steps.log-path.outcome == 'success' }}
         continue-on-error: true
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/log-publish-action@d5c991ac33ac7285cbe0553408016598a3423dc4 # v0.1.0
+        uses: lfreleng-actions/log-publish-action@f9dcb75646938a12517ec8a85dac0acba9f96eca # v0.2.1
         with:
           # yamllint disable-line rule:line-length
           destination: ${{ steps.log-aws.outcome == 'success' && (vars.LOG_PUBLISH_DESTINATION || 's3') || 'artifact' }}
