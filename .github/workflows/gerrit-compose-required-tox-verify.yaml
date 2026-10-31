@@ -137,7 +137,7 @@ jobs:
           echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
       - name: Run tox
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/tox-run-action@3b211e593f1f0e2495b4306222252d1dd849a204 # v0.1.3
+        uses: lfreleng-actions/tox-run-action@2820cd45d9bc61216e8cddb84158c55c7781d321 # v0.2.0
         with:
           path_prefix: ${{ inputs.TOX_DIR }}
           python-version: ${{ inputs.PYTHON_VERSION }}
