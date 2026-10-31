@@ -84,7 +84,7 @@ jobs:
 
       - name: 'Check Pinned Versions'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/pinned-versions-action@3ecc8854b9d1722091f4d1b595480b64b39ad16b  # v0.3.0
+        uses: lfreleng-actions/pinned-versions-action@ca3c12b9e46211479351a5497140a20d4e627561  # v0.3.2
         with:
           path_prefix: ${{ inputs.path_prefix }}
           full_scan: ${{ inputs.full_scan }}
