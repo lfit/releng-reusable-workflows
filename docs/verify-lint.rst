@@ -30,11 +30,11 @@ This workflow automatically lints GitHub Actions workflows and ensures that comm
    - **Purpose**: Validates that the pull request title follows the
      Conventional Commits convention (with capitalised types) and, for a
      single-commit PR, that the commit subject matches the title.
-   - **Implementation**: Delegates to the shared
-     ``reuse-semantic-pull-request`` reusable workflow published by this
-     repository, which tolerates Dependabot's truncated single-commit
-     subjects for long dependency names that would otherwise trip the
-     exact title-match check.
+   - **Implementation**: Delegates to the ``semantic-pull-request``
+     reusable workflow from ``lfreleng-actions/generic-workflows``,
+     which tolerates Dependabot's truncated single-commit subjects (a
+     dropped ``from <old> to <new>`` version fragment) that would
+     otherwise trip the exact title-match check.
 
 #### 3. **commit-message**:
    - **Runs-on**: `ubuntu-latest`

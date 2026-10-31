@@ -24,17 +24,16 @@ jobs:
   semantic-pull-request:
     name: Semantic Pull Request
     if: github.event_name == 'pull_request'
-    # Dogfood the shared reusable workflow this repository publishes. It
-    # tolerates Dependabot's truncated single-commit subjects for long
-    # dependency names that otherwise trip
-    # validateSingleCommitMatchesPrTitle.
+    # Delegate to the generic-workflows lane. It tolerates the version
+    # fragment Dependabot drops from a long single-commit subject, which
+    # would otherwise trip validateSingleCommitMatchesPrTitle.
     # yamllint disable-line rule:line-length
-    uses: ./.github/workflows/reuse-semantic-pull-request.yaml
+    uses: lfreleng-actions/generic-workflows/.github/workflows/semantic-pull-request.yaml@04672a980550ff9bd89d24bacd39fb03e25b0b0b # v0.6.1
     permissions:
       contents: read
       # The called workflow's token is capped by the caller; without this the
       # gate step's PR API calls fail with 403 on minimal-permission repos.
-      pull-requests: read
+      pull-requests: read  # read PR title and commits
 
   commit-message:
     runs-on: ubuntu-latest
