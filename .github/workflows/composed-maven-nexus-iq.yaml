@@ -102,7 +102,6 @@ concurrency:
 
 env:
   NEXUS_IQ_SERVER: https://nexus-iq.wl.linuxfoundation.org
-  NEXUS_STAGE: build
 
 jobs:
   run-maven-clm:
@@ -137,14 +136,18 @@ jobs:
           REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
           echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
+      # The action takes no stage input; the policy evaluation runs at
+      # the 'build' stage, the default of the run-iq-cli step it wraps
       - name: Nexus IQ Policy Evaluation
         continue-on-error: true
         # yamllint disable-line rule:line-length
-        uses: sonatype-nexus-community/iq-github-action@8d2038fbbcb37dc613c28d160843dd0981a7fce8 # v2.1.0
+        uses: lfreleng-actions/sonatype-lifecycle-scan-action@71c04eb6a4fb17c2f7a966b996d64e2cacdfac02 # v0.2.2
         with:
-          serverUrl: ${{ env.NEXUS_IQ_SERVER }}
-          username: ${{ vars.NEXUS_IQ_USERNAME }}
-          password: ${{ secrets.NEXUS_IQ_PASSWORD }}
-          applicationId: ${{ env.APPLICATION_ID }}
-          stage: ${{ env.NEXUS_STAGE }}
-          target: ""
+          nexus_iq_server: ${{ env.NEXUS_IQ_SERVER }}
+          nexus_iq_username: ${{ vars.NEXUS_IQ_USERNAME }}
+          nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}
+          application_id: ${{ env.APPLICATION_ID }}
+          scan_targets: "."
+          # Skip the action's own checkout: it would clean the workspace,
+          # deleting the Maven build output this step scans
+          no_checkout: "true"
