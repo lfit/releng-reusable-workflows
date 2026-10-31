@@ -17,38 +17,22 @@ on:
   # This use of pull_request_target is safe and does NOT need
   # manual-approval gating because:
   #
-  #   1. The workflow performs no checkout of PR code
-  #      (no actions/checkout step), so no PR-provided source
+  #   1. Nothing checks out PR code, so no PR-provided source
   #      ever runs.
   #   2. The workflow body is loaded from the base branch
   #      (pull_request_target semantics), not from the PR head.
-  #   3. Every step is pinned to a full commit SHA and runs
-  #      only trusted, pinned action code, never PR-provided
-  #      source. Each is a well-scoped consumer:
-  #        - `lfreleng-actions/harden-runner-block-action`
-  #          fetches one allow-list file over HTTPS, sanitises
-  #          it, and publishes it as $CONNECTION_ALLOW_LIST.
-  #          It reads no PR content.
-  #        - `step-security/harden-runner` installs the egress
-  #          block filter from $CONNECTION_ALLOW_LIST. Pure
-  #          runner-hardening; reads no PR content.
-  #        - `release-drafter/release-drafter/autolabeler`
-  #          makes only GitHub API calls; it reads PR metadata
-  #          (e.g. title and labels) to apply labels but never
-  #          checks out or runs PR head source.
+  #   3. The job calls the generic-workflows autolabeler lane,
+  #      pinned to a commit SHA, which runs only trusted, pinned
+  #      code: it blocks runner egress to an allow-list, then
+  #      applies labels through GitHub API calls that read PR
+  #      metadata (e.g. title and labels).
   #   4. Permissions are scoped to the minimum needed:
-  #      pull-requests: write and contents: read. No
-  #      repository secrets are passed to the job beyond the
-  #      default GITHUB_TOKEN, which the job receives with the
-  #      permissions scope above and nothing more.
-  #   5. The runner is hardened with an egress block applied
-  #      before the autolabeler step runs.
+  #      pull-requests: write and contents: read. No secrets
+  #      reach the lane beyond the default GITHUB_TOKEN.
   #
-  # See the SECURITY block on the autolabel job below for the
-  # full rationale. The zizmor `dangerous-triggers` audit is
-  # silenced here because the conditions it warns about (PR
-  # head code running with elevated privileges) cannot occur in
-  # this workflow.
+  # The zizmor `dangerous-triggers` audit is silenced here
+  # because the conditions it warns about (PR head code running
+  # with elevated privileges) cannot occur in this workflow.
   pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types:
       - opened
@@ -65,48 +49,11 @@ concurrency:
 jobs:
   autolabel:
     name: 'Label PR'
-    # Run on pull_request_target for forks, or pull_request for same-repo PRs
-    # This prevents duplicate runs for same-repo PRs
-    # yamllint disable rule:line-length
-    if: >
-      (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.fork) ||
-      (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork)
-    # yamllint enable rule:line-length
-    # SECURITY: pull_request_target with write permissions is safe here because:
-    # 1. This workflow does NOT checkout any code from the PR
-    # 2. The workflow code itself runs from the base branch (not the fork)
-    # 3. release-drafter runs only trusted, SHA-pinned action code and
-    #    makes GitHub API calls; it reads PR metadata but never runs
-    #    PR head source
-    # 4. pull_request_target is needed ONLY for autolabeling fork PRs
+    # The lane runs each pull request on one trigger, so none is
+    # labelled twice: pull_request_target when the head repository
+    # differs from the base (a fork), pull_request otherwise.
     permissions:
       pull-requests: write  # apply labels to the pull request
       contents: read  # read the autolabeler config from the repo
-    runs-on: 'ubuntu-latest'
-    timeout-minutes: 3
-    steps:
-      # Load the egress allow-list out-of-band from
-      # lfreleng-actions/.github and publish it as
-      # $CONNECTION_ALLOW_LIST for the harden-runner step below
-      # to consume in 'block' mode. Loading out-of-band means
-      # the workflow no longer depends on any org-level GitHub
-      # variable being exposed at runtime (org variables are
-      # unreachable from workflows triggered by PRs raised from
-      # forks, which previously forced a fallback to audit mode).
-      # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/harden-runner-block-action@d01dcdad980f826d4099289e2014126465580807  # v0.14.1
-        with:
-          # yamllint disable-line rule:line-length
-          config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@f0f76ac22f342c9a788ebcabe584e68a79cc2e83'  # v0.16.0
-
-      # Harden the runner with the just-loaded allow-list.
-      - name: 'Harden runner (block)'
-        # yamllint disable-line rule:line-length
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43  # v2.22.3
-        with:
-          egress-policy: 'block'
-          allowed-endpoints: >
-            ${{ env.CONNECTION_ALLOW_LIST }}
-
-      # yamllint disable-line rule:line-length
-      - uses: release-drafter/release-drafter/autolabeler@978bb0b30c5ee8cdd332ced253758157150d43f0  # v7.10.0
+    # yamllint disable-line rule:line-length
+    uses: lfreleng-actions/generic-workflows/.github/workflows/autolabeler.yaml@04672a980550ff9bd89d24bacd39fb03e25b0b0b # v0.6.1
