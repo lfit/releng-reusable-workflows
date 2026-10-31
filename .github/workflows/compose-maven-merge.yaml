@@ -156,7 +156,9 @@ on:
         description: "Sigul PKI material, used when SIGUL_SIGN is true"
         required: false
       GHA_TOKEN:
-        description: "GitHub token used by the Sigul signing action"
+        description: >
+          No longer used: the Sigul action needs a token only to push a
+          signed git tag. Kept so callers still passing it do not fail.
         required: false
 
 concurrency:
@@ -272,16 +274,22 @@ jobs:
           env-vars: ${{ inputs.ENV_VARS }}
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
-        uses: lfit/sigul-sign-action@afafdf0100b93be60b6ae11c7f5718a0ad587580 # v2.0.1
+        uses: lfreleng-actions/sigul-sign-action@997f9d803faea69dc912421d799a5cd439c5c6cc # v0.1.1
         # Typed workflow_call booleans arrive as real booleans, so
         # compare truthiness directly. Casting a boolean against the
         # string yields NaN, so the old comparison never matched.
         if: ${{ inputs.SIGUL_SIGN }}
         with:
+          # The legacy (CentOS 7, sigul 0.207) client, chosen deliberately
+          # until the signing keys move to the modern Sigul stack.
+          container: legacy
+          allow-legacy: "true"
           sign-type: "sign-data"
+          # A directory signs every file beneath it except the default
+          # exclude-globs (*.md5, *.sha1, maven-metadata.xml and the like),
+          # writing <file>.asc beside each.
           sign-object: ${{ inputs.ARTIFACT_DIR }}
           sigul-key-name: ${{ secrets.SIGUL_KEY }}
-          gh-key: ${{ secrets.GHA_TOKEN }}
           sigul-ip: ${{ secrets.SIGUL_IP }}
           sigul-uri: ${{ secrets.SIGUL_URI }}
           sigul-conf: ${{ secrets.SIGUL_CONF }}

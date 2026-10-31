@@ -91,20 +91,30 @@ publishing failure never changes the build result.
 
 :Expected variables - Sigul signing:
 
+    Signing runs `sigul-sign-action
+    <https://github.com/lfreleng-actions/sigul-sign-action>`_ with its
+    legacy Sigul client, selected explicitly until the signing keys move
+    to the modern Sigul stack. It signs every file under ARTIFACT_DIR
+    except the action's default exclusions (``*.md5``, ``*.sha1``,
+    existing ``*.asc`` and Maven metadata), and writes each signature
+    beside its file with ``.asc`` appended. SIGUL_PKI must carry GPG
+    integrity protection (MDC or AEAD); the action refuses a bundle
+    without it.
+
     :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the signing key to
         use (the project's identifier on the Sigul server).
-    :secrets.GHA_TOKEN: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+    :secrets.GHA_TOKEN: No longer used. The workflow still accepts it, so
+        callers that pass it keep working.
     :secrets.SIGUL_IP: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+        <https://github.com/lfreleng-actions/sigul-sign-action>`_.
     :secrets.SIGUL_URI: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+        <https://github.com/lfreleng-actions/sigul-sign-action>`_.
     :secrets.SIGUL_CONF: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+        <https://github.com/lfreleng-actions/sigul-sign-action>`_.
     :secrets.SIGUL_PASS: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+        <https://github.com/lfreleng-actions/sigul-sign-action>`_.
     :secrets.SIGUL_PKI: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+        <https://github.com/lfreleng-actions/sigul-sign-action>`_.
 
 :Expected variables - Nexus upload:
 
