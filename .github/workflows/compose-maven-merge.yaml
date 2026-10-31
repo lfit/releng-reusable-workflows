@@ -447,5 +447,5 @@ jobs:
           nexus_server: ${{ vars.CENTRAL_SERVER }}
           nexus_username: ${{ secrets.CENTRAL_USERNAME }}
           nexus_password: ${{ secrets.CENTRAL_PASSWORD }}
-          repository_name: ${{ env.NEXUS_REPO }}
+          repository_name: ${{ vars.NEXUS_REPO }}
           files_path: ${{ inputs.ARTIFACT_DIR }}

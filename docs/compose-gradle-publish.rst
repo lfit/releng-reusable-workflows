@@ -32,6 +32,10 @@ It triggers manually via GitHub's `workflow_call` event that is  and integrates 
 
     :secrets.NEXUS_PASSWORD: The password for the Nexus repository.
 
+:Optional secrets:
+
+    :secrets.NEXUS_USERNAME: The username for the Nexus repository.
+
 :Steps in the workflow:
 
 1. **Gerrit Checkout**: Check out the change from the Gerrit repository using the provided refspec, project, and other inputs.
@@ -49,6 +53,7 @@ It triggers manually via GitHub's `workflow_call` event that is  and integrates 
 
 :Expected secrets:
 
+    :secrets.NEXUS_USERNAME: The Nexus username for authentication.
     :secrets.NEXUS_PASSWORD: The Nexus password for authentication.
 
 :Example usage:
