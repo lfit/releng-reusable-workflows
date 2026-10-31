@@ -108,8 +108,8 @@ publishing failure never changes the build result.
 
 :Expected variables - Nexus upload:
 
-    :env.NEXUS_REPO: Environment variable that defines what repo to push to
-        (e.g. snapshosts, releases, staging, etc.).
+    :vars.NEXUS_REPO: Variable that defines what repo to push to
+        (e.g. snapshots, releases, staging, etc.).
     :vars.NEXUS_SERVER: Nexus server to upload to.
     :secrets.NEXUS_USERNAME: Username for push to Nexus.
     :secrets.NEXUS_PASSWORD: Password or token for push to Nexus.
@@ -122,9 +122,9 @@ publishing failure never changes the build result.
 
 :Expected variables - Central upload:
 
-    :env.NEXUS_REPO: Environment variable that defines what repo to push to
-        (e.g. snapshosts, releases, staging, etc.).
-    :vars.CENTRAL_URL: Repo URL to push to.
+    :vars.NEXUS_REPO: Variable that defines what repo to push to
+        (e.g. snapshots, releases, staging, etc.).
+    :vars.CENTRAL_SERVER: Server to push to.
     :secrets.CENTRAL_USERNAME: Username for push to Maven Central.
     :secrets.CENTRAL_PASSWORD: Password or token for push to Maven Central.
 

@@ -63,8 +63,11 @@ on:
         default: jar
         type: string
     secrets:
+      NEXUS_USERNAME:
+        description: "Nexus username for the artifact upload"
+        required: false
       NEXUS_PASSWORD:
-        description: "Sonar Cloud access token"
+        description: "Nexus password for the artifact upload"
         required: true
 
 concurrency:
@@ -105,7 +108,7 @@ jobs:
       - name: Run Gradle publish
         # yamllint disable rule:line-length
         env:
-          NEXUS_USERNAME: ${{ env.NEXUS_USERNAME }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           NEXUS_URL: ${{ inputs.NEXUS_URL }}
           DIRECTORY: ${{ inputs.DIRECTORY }}
