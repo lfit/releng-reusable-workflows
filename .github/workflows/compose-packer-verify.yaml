@@ -80,25 +80,26 @@ jobs:
           gerrit-url: ${{ vars.GERRIT_URL }}
           delay: "0s"
           submodules: "true"
+      # Sets 'triggered' when the change's own commit (HEAD against
+      # HEAD~1, which the checkout's default fetch-depth of 2 keeps
+      # reachable) touches packer/**. Other files changed alongside
+      # draw a warning, not a failure, as fail-on-violation is off.
       - name: Check for changes
         # yamllint disable-line rule:line-length
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        uses: lfreleng-actions/change-isolation-action@5a002490ccc926a098f6c637e1f8363c5094999f  # v0.3.1
         id: changes
         with:
-          base: ${{ inputs.GERRIT_BRANCH }}
-          ref: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-          filters: |
-            src:
-              - 'packer/**'
+          paths: "packer/**"
+          fail-on-violation: "false"
       - name: Setup packer
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         # yamllint disable-line rule:line-length
         uses: hashicorp/setup-packer@ce93c3c08a6c2ff2275bf4b54ff0d9a75f6c9789 # v3.4.0
         id: setup
         with:
           version: ${{ env.PACKER_VERSION }}
       - name: Export env variables
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
         with:
@@ -124,7 +125,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -133,7 +134,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -142,21 +143,21 @@ jobs:
           echo "${clouds_yaml_b64}" | base64 --decode | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
         # yamllint enable rule:line-length
       - name: Setup Python
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
       - name: Install openstack deps
         id: install-openstack-deps
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install python-openstackclient
           pip freeze
       - name: Verify packer files
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: bash
         # yamllint disable rule:line-length
         run: |
