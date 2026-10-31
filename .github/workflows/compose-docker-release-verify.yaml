@@ -84,7 +84,7 @@ jobs:
         with:
           python-version: "3.11"
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/nexus-docker-login-action@e938f9ca846d9e419ca78fe30e6ec7cc269d2291 # v0.4.2
+      - uses: lfreleng-actions/nexus-docker-login-action@efffe369f3ce14572e9b6dc5b61d485568b69e24 # v0.5.0
         with:
           nexus3-registry: ${{ vars.NEXUS3_REGISTRY }}
           nexus3-user: ${{ vars.NEXUS3_USER }}
