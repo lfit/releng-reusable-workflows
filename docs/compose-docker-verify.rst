@@ -5,8 +5,9 @@ Compose Docker Verify Workflow
 ##############################
 
 
-The workflow executes a docker build task to verify an test image build and discards the
-test image upon completion. The workflow triggers when you submit a Gerrit change request.
+The workflow builds a Docker image from the Gerrit change under review to verify that it
+builds, and discards the test image upon completion without pushing it to any registry.
+The workflow triggers when you submit a Gerrit change request.
 
 
 It integrates with Gerrit and performs the following tasks:
@@ -15,7 +16,7 @@ It integrates with Gerrit and performs the following tasks:
 2. Set up the Python environment for Docker-related tasks.
 3. Log in to Nexus3 and DockerHub registries using provided credentials.
 4. Retrieve the Docker image tag using specific methods.
-5. Build and push the Docker image using the retrieved tag.
+5. Build the Docker image from the change using the retrieved tag, without pushing it.
 
 :Required parameters:
 
@@ -30,7 +31,7 @@ It integrates with Gerrit and performs the following tasks:
     :GERRIT_REFSPEC: The refspec of the change in Gerrit.
     :CONTAINER_TAG_METHOD: The method to locate the Docker container's tag (e.g., `latest`, `stream`, `git-describe`, or `yaml-file`).
     :CONTAINER_TAG_YAML_DIR: The location of the YAML file with Docker tag information (required if `CONTAINER_TAG_METHOD` is `yaml-file`).
-    :DOCKER_BUILD_ARGS: Arguments for the Docker build command.
+    :DOCKER_BUILD_ARGS: Build arguments for the Docker build, one `KEY=VALUE` per line. The build skips blank lines.
 
 :Required secrets:
 
@@ -41,9 +42,9 @@ It integrates with Gerrit and performs the following tasks:
 
 1. **Gerrit Checkout**: Check out the change from the Gerrit repository using the provided refspec, project, and other inputs.
 
-2. **Setup Python Environment**: Set up Python 3.8 for Docker operations.
+2. **Setup Python Environment**: Set up Python 3.11 for Docker operations. The Docker build action needs Python 3.10 or later.
 
-3. **Nexus3 and DockerHub Login**: Log in to Nexus3 and DockerHub using the provided credentials to ensure the image can push to both registries.
+3. **Nexus3 and DockerHub Login**: Log in to Nexus3 and DockerHub using the provided credentials, so the build can pull base images from both registries.
 
 4. **Get Docker Image Tag**: Retrieve the Docker image tag based on the selected method:
 
@@ -59,7 +60,7 @@ It integrates with Gerrit and performs the following tasks:
        ---
        tag: 1.0.0
 
-5. **Docker Build and Push**: Build and push the Docker image using the tag obtained from the previous step. Push the image to the configured registries with the specified build arguments.
+5. **Docker Build**: Build the `Dockerfile` at the root of the checked-out change, with the change as the build context, using `lfreleng-actions/docker-build-images-action`. Each line of `DOCKER_BUILD_ARGS` passes one build argument. The image loads into the runner's Docker daemon as `compose-docker-verify:<tag>`, using the tag from the previous step, and never reaches a registry. Characters a Docker tag cannot hold, such as the `/` in a branch name, become `-`. The workflow skips the build when it finds no tag.
 
 :Expected environment variables:
 
@@ -75,8 +76,8 @@ It integrates with Gerrit and performs the following tasks:
 
 :Example usage:
 
-    - Trigger this workflow manually when a change occurs in the Docker project in Gerrit that requires building and pushing a Docker image.
-    - Use different methods for determining the Docker tag and automatically handle the build and push to the registries.
+    - Trigger this workflow manually when a change occurs in the Docker project in Gerrit that requires verifying a Docker image build.
+    - Use different methods for determining the Docker tag and automatically verify the build without pushing to the registries.
 
 :Workflow Steps Summary:
 
@@ -84,7 +85,7 @@ It integrates with Gerrit and performs the following tasks:
     2. Set up the Python environment for Docker tasks.
     3. Log in to Nexus3 and DockerHub registries.
     4. Retrieve the Docker image tag based on the specified method.
-    5. Build the Docker image and push it to the registries.
+    5. Build the Docker image from the change, without pushing it.
 
 ..  # SPDX-License-Identifier: Apache-2.0
     # SPDX-FileCopyrightText: Copyright 2025 The Linux Foundation

@@ -128,10 +128,42 @@ jobs:
           # injected into the environment for following steps
           echo "DOCKER_IMAGE_TAG=$tag" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
-      - name: Docker build and push
+      - name: Docker prepare image list
+        id: images
+        if: env.DOCKER_IMAGE_TAG != ''
+        shell: bash
+        env:
+          DOCKER_BUILD_ARGS: ${{ inputs.DOCKER_BUILD_ARGS }}
+        run: |
+          # One image: ./Dockerfile, with the Gerrit change checked out
+          # above as its build context, and a build argument for each
+          # non-empty line of DOCKER_BUILD_ARGS.
+          images=$(jq -cn --arg args "$DOCKER_BUILD_ARGS" '[{
+            name: "compose-docker-verify",
+            context: ".",
+            build_args: [$args | splits("\n")
+              | gsub("^\\s+|\\s+$"; "") | select(. != "")]
+          }]')
+          # DOCKER_IMAGE_TAG becomes the local tag. Docker's tag grammar
+          # is [A-Za-z0-9_][A-Za-z0-9._-]{0,127}, so anything else, such
+          # as the '/' of a branch name, maps to '-'.
+          local_tag=$(jq -rn --arg tag "$DOCKER_IMAGE_TAG" \
+            '$tag | gsub("[^A-Za-z0-9._-]+"; "-") | sub("^[.-]+"; "")
+              | .[:128]')
+          if [[ $local_tag != "$DOCKER_IMAGE_TAG" ]]; then
+            echo "::notice::'$DOCKER_IMAGE_TAG' is not a valid Docker tag;" \
+              "tagging the image '${local_tag:-verify}'"
+          fi
+          {
+            echo "images=$images"
+            echo "local_tag=$local_tag"
+          } >> "$GITHUB_OUTPUT"
+      - name: Docker build
         if: env.DOCKER_IMAGE_TAG != ''
         # yamllint disable-line rule:line-length
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        uses: lfreleng-actions/docker-build-images-action@6c77f960e5d71bd47c55c32ffb8ccea13b76a7ed  # v0.2.0
         with:
-          build-args: ${{ inputs.DOCKER_BUILD_ARGS }}
-          tags: ${{ env.DOCKER_IMAGE_TAG }}
+          # Build into the runner's Docker daemon; never push
+          mode: "load"
+          images: ${{ steps.images.outputs.images }}
+          local_tag: ${{ steps.images.outputs.local_tag }}
