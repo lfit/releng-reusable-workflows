@@ -195,7 +195,7 @@ jobs:
                   LOG_FILE="packer-validate-${varfile##*/}-${template##*/}.log"
                   export PACKER_LOG="yes"
                   export PACKER_LOG_PATH="$PACKER_LOGS_DIR/$LOG_FILE"
-                  if output=$(OS_CLOUD=${{ env.OS_CLOUD }} packer validate \
+                  if output=$(OS_CLOUD=${OS_CLOUD} packer validate \
                         -var-file="${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl" \
                         -var-file="$varfile" "$template"); then
                       echo "$template: $output"

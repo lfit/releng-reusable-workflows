@@ -90,8 +90,10 @@ jobs:
           python-version: "3.11"
       - name: Get global settings file
         shell: bash
+        env:
+          GLOBAL_SETTINGS: ${{ vars.GLOBAL_SETTINGS }}
         run: |
-          echo '${{ vars.GLOBAL_SETTINGS }}' > global-settings.xml
+          printf '%s\n' "${GLOBAL_SETTINGS}" > global-settings.xml
           cat global-settings.xml
       - name: Build with Gradle
         # yamllint disable-line rule:line-length

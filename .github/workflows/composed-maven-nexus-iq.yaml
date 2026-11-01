@@ -131,10 +131,14 @@ jobs:
           env-secrets: ${{ inputs.ENV_SECRETS }}
           global-settings: ${{ vars.GLOBAL_SETTINGS }}
       - name: Obtain Application ID
+        env:
+          GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+          ORGANIZATION: ${{ vars.ORGANIZATION }}
         # yamllint disable rule:line-length
         run: |
-          REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
-          echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
+          # shellcheck disable=SC2086
+          REPO_DASHED=$(echo ${GERRIT_PROJECT} | tr "/" "-")
+          echo "APPLICATION_ID=${ORGANIZATION}-${REPO_DASHED}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       # The action takes no stage input; the policy evaluation runs at
       # the 'build' stage, the default of the run-iq-cli step it wraps

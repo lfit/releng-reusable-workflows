@@ -75,7 +75,10 @@ jobs:
         run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
         shell: bash
       - name: Check workflow files
-        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        env:
+          ACTIONLINT_EXECUTABLE: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          "${ACTIONLINT_EXECUTABLE}" -color
         shell: bash
 
   # run pre-commit tox env separately to get use of more parallel processing
@@ -96,5 +99,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Run static analysis and format checkers
+        env:
+          SKIP_HOOKS: ${{ inputs.pre_commit_skips }}
         # yamllint disable-line rule:line-length
-        run: SKIP=${{ inputs.pre_commit_skips }} pipx run pre-commit run --all-files --show-diff-on-failure
+        run: SKIP="${SKIP_HOOKS}" pipx run pre-commit run --all-files --show-diff-on-failure

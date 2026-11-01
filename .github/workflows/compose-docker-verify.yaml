@@ -98,19 +98,25 @@ jobs:
           nexus3-password: ${{ secrets.NEXUS3_PASSWORD }}
           dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Docker get container tag
+        env:
+          # Not CONTAINER_TAG_METHOD: the failure message below reads
+          # that name, which this step has never set
+          TAG_METHOD: ${{ inputs.CONTAINER_TAG_METHOD }}
+          GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
+          CONTAINER_TAG_YAML_DIR: ${{ inputs.CONTAINER_TAG_YAML_DIR }}
         # yamllint disable rule:line-length
         run: |
           echo "---> docker-get-container-tag"
           python -m pip install yq
           tag=''
-          if [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "latest" ]]; then
+          if [[ ${TAG_METHOD} == "latest" ]]; then
               tag="latest"
-          elif [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "stream" ]]; then
-              tag=${{ inputs.GERRIT_BRANCH }}
-          elif [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "git-describe" ]]; then
+          elif [[ ${TAG_METHOD} == "stream" ]]; then
+              tag=${GERRIT_BRANCH}
+          elif [[ ${TAG_METHOD} == "git-describe" ]]; then
               tag=$(git describe)
-          elif [[ ${{ inputs.CONTAINER_TAG_METHOD }} == "yaml-file" ]]; then
-              dir=${{ inputs.CONTAINER_TAG_YAML_DIR }}
+          elif [[ ${TAG_METHOD} == "yaml-file" ]]; then
+              dir=${CONTAINER_TAG_YAML_DIR}
               tag_file=$dir/container-tag.yaml
               if [[ -f $tag_file ]]; then
                   tag=$(yq -r .tag "$tag_file")
@@ -118,7 +124,7 @@ jobs:
                   echo "File $tag_file not found."
               fi
           else
-             echo "Method ${{ inputs.CONTAINER_TAG_METHOD }} not implemented (yet)"
+             echo "Method ${TAG_METHOD} not implemented (yet)"
           fi
           if [[ -z $tag ]]; then
               echo "Failed to get a container tag using method $CONTAINER_TAG_METHOD"

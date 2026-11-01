@@ -93,6 +93,10 @@ jobs:
         env:
           JJB_VERSION: ${{ vars.JJB_VERSION }}
           JJB_WORKERS: ${{ vars.JJB_WORKERS }}
+          JOBBUILDER_PROD_USR: ${{ vars.JOBBUILDER_PROD_USR }}
+          JOBBUILDER_PROD_PSW: ${{ secrets.JOBBUILDER_PROD_PSW }}
+          # Not JENKINS_URL: Jenkins sets that name and CI detection reads it
+          JOBBUILDER_JENKINS_URL: ${{ vars.JENKINS_URL }}
         # yamllint disable rule:line-length
         run: |
           jjb_version="${JJB_VERSION:-6.4.3}"
@@ -109,9 +113,9 @@ jobs:
           config-xml=True
 
           [jenkins]
-          user=${{ vars.JOBBUILDER_PROD_USR }}
-          password=${{ secrets.JOBBUILDER_PROD_PSW }}
-          url=${{ vars.JENKINS_URL }}
+          user=${JOBBUILDER_PROD_USR}
+          password=${JOBBUILDER_PROD_PSW}
+          url=${JOBBUILDER_JENKINS_URL}
           EOF
           workers="${JJB_WORKERS:-0}"
           jenkins-jobs --conf "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini" update --recursive --delete-old --workers "$workers" jjb/
@@ -120,7 +124,7 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          rm -f ${{ github.run_id }}.properties
+          rm -f "${GITHUB_RUN_ID}.properties"
           rm "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini"
 
   report-status:

@@ -123,7 +123,9 @@ jobs:
         id: pre-build
         if: ${{ hashFiles(inputs.PRE_BUILD_SCRIPT) }}
         shell: bash
-        run: ${{ inputs.PRE_BUILD_SCRIPT }}
+        env:
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
+        run: ${PRE_BUILD_SCRIPT}
       - name: Run Sonar Cloud scan
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/sonarqube-cloud-scan-action@0c705d88d2ac6a170b43eeae0d7d1bde4103bce0 # v1.6.2
