@@ -59,10 +59,14 @@ concurrency:
   group: compose-required-info-test-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   info-validation:
     name: info-validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1

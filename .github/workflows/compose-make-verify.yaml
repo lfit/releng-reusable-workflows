@@ -69,10 +69,14 @@ concurrency:
   group: compose-make-verify-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}-${{ inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   make-verify:
     name: make-verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1

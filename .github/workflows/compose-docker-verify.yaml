@@ -71,10 +71,14 @@ concurrency:
   group: compose-docker-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   docker-verify:
     name: docker-verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length

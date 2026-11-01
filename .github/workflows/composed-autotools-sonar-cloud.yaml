@@ -84,10 +84,14 @@ concurrency:
   group: composed-autotools-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   run-autotools-sonar-scan:
     name: run-autotools-sonar-scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       PRE_BUILD: "/dev/null"
 

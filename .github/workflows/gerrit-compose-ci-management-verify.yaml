@@ -54,10 +54,14 @@ concurrency:
   group: compose-ci-management-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   actionlint:
     name: actionlint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -83,6 +87,8 @@ jobs:
   pre-commit:
     name: pre-commit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -102,6 +108,8 @@ jobs:
   jjb-validation:
     name: jjb-validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length

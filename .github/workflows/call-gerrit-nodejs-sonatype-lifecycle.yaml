@@ -45,6 +45,8 @@ on:
         required: true
         type: string
 
+permissions: {}
+
 concurrency:
   # yamllint disable-line rule:line-length
   group: gerrit-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
@@ -55,6 +57,7 @@ jobs:
   notify:  # zizmor: ignore[secrets-outside-env]
     name: notify
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
@@ -74,6 +77,7 @@ jobs:
     name: build-nodejs
     needs: [notify]
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: "Build Node.js project"
         # yamllint disable-line rule:line-length
@@ -84,6 +88,8 @@ jobs:
     needs: [notify, build-nodejs]
     # yamllint disable-line rule:line-length
     uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
+    permissions:
+      contents: read  # the called workflow's scan job checks out the repo
     secrets:
       nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}
 
@@ -93,6 +99,8 @@ jobs:
     if: ${{ always() }}
     needs: [notify, build-nodejs, sonartype-lifecycle]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read  # workflow-conclusion lists this run's jobs via the API
     steps:
       - name: Get conclusion
         # yamllint disable-line rule:line-length

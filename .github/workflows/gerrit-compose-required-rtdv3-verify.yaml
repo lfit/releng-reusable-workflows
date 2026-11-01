@@ -78,10 +78,14 @@ env:
   DEFAULT_VERSION: latest
   MASTER_RTD_PROJECT: doc
 
+permissions: {}
+
 jobs:
   rtd-validation:
     name: rtd-validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length

@@ -4,8 +4,9 @@
 
 name: Gerrit Required INFO Yaml Verify
 
+# vote inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -68,6 +69,7 @@ jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Clear votes
         # yamllint disable-line rule:line-length
@@ -88,6 +90,8 @@ jobs:
     name: info-validation
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -154,7 +158,9 @@ jobs:
               fi
           done <<< "$REPO_LIST"
 
-  vote:
+  # The caller decides: requesting actions: read (workflow-conclusion) fails
+  # callers granting only contents: read; narrowing it breaks the vote.
+  vote:  # zizmor: ignore[excessive-permissions]
     name: vote
     if: ${{ always() }}
     # yamllint enable rule:line-length
