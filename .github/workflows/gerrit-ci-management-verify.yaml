@@ -4,8 +4,9 @@
 
 name: Gerrit ci-management Verify
 
+# vote inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -58,6 +59,7 @@ jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Clear votes
         # yamllint disable-line rule:line-length
@@ -77,6 +79,8 @@ jobs:
     name: actionlint
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -103,6 +107,8 @@ jobs:
     name: pre-commit
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -123,6 +129,8 @@ jobs:
     name: jjb-validation
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -158,7 +166,9 @@ jobs:
           EOF
           jenkins-jobs test -o archives/job-configs jjb/
 
-  vote:
+  # The caller decides: requesting actions: read (workflow-conclusion) fails
+  # callers granting only contents: read; narrowing it breaks the vote.
+  vote:  # zizmor: ignore[excessive-permissions]
     name: vote
     if: ${{ always() }}
     needs: [prepare, actionlint, pre-commit, jjb-validation]

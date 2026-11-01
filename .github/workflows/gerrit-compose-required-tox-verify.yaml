@@ -97,10 +97,14 @@ concurrency:
   group: compose-tox-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   # Matrix job: left unnamed so its generated check names stay unchanged
   run-tox:  # zizmor: ignore[anonymous-definition]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}

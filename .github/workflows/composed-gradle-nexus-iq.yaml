@@ -71,10 +71,14 @@ env:
   NEXUS_STAGE: build
   NEXUS_TARGET: ""
 
+permissions: {}
+
 jobs:
   run-gradle-clm:
     name: run-gradle-clm
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -104,6 +108,10 @@ jobs:
   sonatype-lifecycle:
     name: "Sonatype Lifecycle Scan"
     needs: [run-gradle-clm]
+    # What sonatype-lifecycle.yaml's scan job requests; granting
+    # less would stop the called workflow from starting
+    permissions:
+      contents: read
     # yamllint disable-line rule:line-length
     uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
     secrets:

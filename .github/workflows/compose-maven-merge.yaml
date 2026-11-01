@@ -4,8 +4,9 @@
 
 name: Compose Maven Merge
 
+# maven-merge inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -174,7 +175,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  maven-merge:
+  # The caller decides: requesting id-token: write (S3 logs) fails callers
+  # granting only contents: read; narrowing it drops S3 logs where granted.
+  maven-merge:  # zizmor: ignore[excessive-permissions]
     name: maven-merge
     runs-on: ubuntu-latest
     outputs:
@@ -395,6 +398,7 @@ jobs:
     needs: maven-merge
     if: ${{ inputs.PUSH_NEXUS }}
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Pull build
         # yamllint disable-line rule:line-length
@@ -422,6 +426,7 @@ jobs:
     needs: maven-merge
     if: ${{ inputs.PUSH_ARTIFACTORY }}
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Pull build
         # yamllint disable-line rule:line-length
@@ -453,6 +458,7 @@ jobs:
     needs: maven-merge
     if: ${{ inputs.PUSH_CENTRAL }}
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Pull build
         # yamllint disable-line rule:line-length

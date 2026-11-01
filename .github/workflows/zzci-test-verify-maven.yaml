@@ -23,6 +23,8 @@ on:
       - '.github/workflows/composed-maven-sonar-cloud.yaml'
       - '.github/workflows/composed-maven-nexus-iq.yaml'
 
+permissions: {}
+
 # Inside the called compose-maven-verify.yaml github.workflow is this
 # workflow's name, but its group adds a "compose-maven-verify-" prefix,
 # so the two groups never match and the calls cannot deadlock.
@@ -34,6 +36,8 @@ concurrency:
 jobs:
   # The $/ self-repository syntax fails actionlint 1.7.12, a required check
   test-maven-verify:  # zizmor: ignore[self-repository]
+    permissions:
+      contents: read
     uses: ./.github/workflows/compose-maven-verify.yaml
     with:
       GERRIT_BRANCH: ${{ github.ref }}
@@ -47,6 +51,9 @@ jobs:
   # The $/ self-repository syntax fails actionlint 1.7.12, a required check
   test-maven-verify-logs:  # zizmor: ignore[self-repository]
     needs: test-maven-verify
+    # No id-token: write, so the logs always take the artifact fallback
+    permissions:
+      contents: read
     uses: ./.github/workflows/compose-maven-verify.yaml
     with:
       GERRIT_BRANCH: ${{ github.ref }}
@@ -60,6 +67,7 @@ jobs:
     name: check-maven-verify-logs
     needs: test-maven-verify-logs
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       # yamllint disable-line rule:line-length
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

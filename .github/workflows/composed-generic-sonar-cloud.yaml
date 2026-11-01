@@ -85,10 +85,14 @@ concurrency:
   group: composed-generic-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   run-generic-sonar-scan:
     name: run-generic-sonar-scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # yamllint disable-line rule:line-length
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

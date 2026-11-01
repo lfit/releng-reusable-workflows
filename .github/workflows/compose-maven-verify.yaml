@@ -4,8 +4,9 @@
 
 name: Compose Maven Verify
 
+# maven-verify inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -160,7 +161,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  maven-verify:
+  # The caller decides: requesting id-token: write (S3 logs) fails callers
+  # granting only contents: read; narrowing it drops S3 logs where granted.
+  maven-verify:  # zizmor: ignore[excessive-permissions]
     name: maven-verify
     runs-on: ubuntu-latest
     outputs:
