@@ -69,15 +69,21 @@ env:
   DEFAULT_VERSION: latest
   MASTER_RTD_PROJECT: doc
 
+permissions: {}
+
 jobs:
   rtd-merge:
+    name: rtd-merge
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           repository: ${{ inputs.TARGET_REPO }}
           submodules: "true"
+          persist-credentials: false
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
@@ -111,6 +117,11 @@ jobs:
       - name: Running rtdv3
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+          GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+          GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
+          GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
         run: |
           echo "---> Running rtdv3"
           set -euo pipefail
@@ -120,7 +131,7 @@ jobs:
           cat << EOF > "${HOME}/.config/lftools/lftools.ini"
           [rtd]
           endpoint=https://readthedocs.org/api/v3/
-          token=${{ secrets.RTD_TOKEN }}
+          token=${RTD_TOKEN}
           EOF
 
           watchbuild(){
@@ -142,11 +153,13 @@ jobs:
               echo "INFO: read the docs build completed with status: $result"
           }
 
-          project_original=${{ inputs.GERRIT_PROJECT }}
+          project_original=${GERRIT_PROJECT}
           project_dashed="${project_original////-}"
-          umbrella=$(echo ${{ inputs.GERRIT_CHANGE_URL }} | awk -F'.' '{print $2}')
+          # Left unquoted to keep this line's original word splitting
+          # shellcheck disable=SC2086
+          umbrella=$(echo ${GERRIT_CHANGE_URL} | awk -F'.' '{print $2}')
           rtdproject="$umbrella-$project_dashed"
-          masterproject=${umbrella}-${{ env.MASTER_RTD_PROJECT }}
+          masterproject=${umbrella}-${MASTER_RTD_PROJECT}
           #Exceptions needed for onap, due to importing their old docs.
           if [[ $masterproject == "onap-doc" ]]; then
               masterproject="onap"
@@ -155,7 +168,7 @@ jobs:
               rtdproject="onap"
           fi
           echo "INFO:"
-          echo "INFO: Project: ${{ inputs.GERRIT_PROJECT }}"
+          echo "INFO: Project: ${GERRIT_PROJECT}"
           echo "INFO: Read the Docs Sub Project: https://$rtdproject.readthedocs.io"
           echo "INFO: Read the Docs Master Project: https://$masterproject.readthedocs.io"
 
@@ -171,7 +184,7 @@ jobs:
                   echo "INFO: Project not found"
                   if [[ $project_created == "false" ]]; then
                       echo "INFO: Creating project https://$rtdproject.readthedocs.io"
-                      lftools rtd project-create "$rtdproject" "${{ inputs.GERRIT_CHANGE_URL }}" \
+                      lftools rtd project-create "$rtdproject" "${GERRIT_CHANGE_URL}" \
                           git "https://$rtdproject.readthedocs.io" py en
                       project_created="true"
                   fi
@@ -212,11 +225,11 @@ jobs:
           # allow projects to change their landing page from latest to branch_name
 
           current_version="$(lftools rtd project-details "$rtdproject" | yq -r .default_version)"
-          if [[ -z ${{ env.DEFAULT_VERSION }} ]]; then
+          if [[ -z ${DEFAULT_VERSION} ]]; then
               echo "DEFAULT_VERSION (default-version) value cannot be empty"
               exit 1
           fi
-          default_version="${{ env.DEFAULT_VERSION }}"
+          default_version="${DEFAULT_VERSION}"
 
           echo "INFO: current default version $current_version"
           if [[ $current_version != "$default_version" ]]; then
@@ -224,13 +237,13 @@ jobs:
               lftools rtd project-update "$rtdproject" default_version="$default_version"
           fi
 
-          if [[ ${{ inputs.GERRIT_BRANCH }} == "master" ]]; then
+          if [[ ${GERRIT_BRANCH} == "master" ]]; then
               echo "INFO: triggering $rtdproject latest"
               watchbuild latest
           else
 
               #read the docs only understands lower case branch names
-              branch=$(echo "${{ inputs.GERRIT_BRANCH }}" | tr '[:upper:]' '[:lower:]')
+              branch=$(echo "${GERRIT_BRANCH}" | tr '[:upper:]' '[:lower:]')
               echo "INFO: Checking if read the docs has seen branch $branch"
 
               #if this is 200 "null" Then run discover branch

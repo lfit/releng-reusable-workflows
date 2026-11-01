@@ -65,42 +65,48 @@ concurrency:
   group: compose-packer-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   packer-validator:
+    name: packer-validator
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       ENV_SECRETS: ${{ secrets.ENV_SECRETS }}
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@fb7446a92c01efcfbd967f073b2957ef90ecb49f  # v1.2.0
+        uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
           gerrit-url: ${{ vars.GERRIT_URL }}
           delay: "0s"
           submodules: "true"
+      # Sets 'triggered' when the change's own commit (HEAD against
+      # HEAD~1, which the checkout's default fetch-depth of 2 keeps
+      # reachable) touches packer/**. Other files changed alongside
+      # draw a warning, not a failure, as fail-on-violation is off.
       - name: Check for changes
         # yamllint disable-line rule:line-length
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        uses: lfreleng-actions/change-isolation-action@5a002490ccc926a098f6c637e1f8363c5094999f  # v0.3.1
         id: changes
         with:
-          base: ${{ inputs.GERRIT_BRANCH }}
-          ref: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-          filters: |
-            src:
-              - 'packer/**'
+          paths: "packer/**"
+          fail-on-violation: "false"
       - name: Setup packer
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         # yamllint disable-line rule:line-length
         uses: hashicorp/setup-packer@ce93c3c08a6c2ff2275bf4b54ff0d9a75f6c9789 # v3.4.0
         id: setup
         with:
           version: ${{ env.PACKER_VERSION }}
       - name: Export env variables
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa  # 2.0.0
+        uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Double base64 decode credentials as store as environment variables
@@ -124,7 +130,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -133,7 +139,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -142,21 +148,21 @@ jobs:
           echo "${clouds_yaml_b64}" | base64 --decode | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
         # yamllint enable rule:line-length
       - name: Setup Python
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
       - name: Install openstack deps
         id: install-openstack-deps
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install python-openstackclient
           pip freeze
       - name: Verify packer files
-        if: steps.changes.outputs.src == 'true'
+        if: steps.changes.outputs.triggered == 'true'
         shell: bash
         # yamllint disable rule:line-length
         run: |
@@ -194,7 +200,7 @@ jobs:
                   LOG_FILE="packer-validate-${varfile##*/}-${template##*/}.log"
                   export PACKER_LOG="yes"
                   export PACKER_LOG_PATH="$PACKER_LOGS_DIR/$LOG_FILE"
-                  if output=$(OS_CLOUD=${{ env.OS_CLOUD }} packer validate \
+                  if output=$(OS_CLOUD=${OS_CLOUD} packer validate \
                         -var-file="${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl" \
                         -var-file="$varfile" "$template"); then
                       echo "$template: $output"

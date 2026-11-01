@@ -79,6 +79,11 @@ Maven Nexus IQ Workflow builds a Maven project, runs a Nexus IQ scan, and assess
 4. **Nexus IQ Policy Assessment**: The workflow then triggers a Nexus IQ policy
    assessment to check the project's dependencies. This scan identifies any security
    vulnerabilities, licensing issues, or policy violations in the dependencies.
+   It uses
+   `sonatype-lifecycle-scan-action <https://github.com/lfreleng-actions/sonatype-lifecycle-scan-action>`_,
+   which runs a pinned Nexus IQ CLI release against the whole workspace, including
+   the Maven build output, at the ``build`` stage. Scan errors and policy violations
+   do not fail the workflow.
 
 :Example usage:
 

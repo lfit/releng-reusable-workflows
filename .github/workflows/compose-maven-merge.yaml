@@ -4,8 +4,9 @@
 
 name: Compose Maven Merge
 
+# maven-merge inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -156,7 +157,9 @@ on:
         description: "Sigul PKI material, used when SIGUL_SIGN is true"
         required: false
       GHA_TOKEN:
-        description: "GitHub token used by the Sigul signing action"
+        description: >
+          No longer used: the Sigul action needs a token only to push a
+          signed git tag. Kept so callers still passing it do not fail.
         required: false
 
 concurrency:
@@ -172,7 +175,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  maven-merge:
+  # The caller decides: requesting id-token: write (S3 logs) fails callers
+  # granting only contents: read; narrowing it drops S3 logs where granted.
+  maven-merge:  # zizmor: ignore[excessive-permissions]
+    name: maven-merge
     runs-on: ubuntu-latest
     outputs:
       group_path: ${{ steps.metadata.outputs.group_path }}
@@ -182,6 +188,7 @@ jobs:
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
+          persist-credentials: false
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
@@ -272,16 +279,22 @@ jobs:
           env-vars: ${{ inputs.ENV_VARS }}
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
-        uses: lfit/sigul-sign-action@afafdf0100b93be60b6ae11c7f5718a0ad587580 # v2.0.1
+        uses: lfreleng-actions/sigul-sign-action@997f9d803faea69dc912421d799a5cd439c5c6cc # v0.1.1
         # Typed workflow_call booleans arrive as real booleans, so
         # compare truthiness directly. Casting a boolean against the
         # string yields NaN, so the old comparison never matched.
         if: ${{ inputs.SIGUL_SIGN }}
         with:
+          # The legacy (CentOS 7, sigul 0.207) client, chosen deliberately
+          # until the signing keys move to the modern Sigul stack.
+          container: legacy
+          allow-legacy: "true"
           sign-type: "sign-data"
+          # A directory signs every file beneath it except the default
+          # exclude-globs (*.md5, *.sha1, maven-metadata.xml and the like),
+          # writing <file>.asc beside each.
           sign-object: ${{ inputs.ARTIFACT_DIR }}
           sigul-key-name: ${{ secrets.SIGUL_KEY }}
-          gh-key: ${{ secrets.GHA_TOKEN }}
           sigul-ip: ${{ secrets.SIGUL_IP }}
           sigul-uri: ${{ secrets.SIGUL_URI }}
           sigul-conf: ${{ secrets.SIGUL_CONF }}
@@ -381,9 +394,11 @@ jobs:
           artifact_name: ${{ steps.log-path.outputs.artifact_name }}
 
   publish-nexus:
+    name: publish-nexus
     needs: maven-merge
     if: ${{ inputs.PUSH_NEXUS }}
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Pull build
         # yamllint disable-line rule:line-length
@@ -407,9 +422,11 @@ jobs:
           upload_path: ${{ needs.maven-merge.outputs.group_path }}
 
   publish-artifactory:
+    name: publish-artifactory
     needs: maven-merge
     if: ${{ inputs.PUSH_ARTIFACTORY }}
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Pull build
         # yamllint disable-line rule:line-length
@@ -424,15 +441,33 @@ jobs:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
       - name: Publish to Artifactory
+        env:
+          ARTIFACT_DIR: ${{ inputs.ARTIFACT_DIR }}
+          ARTIFACTORY_PATH: ${{ vars.ARTIFACTORY_PATH }}
+          JFROG_OPTIONS: ${{ inputs.JFROG_OPTIONS }}
         run: |
-          jf rt upload ${{ inputs.ARTIFACT_DIR }} \
-          ${{ vars.ARTIFACTORY_PATH }} \
-          ${{ inputs.JFROG_OPTIONS }}
+          # JFROG_OPTIONS is a shell-quoted option string. Split it with
+          # shlex, which honours quotes but never evaluates the value, so
+          # '--build-name "My Build"' stays one argument. Malformed quoting
+          # fails the step. The NUL-separated list keeps any whitespace.
+          python3 - > "${RUNNER_TEMP}/jfrog-options" <<'PY'
+          import os, shlex, sys
+          for arg in shlex.split(os.environ["JFROG_OPTIONS"]):
+              sys.stdout.write(arg + "\0")
+          PY
+          mapfile -t -d '' jf_opts < "${RUNNER_TEMP}/jfrog-options"
+          # Paths stay unquoted, as they were when inlined into the script
+          # shellcheck disable=SC2086
+          jf rt upload ${ARTIFACT_DIR} \
+          ${ARTIFACTORY_PATH} \
+          "${jf_opts[@]}"
 
   publish-central:
+    name: publish-central
     needs: maven-merge
     if: ${{ inputs.PUSH_CENTRAL }}
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Pull build
         # yamllint disable-line rule:line-length
@@ -447,5 +482,5 @@ jobs:
           nexus_server: ${{ vars.CENTRAL_SERVER }}
           nexus_username: ${{ secrets.CENTRAL_USERNAME }}
           nexus_password: ${{ secrets.CENTRAL_PASSWORD }}
-          repository_name: ${{ env.NEXUS_REPO }}
+          repository_name: ${{ vars.NEXUS_REPO }}
           files_path: ${{ inputs.ARTIFACT_DIR }}

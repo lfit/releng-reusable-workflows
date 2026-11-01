@@ -83,9 +83,14 @@ concurrency:
   group: composed-prescan-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   run-prescan-sonar-scan:
+    name: run-prescan-sonar-scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       PRE_BUILD: "/dev/null"
 
@@ -94,6 +99,7 @@ jobs:
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
+          persist-credentials: false
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
@@ -108,21 +114,27 @@ jobs:
           distribution: "temurin"
       - name: Pre-build path
         if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        env:
+          PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
         # yamllint disable-line rule:line-length
         run: |
-          echo "PRE_BUILD=${{ inputs.PRE_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+          echo "PRE_BUILD=${PRE_BUILD_SCRIPT_PATH}" >> "$GITHUB_ENV"
       - name: Pre-build script
         if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        env:
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
         run: |
-          echo "${{ inputs.PRE_BUILD_SCRIPT }}" > "${{ github.run_id }}.sh"
-          chmod +x "${{ github.run_id }}.sh"
-          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+          echo "${PRE_BUILD_SCRIPT}" > "${GITHUB_RUN_ID}.sh"
+          chmod +x "${GITHUB_RUN_ID}.sh"
+          echo "PRE_BUILD=${GITHUB_RUN_ID}.sh" >> "$GITHUB_ENV"
       - name: Pre-build URL
         if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        env:
+          PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
         run: |
-          curl "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
-          chmod +x "${{ github.run_id }}.sh"
-          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+          curl "${PRE_BUILD_SCRIPT_URL}" > "${GITHUB_RUN_ID}.sh"
+          chmod +x "${GITHUB_RUN_ID}.sh"
+          echo "PRE_BUILD=${GITHUB_RUN_ID}.sh" >> "$GITHUB_ENV"
       - name: Run pre-build-script
         shell: bash
         run: sh "$PRE_BUILD"

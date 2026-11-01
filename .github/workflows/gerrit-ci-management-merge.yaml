@@ -4,8 +4,9 @@
 
 name: Gerrit ci-management Merge
 
+# report-status inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -59,11 +60,13 @@ concurrency:
 
 jobs:
   notify:
+    name: notify
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gerrit-review-action@d56b0b5c81402f8cb435aaca513bebdea3be951e # v1.2.0
+        uses: lfreleng-actions/gerrit-review-action@264fe205361cbb2ee8f26280998a75680ee33b53 # v1.3.0
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
@@ -77,13 +80,17 @@ jobs:
         run: sleep 10s
 
   jjb-merge:
+    name: jjb-merge
     runs-on: ubuntu-latest
     needs: notify
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
+          persist-credentials: false
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
@@ -93,6 +100,10 @@ jobs:
         env:
           JJB_VERSION: ${{ vars.JJB_VERSION }}
           JJB_WORKERS: ${{ vars.JJB_WORKERS }}
+          JOBBUILDER_PROD_USR: ${{ vars.JOBBUILDER_PROD_USR }}
+          JOBBUILDER_PROD_PSW: ${{ secrets.JOBBUILDER_PROD_PSW }}
+          # Not JENKINS_URL: Jenkins sets that name and CI detection reads it
+          JOBBUILDER_JENKINS_URL: ${{ vars.JENKINS_URL }}
         # yamllint disable rule:line-length
         run: |
           jjb_version="${JJB_VERSION:-6.4.3}"
@@ -109,9 +120,9 @@ jobs:
           config-xml=True
 
           [jenkins]
-          user=${{ vars.JOBBUILDER_PROD_USR }}
-          password=${{ secrets.JOBBUILDER_PROD_PSW }}
-          url=${{ vars.JENKINS_URL }}
+          user=${JOBBUILDER_PROD_USR}
+          password=${JOBBUILDER_PROD_PSW}
+          url=${JOBBUILDER_JENKINS_URL}
           EOF
           workers="${JJB_WORKERS:-0}"
           jenkins-jobs --conf "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini" update --recursive --delete-old --workers "$workers" jjb/
@@ -120,10 +131,13 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          rm -f ${{ github.run_id }}.properties
+          rm -f "${GITHUB_RUN_ID}.properties"
           rm "${GITHUB_WORKSPACE}/.config/jenkins_jobs/jenkins_jobs.ini"
 
-  report-status:
+  # The caller decides: requesting actions: read (workflow-conclusion) fails
+  # callers granting only contents: read; narrowing it breaks the report.
+  report-status:  # zizmor: ignore[excessive-permissions]
+    name: report-status
     if: ${{ always() }}
     needs: [notify, jjb-merge]
     runs-on: ubuntu-latest
@@ -133,7 +147,7 @@ jobs:
         uses: im-open/workflow-conclusion@8eac7f17381a6917bc04fec3e2c92e70ebc37526 # v3.0.0
       - name: Report workflow conclusion
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gerrit-review-action@d56b0b5c81402f8cb435aaca513bebdea3be951e # v1.2.0
+        uses: lfreleng-actions/gerrit-review-action@264fe205361cbb2ee8f26280998a75680ee33b53 # v1.3.0
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}

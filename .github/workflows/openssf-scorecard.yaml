@@ -29,12 +29,12 @@ jobs:
   openssf-scorecard:
     name: "OpenSSF Scorecard"
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-openssf-scorecard.yaml@e3bb02dd0d2e5027cde63732fe00f591d6ecec03 # v0.11.0
+    uses: lfreleng-actions/security-workflows/.github/workflows/openssf-scorecard.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
+    # The lane's scan job requests all four scopes, and a called job
+    # cannot hold more than its caller grants. Keep id-token: write off
+    # every other job: the Scorecard API rejects the results otherwise.
     permissions:
-      # Needed to upload the results to code-scanning dashboard.
-      security-events: write
-      # Needed to publish results and get a badge (see publish_results below).
-      id-token: write
-      # Uncomment the permissions below if installing in a private repository.
-      # contents: read
-      # actions: read
+      contents: read  # checkout
+      security-events: write  # upload results to code scanning
+      id-token: write  # publish results and obtain the badge, via OIDC
+      actions: read  # upload-sarif reads run info on private repos

@@ -71,13 +71,18 @@ env:
   NEXUS_STAGE: build
   NEXUS_TARGET: ""
 
+permissions: {}
+
 jobs:
   run-gradle-clm:
+    name: run-gradle-clm
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@fb7446a92c01efcfbd967f073b2957ef90ecb49f  # v1.2.0
+        uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -91,14 +96,23 @@ jobs:
           jdk-version: ${{ inputs.JDK_VERSION }}
           distribution: ${{ inputs.DISTRIBUTION }}
       - name: Obtain Application ID
+        env:
+          GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+          ORGANIZATION: ${{ vars.ORGANIZATION }}
         # yamllint disable rule:line-length
         run: |
-          REPO_DASHED=$(echo ${{ inputs.GERRIT_PROJECT }} | tr "/" "-")
-          echo "APPLICATION_ID=${{ vars.ORGANIZATION }}-${REPO_DASHED}" >> "$GITHUB_ENV"
+          # Unquoted, as the value was when inlined into the script
+          # shellcheck disable=SC2086
+          REPO_DASHED=$(echo ${GERRIT_PROJECT} | tr "/" "-")
+          echo "APPLICATION_ID=${ORGANIZATION}-${REPO_DASHED}" >> "$GITHUB_ENV"
   sonatype-lifecycle:
     name: "Sonatype Lifecycle Scan"
     needs: [run-gradle-clm]
+    # What sonatype-lifecycle.yaml's scan job requests; granting
+    # less would stop the called workflow from starting
+    permissions:
+      contents: read
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@e3bb02dd0d2e5027cde63732fe00f591d6ecec03 # v0.11.0
+    uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
     secrets:
-      NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
+      nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}

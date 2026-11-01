@@ -14,6 +14,11 @@ on:
 
 permissions: {}
 
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   promote-release:
     name: 'Promote Draft Release'
@@ -21,7 +26,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: 'ubuntu-24.04'
     permissions:
-      contents: write
+      contents: write  # publish the draft release for the pushed tag
     timeout-minutes: 3
     steps:
       # Harden the runner used by this workflow
@@ -32,6 +37,8 @@ jobs:
 
       # yamllint disable-line rule:line-length
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 'Verify Pushed Tag'
         # yamllint disable-line rule:line-length

@@ -65,13 +65,18 @@ concurrency:
   group: compose-docker-release-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   docker-release-verify:
+    name: docker-release-verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@fb7446a92c01efcfbd967f073b2957ef90ecb49f  # v1.2.0
+        uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -92,9 +97,11 @@ jobs:
           nexus3-password: ${{ secrets.NEXUS3_PASSWORD }}
           dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Read release file
+        env:
+          GERRIT_PATCHSET_REVISION: ${{ inputs.GERRIT_PATCHSET_REVISION }}
         # yamllint disable rule:line-length
         run: |
-          release_files=$(git diff-tree -m --no-commit-id -r "${{ inputs.GERRIT_PATCHSET_REVISION }}" "${{ inputs.GERRIT_PATCHSET_REVISION }}^1" \
+          release_files=$(git diff-tree -m --no-commit-id -r "${GERRIT_PATCHSET_REVISION}" "${GERRIT_PATCHSET_REVISION}^1" \
               --name-only -- "releases/" ".releases/")
           if (( $(grep -c . <<<"$release_files") > 1 )); then
               echo "INFO: RELEASE FILES ARE AS FOLLOWS: $release_files"
@@ -128,10 +135,12 @@ jobs:
 
           python -m pip install jsonschema twine yq readline
 
-          VERSION=$(yq -r ".container_release_tag" "${{ env.release_file }}")
+          VERSION=$(yq -r ".container_release_tag" "${release_file}")
 
-          for namequoted in $(yq '.containers[].name' ${{ env.release_file }}); do
-              versionquoted=$(yq ".containers[] |select(.name==$namequoted) |.version" ${{ env.release_file }})
+          # Unquoted, as the values were when inlined into the script
+          # shellcheck disable=SC2086
+          for namequoted in $(yq '.containers[].name' ${release_file}); do
+              versionquoted=$(yq ".containers[] |select(.name==$namequoted) |.version" ${release_file})
 
               #Remove extra yaml quotes
               name="${namequoted#\"}"
@@ -143,15 +152,15 @@ jobs:
               echo "$version"
               echo "INFO: Merge will release $name $version as $VERSION"
               # Attempt to pull from releases registry to see if the image has been released.
-              if docker pull ${{ env.CONTAINER_PUSH_REGISTRY }}/${{ env.ORGANIZATION }}/"$name":"$VERSION"; then
+              if docker pull ${CONTAINER_PUSH_REGISTRY}/${ORGANIZATION}/"$name":"$VERSION"; then
                   echo "INFO: $VERSION is already released for image $name, Continuing..."
               else
                   echo "INFO: $VERSION not found in releases, release will be prepared. Continuing..."
-                  docker pull ${{ env.CONTAINER_PULL_REGISTRY }}/${{ env.ORGANIZATION }}/"$name":"$version"
+                  docker pull ${CONTAINER_PULL_REGISTRY}/${ORGANIZATION}/"$name":"$version"
                   container_image_id=$(docker images | grep "$name" | grep "$version" | awk '{print $3}')
                   echo "INFO: Merge will run the following commands:"
-                  echo "docker tag $container_image_id ${{ env.CONTAINER_PUSH_REGISTRY }}/${{ env.ORGANIZATION }}/$name:$VERSION"
-                  echo "docker push ${{ env.CONTAINER_PUSH_REGISTRY }}/${{ env.ORGANIZATION }}/$name:$VERSION"
+                  echo "docker tag $container_image_id ${CONTAINER_PUSH_REGISTRY}/${ORGANIZATION}/$name:$VERSION"
+                  echo "docker push ${CONTAINER_PUSH_REGISTRY}/${ORGANIZATION}/$name:$VERSION"
               fi
           done
           echo "INFO: Merge will tag ref: $ref"

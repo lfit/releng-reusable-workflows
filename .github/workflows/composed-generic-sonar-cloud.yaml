@@ -52,11 +52,13 @@ on:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub variables to be exported as environment variables via `toJSON(vars)` or specific variables encoded in JSON format"
         required: false
+        default: "{}"
         type: string
       ENV_SECRETS:
         # yamllint disable-line rule:line-length
         description: "Pass GitHub secrets to be exported as environment variables via `toJSON(secrets)` or specific secrets encoded in JSON format"
         required: false
+        default: "{}"
         type: string
       PRE_BUILD_SCRIPT:
         description: "Optional pre-build script to trigger before verify run"
@@ -83,15 +85,21 @@ concurrency:
   group: composed-generic-sonar-cloud-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   run-generic-sonar-scan:
+    name: run-generic-sonar-scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # yamllint disable-line rule:line-length
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
+          persist-credentials: false
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
@@ -107,20 +115,23 @@ jobs:
       - name: Export env variables
         id: export-env-variables
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa  # 2.0.0
+        uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
         id: export-env-secrets
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa  # 2.0.0
+        uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
         with:
           secrets: ${{ inputs.ENV_SECRETS }}
+          mask: "true"
       - name: Run pre-build-script
         id: pre-build
         if: ${{ hashFiles(inputs.PRE_BUILD_SCRIPT) }}
         shell: bash
-        run: ${{ inputs.PRE_BUILD_SCRIPT }}
+        env:
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
+        run: ${PRE_BUILD_SCRIPT}
       - name: Run Sonar Cloud scan
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/sonarqube-cloud-scan-action@0c705d88d2ac6a170b43eeae0d7d1bde4103bce0 # v1.6.2

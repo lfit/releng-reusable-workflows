@@ -37,7 +37,7 @@ This workflow runs on GitHub when a trigger event, such as a Gerrit change or pa
 
 1. **Gerrit Checkout**: First, check out the change from Gerrit using the specified refspec, project, and URL.
 
-2. **Check for Changes**: Determine if any files in the `packer/**` directory have changed. If no changes occur, stop the workflow.
+2. **Check for Changes**: Use `change-isolation-action` to determine whether the change's own commit, compared with its parent, modifies any files under `packer/**`. Changes to other files do not fail this step. If no Packer files change, the workflow skips the later setup and validation steps.
 
 3. **Setup Packer**: If changes occur, set up Packer with the specified version.
 
