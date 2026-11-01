@@ -446,12 +446,21 @@ jobs:
           ARTIFACTORY_PATH: ${{ vars.ARTIFACTORY_PATH }}
           JFROG_OPTIONS: ${{ inputs.JFROG_OPTIONS }}
         run: |
-          # Unquoted on purpose: JFROG_OPTIONS holds several words, and
-          # an empty value must drop out rather than pass an empty argument.
+          # JFROG_OPTIONS is a shell-quoted option string. Split it with
+          # shlex, which honours quotes but never evaluates the value, so
+          # '--build-name "My Build"' stays one argument. Malformed quoting
+          # fails the step. The NUL-separated list keeps any whitespace.
+          python3 - > "${RUNNER_TEMP}/jfrog-options" <<'PY'
+          import os, shlex, sys
+          for arg in shlex.split(os.environ["JFROG_OPTIONS"]):
+              sys.stdout.write(arg + "\0")
+          PY
+          mapfile -t -d '' jf_opts < "${RUNNER_TEMP}/jfrog-options"
+          # Paths stay unquoted, as they were when inlined into the script
           # shellcheck disable=SC2086
           jf rt upload ${ARTIFACT_DIR} \
           ${ARTIFACTORY_PATH} \
-          ${JFROG_OPTIONS}
+          "${jf_opts[@]}"
 
   publish-central:
     name: publish-central
