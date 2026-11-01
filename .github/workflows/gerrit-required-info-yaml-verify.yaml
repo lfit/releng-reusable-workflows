@@ -128,10 +128,11 @@ jobs:
           https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
       - name: Info File Validation
         if: env.SCAN == 'true'
+        env:
+          PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
         run: |
           set -e -o pipefail
           pip install jsonschema yq
-          PROJECT_INPUT=${{ inputs.GERRIT_PROJECT }}
           yamllint INFO.yaml
           python yaml-verify-schema.py \
               -s info-schema.yaml \

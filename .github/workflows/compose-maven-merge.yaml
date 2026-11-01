@@ -432,10 +432,17 @@ jobs:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
       - name: Publish to Artifactory
+        env:
+          ARTIFACT_DIR: ${{ inputs.ARTIFACT_DIR }}
+          ARTIFACTORY_PATH: ${{ vars.ARTIFACTORY_PATH }}
+          JFROG_OPTIONS: ${{ inputs.JFROG_OPTIONS }}
         run: |
-          jf rt upload ${{ inputs.ARTIFACT_DIR }} \
-          ${{ vars.ARTIFACTORY_PATH }} \
-          ${{ inputs.JFROG_OPTIONS }}
+          # Unquoted on purpose: JFROG_OPTIONS holds several words, and
+          # an empty value must drop out rather than pass an empty argument.
+          # shellcheck disable=SC2086
+          jf rt upload ${ARTIFACT_DIR} \
+          ${ARTIFACTORY_PATH} \
+          ${JFROG_OPTIONS}
 
   publish-central:
     needs: maven-merge

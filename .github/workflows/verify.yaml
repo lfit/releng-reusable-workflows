@@ -18,7 +18,10 @@ jobs:
         run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
         shell: bash
       - name: Check workflow files
-        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        env:
+          ACTIONLINT_EXECUTABLE: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          "${ACTIONLINT_EXECUTABLE}" -color
         shell: bash
 
   semantic-pull-request:
@@ -54,5 +57,7 @@ jobs:
 
       - name: Run gitlint
         shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          gitlint --commits "${{ github.event.pull_request.base.sha }}..HEAD"
+          gitlint --commits "${PR_BASE_SHA}..HEAD"
