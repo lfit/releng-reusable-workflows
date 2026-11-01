@@ -23,8 +23,17 @@ on:
       - '.github/workflows/composed-maven-sonar-cloud.yaml'
       - '.github/workflows/composed-maven-nexus-iq.yaml'
 
+# Inside the called compose-maven-verify.yaml github.workflow is this
+# workflow's name, but its group adds a "compose-maven-verify-" prefix,
+# so the two groups never match and the calls cannot deadlock.
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test-maven-verify:
+  # The $/ self-repository syntax fails actionlint 1.7.12, a required check
+  test-maven-verify:  # zizmor: ignore[self-repository]
     uses: ./.github/workflows/compose-maven-verify.yaml
     with:
       GERRIT_BRANCH: ${{ github.ref }}
@@ -35,7 +44,8 @@ jobs:
   # This repository has no AWS_LOG_ROLE_ARN, so the logs take the
   # workflow artifact fallback, which the next job checks. It runs after
   # test-maven-verify because both calls share one concurrency group.
-  test-maven-verify-logs:
+  # The $/ self-repository syntax fails actionlint 1.7.12, a required check
+  test-maven-verify-logs:  # zizmor: ignore[self-repository]
     needs: test-maven-verify
     uses: ./.github/workflows/compose-maven-verify.yaml
     with:
@@ -47,6 +57,7 @@ jobs:
       LOG_SUBDIR: ci
 
   check-maven-verify-logs:
+    name: check-maven-verify-logs
     needs: test-maven-verify-logs
     runs-on: ubuntu-latest
     steps:

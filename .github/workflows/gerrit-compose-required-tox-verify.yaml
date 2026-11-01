@@ -98,7 +98,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run-tox:
+  # Matrix job: left unnamed so its generated check names stay unchanged
+  run-tox:  # zizmor: ignore[anonymous-definition]
     runs-on: ubuntu-latest
     strategy:
       matrix:

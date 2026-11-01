@@ -73,6 +73,7 @@ env:
 
 jobs:
   run-gradle-clm:
+    name: run-gradle-clm
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout

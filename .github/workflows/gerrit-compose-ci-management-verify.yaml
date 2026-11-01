@@ -56,6 +56,7 @@ concurrency:
 
 jobs:
   actionlint:
+    name: actionlint
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout
@@ -80,6 +81,7 @@ jobs:
 
   # run pre-commit tox env separately to get use of more parallel processing
   pre-commit:
+    name: pre-commit
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout
@@ -98,6 +100,7 @@ jobs:
         run: pipx run pre-commit run --all-files --show-diff-on-failure
 
   jjb-validation:
+    name: jjb-validation
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout

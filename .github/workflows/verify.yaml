@@ -7,11 +7,19 @@ name: Lint GitHub Actions workflows
 # yamllint disable-line rule:truthy
 on: [push, pull_request]
 
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   actionlint:
+    name: actionlint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Download actionlint
         id: get_actionlint
         # yamllint disable-line rule:line-length
@@ -39,6 +47,7 @@ jobs:
       pull-requests: read  # read PR title and commits
 
   commit-message:
+    name: commit-message
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
@@ -49,6 +58,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           # get all history
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install gitlint
         shell: bash

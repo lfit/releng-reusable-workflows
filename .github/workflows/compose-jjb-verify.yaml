@@ -52,6 +52,7 @@ concurrency:
 
 jobs:
   jjb-validation:
+    name: jjb-validation
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout

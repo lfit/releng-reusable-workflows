@@ -51,7 +51,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  notify:
+  # Needs GitHub deployment environments configured outside the code
+  notify:  # zizmor: ignore[secrets-outside-env]
+    name: notify
     runs-on: ubuntu-latest
     steps:
       - name: Notify job start
@@ -69,6 +71,7 @@ jobs:
         run: sleep 10s
 
   build-nodejs:
+    name: build-nodejs
     needs: [notify]
     runs-on: ubuntu-latest
     steps:
@@ -84,7 +87,9 @@ jobs:
     secrets:
       nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}
 
-  report-status:
+  # Needs GitHub deployment environments configured outside the code
+  report-status:  # zizmor: ignore[secrets-outside-env]
+    name: report-status
     if: ${{ always() }}
     needs: [notify, build-nodejs, sonartype-lifecycle]
     runs-on: ubuntu-latest

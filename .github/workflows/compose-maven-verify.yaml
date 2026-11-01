@@ -161,6 +161,7 @@ concurrency:
 
 jobs:
   maven-verify:
+    name: maven-verify
     runs-on: ubuntu-latest
     outputs:
       log_url: ${{ steps.publish-logs.outputs.log_url }}

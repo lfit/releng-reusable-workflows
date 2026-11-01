@@ -48,6 +48,7 @@ concurrency:
 
 jobs:
   maven-merge:
+    name: maven-merge
     runs-on: ubuntu-latest
     steps:
       # Harden the runner used by this workflow

@@ -61,6 +61,7 @@ concurrency:
 
 jobs:
   info-validation:
+    name: info-validation
     runs-on: ubuntu-latest
     steps:
       # yamllint disable-line rule:line-length

@@ -56,6 +56,7 @@ concurrency:
 
 jobs:
   prepare:
+    name: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Clear votes
@@ -73,6 +74,7 @@ jobs:
         run: sleep 10s
 
   actionlint:
+    name: actionlint
     needs: prepare
     runs-on: ubuntu-latest
     steps:
@@ -98,6 +100,7 @@ jobs:
 
   # run pre-commit tox env separately to get use of more parallel processing
   pre-commit:
+    name: pre-commit
     needs: prepare
     runs-on: ubuntu-latest
     steps:
@@ -117,6 +120,7 @@ jobs:
         run: pipx run pre-commit run --all-files --show-diff-on-failure
 
   jjb-validation:
+    name: jjb-validation
     needs: prepare
     runs-on: ubuntu-latest
     steps:
@@ -155,6 +159,7 @@ jobs:
           jenkins-jobs test -o archives/job-configs jjb/
 
   vote:
+    name: vote
     if: ${{ always() }}
     needs: [prepare, actionlint, pre-commit, jjb-validation]
     runs-on: ubuntu-latest
