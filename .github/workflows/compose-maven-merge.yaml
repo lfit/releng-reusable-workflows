@@ -175,6 +175,7 @@ concurrency:
 
 jobs:
   maven-merge:
+    name: maven-merge
     runs-on: ubuntu-latest
     outputs:
       group_path: ${{ steps.metadata.outputs.group_path }}
@@ -184,6 +185,7 @@ jobs:
         with:
           ref: ${{ inputs.GERRIT_BRANCH }}
           submodules: "true"
+          persist-credentials: false
       # yamllint disable-line rule:line-length
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
@@ -389,6 +391,7 @@ jobs:
           artifact_name: ${{ steps.log-path.outputs.artifact_name }}
 
   publish-nexus:
+    name: publish-nexus
     needs: maven-merge
     if: ${{ inputs.PUSH_NEXUS }}
     runs-on: ubuntu-latest
@@ -415,6 +418,7 @@ jobs:
           upload_path: ${{ needs.maven-merge.outputs.group_path }}
 
   publish-artifactory:
+    name: publish-artifactory
     needs: maven-merge
     if: ${{ inputs.PUSH_ARTIFACTORY }}
     runs-on: ubuntu-latest
@@ -445,6 +449,7 @@ jobs:
           ${JFROG_OPTIONS}
 
   publish-central:
+    name: publish-central
     needs: maven-merge
     if: ${{ inputs.PUSH_CENTRAL }}
     runs-on: ubuntu-latest

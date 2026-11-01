@@ -71,6 +71,7 @@ concurrency:
 
 jobs:
   make-verify:
+    name: make-verify
     runs-on: ubuntu-latest
     steps:
       # yamllint disable-line rule:line-length

@@ -67,6 +67,7 @@ concurrency:
 
 jobs:
   docker-release-verify:
+    name: docker-release-verify
     runs-on: ubuntu-latest
     steps:
       - name: Gerrit Checkout

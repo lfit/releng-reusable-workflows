@@ -66,6 +66,7 @@ concurrency:
 
 jobs:
   prepare:
+    name: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Clear votes
@@ -84,6 +85,7 @@ jobs:
         run: sleep 10s
 
   info-validation:
+    name: info-validation
     needs: prepare
     runs-on: ubuntu-latest
     steps:
@@ -153,6 +155,7 @@ jobs:
           done <<< "$REPO_LIST"
 
   vote:
+    name: vote
     if: ${{ always() }}
     # yamllint enable rule:line-length
     needs: [prepare, info-validation]

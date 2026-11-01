@@ -67,6 +67,7 @@ concurrency:
 
 jobs:
   packer-validator:
+    name: packer-validator
     runs-on: ubuntu-latest
     env:
       ENV_SECRETS: ${{ secrets.ENV_SECRETS }}
