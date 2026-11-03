@@ -65,15 +65,20 @@ concurrency:
   group: compose-packer-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   packer-validator:
+    name: packer-validator
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       ENV_SECRETS: ${{ secrets.ENV_SECRETS }}
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@fb7446a92c01efcfbd967f073b2957ef90ecb49f  # v1.2.0
+        uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -100,7 +105,7 @@ jobs:
       - name: Export env variables
         if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
-        uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa  # 2.0.0
+        uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Double base64 decode credentials as store as environment variables
@@ -194,7 +199,7 @@ jobs:
                   LOG_FILE="packer-validate-${varfile##*/}-${template##*/}.log"
                   export PACKER_LOG="yes"
                   export PACKER_LOG_PATH="$PACKER_LOGS_DIR/$LOG_FILE"
-                  if output=$(OS_CLOUD=${{ env.OS_CLOUD }} packer validate \
+                  if output=$(OS_CLOUD=${OS_CLOUD} packer validate \
                         -var-file="${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl" \
                         -var-file="$varfile" "$template"); then
                       echo "$template: $output"

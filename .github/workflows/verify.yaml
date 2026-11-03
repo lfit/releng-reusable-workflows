@@ -7,38 +7,55 @@ name: Lint GitHub Actions workflows
 # yamllint disable-line rule:truthy
 on: [push, pull_request]
 
+permissions: {}
+
+concurrency:
+  # yamllint disable-line rule:line-length
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   actionlint:
+    name: actionlint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Download actionlint
         id: get_actionlint
         # yamllint disable-line rule:line-length
         run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
         shell: bash
       - name: Check workflow files
-        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        env:
+          ACTIONLINT_EXECUTABLE: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          "${ACTIONLINT_EXECUTABLE}" -color
         shell: bash
 
   semantic-pull-request:
     name: Semantic Pull Request
     if: github.event_name == 'pull_request'
-    # Dogfood the shared reusable workflow this repository publishes. It
-    # tolerates Dependabot's truncated single-commit subjects for long
-    # dependency names that otherwise trip
-    # validateSingleCommitMatchesPrTitle.
+    # Delegate to the generic-workflows lane. It tolerates the version
+    # fragment Dependabot drops from a long single-commit subject, which
+    # would otherwise trip validateSingleCommitMatchesPrTitle.
     # yamllint disable-line rule:line-length
-    uses: ./.github/workflows/reuse-semantic-pull-request.yaml
+    uses: lfreleng-actions/generic-workflows/.github/workflows/semantic-pull-request.yaml@04672a980550ff9bd89d24bacd39fb03e25b0b0b # v0.6.1
     permissions:
       contents: read
       # The called workflow's token is capped by the caller; without this the
       # gate step's PR API calls fail with 403 on minimal-permission repos.
-      pull-requests: read
+      pull-requests: read  # read PR title and commits
 
   commit-message:
+    name: commit-message
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,6 +64,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           # get all history
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install gitlint
         shell: bash
@@ -55,5 +73,7 @@ jobs:
 
       - name: Run gitlint
         shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          gitlint --commits "${{ github.event.pull_request.base.sha }}..HEAD"
+          gitlint --commits "${PR_BASE_SHA}..HEAD"

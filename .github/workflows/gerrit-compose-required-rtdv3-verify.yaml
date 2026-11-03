@@ -78,13 +78,18 @@ env:
   DEFAULT_VERSION: latest
   MASTER_RTD_PROJECT: doc
 
+permissions: {}
+
 jobs:
   rtd-validation:
+    name: rtd-validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@fb7446a92c01efcfbd967f073b2957ef90ecb49f  # v1.2.0
+        uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -290,8 +295,8 @@ jobs:
           tox --version
 
           TOX_OPTIONS_LIST=""
-          if [[ -n ${{ env.TOX_ENVS }} ]]; then
-              TOX_OPTIONS_LIST=${TOX_OPTIONS_LIST}" -e ${{ env.TOX_ENVS }}"
+          if [[ -n ${TOX_ENVS} ]]; then
+              TOX_OPTIONS_LIST=${TOX_OPTIONS_LIST}" -e ${TOX_ENVS}"
           fi;
           case ${PARALLEL,,} in
               true|auto )
@@ -311,6 +316,10 @@ jobs:
 
       - name: Running rtdv3
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+          GERRIT_PROJECT: ${{ inputs.GERRIT_PROJECT }}
+          GERRIT_CHANGE_URL: ${{ inputs.GERRIT_CHANGE_URL }}
         run: |
           echo "---> Running rtdv3"
           set -euo pipefail
@@ -320,7 +329,7 @@ jobs:
           cat << EOF > "${HOME}/.config/lftools/lftools.ini"
           [rtd]
           endpoint=https://readthedocs.org/api/v3/
-          token=${{ secrets.RTD_TOKEN }}
+          token=${RTD_TOKEN}
           EOF
 
           watchbuild(){
@@ -341,11 +350,13 @@ jobs:
               done
               echo "INFO: read the docs build completed with status: $result"
           }
-          project_original=${{ inputs.GERRIT_PROJECT }}
+          project_original=${GERRIT_PROJECT}
           project_dashed="${project_original////-}"
-          umbrella=$(echo ${{ inputs.GERRIT_CHANGE_URL }} | awk -F'.' '{print $2}')
+          # Left unquoted to keep this line's original word splitting
+          # shellcheck disable=SC2086
+          umbrella=$(echo ${GERRIT_CHANGE_URL} | awk -F'.' '{print $2}')
           rtdproject="$umbrella-$project_dashed"
-          masterproject=${umbrella}-${{ env.MASTER_RTD_PROJECT }}
+          masterproject=${umbrella}-${MASTER_RTD_PROJECT}
           #Exceptions needed for onap, due to importing their old docs.
           if [[ $masterproject == "onap-doc" ]]; then
               masterproject="onap"
@@ -354,7 +365,7 @@ jobs:
               rtdproject="onap"
           fi
           echo "INFO:"
-          echo "INFO: Project: ${{ inputs.GERRIT_PROJECT }}"
+          echo "INFO: Project: ${GERRIT_PROJECT}"
           echo "INFO: Read the Docs Sub Project: https://$rtdproject.readthedocs.io"
           echo "INFO: Read the Docs Master Project: https://$masterproject.readthedocs.io"
           if [[ "$(lftools rtd project-details "$rtdproject" | yq -r '.detail')" == "Not found." ]]; then

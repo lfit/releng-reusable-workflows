@@ -45,18 +45,23 @@ on:
         required: true
         type: string
 
+permissions: {}
+
 concurrency:
   # yamllint disable-line rule:line-length
   group: gerrit-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  notify:
+  # Needs GitHub deployment environments configured outside the code
+  notify:  # zizmor: ignore[secrets-outside-env]
+    name: notify
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gerrit-review-action@d56b0b5c81402f8cb435aaca513bebdea3be951e # v1.2.0
+        uses: lfreleng-actions/gerrit-review-action@264fe205361cbb2ee8f26280998a75680ee33b53 # v1.3.0
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}
@@ -69,8 +74,10 @@ jobs:
         run: sleep 10s
 
   build-nodejs:
+    name: build-nodejs
     needs: [notify]
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: "Build Node.js project"
         # yamllint disable-line rule:line-length
@@ -80,14 +87,20 @@ jobs:
     name: "Sonatype Lifecycle Scan"
     needs: [notify, build-nodejs]
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@e3bb02dd0d2e5027cde63732fe00f591d6ecec03 # v0.11.0
+    uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
+    permissions:
+      contents: read  # the called workflow's scan job checks out the repo
     secrets:
-      NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
+      nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}
 
-  report-status:
+  # Needs GitHub deployment environments configured outside the code
+  report-status:  # zizmor: ignore[secrets-outside-env]
+    name: report-status
     if: ${{ always() }}
     needs: [notify, build-nodejs, sonartype-lifecycle]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read  # workflow-conclusion lists this run's jobs via the API
     steps:
       - name: Get conclusion
         # yamllint disable-line rule:line-length
@@ -95,7 +108,7 @@ jobs:
 
       - name: Report workflow conclusion
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gerrit-review-action@d56b0b5c81402f8cb435aaca513bebdea3be951e # v1.2.0
+        uses: lfreleng-actions/gerrit-review-action@264fe205361cbb2ee8f26280998a75680ee33b53 # v1.3.0
         with:
           host: ${{ vars.GERRIT_SERVER }}
           username: ${{ vars.GERRIT_SSH_USER }}

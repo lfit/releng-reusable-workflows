@@ -6,7 +6,11 @@ OpenSSF Scorecard Workflow
 
 The OpenSSF Scorecard Workflow runs the OpenSSF Scorecard to assess the security and best practices of a project. The Scorecard includes checks such as branch protection and maintenance evaluations, and it runs periodically to keep the project's security posture current.
 
-The workflow performs the following tasks:
+The workflow calls the ``openssf-scorecard.yaml`` reusable workflow from
+``lfreleng-actions/security-workflows``, pinned to a release commit SHA. That
+workflow validates its inputs in a separate job, performs the following tasks
+in a scan job behind a block-mode harden-runner, then adds a link to the
+published Scorecard report to the run summary:
 
 1. **Checkout Code**: The workflow checks out the code for analysis.
 2. **Run OpenSSF Scorecard**: The workflow runs the OpenSSF Scorecard to assess the repository's security posture.
@@ -19,7 +23,13 @@ The workflow performs the following tasks:
 
 :Required secrets:
 
-    :secrets.SONAR_TOKEN: The SonarQube API key/token.
+    :None
+
+:Required permissions:
+
+    The calling job grants ``contents: read``, ``security-events: write``,
+    ``id-token: write`` and ``actions: read``. The scan job requests all four,
+    and a called job cannot hold more than its caller grants.
 
 :Steps in the workflow:
 

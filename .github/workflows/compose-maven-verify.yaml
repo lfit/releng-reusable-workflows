@@ -4,8 +4,9 @@
 
 name: Compose Maven Verify
 
+# maven-verify inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -160,7 +161,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  maven-verify:
+  # The caller decides: requesting id-token: write (S3 logs) fails callers
+  # granting only contents: read; narrowing it drops S3 logs where granted.
+  maven-verify:  # zizmor: ignore[excessive-permissions]
+    name: maven-verify
     runs-on: ubuntu-latest
     outputs:
       log_url: ${{ steps.publish-logs.outputs.log_url }}
@@ -169,7 +173,7 @@ jobs:
       POST_BUILD: ""
     steps:
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/checkout-gerrit-change-action@fb7446a92c01efcfbd967f073b2957ef90ecb49f  # v1.2.0
+      - uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -182,25 +186,29 @@ jobs:
           python-version: "3.11"
       - name: Pre-build path
         if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        env:
+          PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
         # yamllint disable rule:line-length
         run: |
-          echo "PRE_BUILD=${{ inputs.PRE_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+          echo "PRE_BUILD=${PRE_BUILD_SCRIPT_PATH}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Pre-build script
         if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        env:
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
         run: |
-          cat > "${{ github.run_id }}-pre.sh" << 'EOF'
-          ${{ inputs.PRE_BUILD_SCRIPT }}
-          EOF
-          chmod +x "${{ github.run_id }}-pre.sh"
-          echo "PRE_BUILD=${{ github.run_id }}-pre.sh" >> "$GITHUB_ENV"
+          printf '%s\n' "${PRE_BUILD_SCRIPT}" > "${GITHUB_RUN_ID}-pre.sh"
+          chmod +x "${GITHUB_RUN_ID}-pre.sh"
+          echo "PRE_BUILD=${GITHUB_RUN_ID}-pre.sh" >> "$GITHUB_ENV"
       - name: Pre-build URL
         if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        env:
+          PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
         # yamllint disable rule:line-length
         run: |
-          curl -fsSL "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}-pre.sh"
-          chmod +x "${{ github.run_id }}-pre.sh"
-          echo "PRE_BUILD=${{ github.run_id }}-pre.sh" >> "$GITHUB_ENV"
+          curl -fsSL "${PRE_BUILD_SCRIPT_URL}" > "${GITHUB_RUN_ID}-pre.sh"
+          chmod +x "${GITHUB_RUN_ID}-pre.sh"
+          echo "PRE_BUILD=${GITHUB_RUN_ID}-pre.sh" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Run pre-build
         if: ${{ env.PRE_BUILD != '' }}
@@ -225,25 +233,29 @@ jobs:
           global-settings: ${{ inputs.MVN_GLOBAL_SETTINGS }}
       - name: Post-build path
         if: ${{ inputs.POST_BUILD_SCRIPT_PATH != '' }}
+        env:
+          POST_BUILD_SCRIPT_PATH: ${{ inputs.POST_BUILD_SCRIPT_PATH }}
         # yamllint disable rule:line-length
         run: |
-          echo "POST_BUILD=${{ inputs.POST_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+          echo "POST_BUILD=${POST_BUILD_SCRIPT_PATH}" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Post-build script
         if: ${{ inputs.POST_BUILD_SCRIPT != '' }}
+        env:
+          POST_BUILD_SCRIPT: ${{ inputs.POST_BUILD_SCRIPT }}
         run: |
-          cat > "${{ github.run_id }}.sh" << 'EOF'
-          ${{ inputs.POST_BUILD_SCRIPT }}
-          EOF
-          chmod +x "${{ github.run_id }}.sh"
-          echo "POST_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+          printf '%s\n' "${POST_BUILD_SCRIPT}" > "${GITHUB_RUN_ID}.sh"
+          chmod +x "${GITHUB_RUN_ID}.sh"
+          echo "POST_BUILD=${GITHUB_RUN_ID}.sh" >> "$GITHUB_ENV"
       - name: Post-build URL
         if: ${{ inputs.POST_BUILD_SCRIPT_URL != '' }}
+        env:
+          POST_BUILD_SCRIPT_URL: ${{ inputs.POST_BUILD_SCRIPT_URL }}
         # yamllint disable rule:line-length
         run: |
-          curl -fsSL "${{ inputs.POST_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
-          chmod +x "${{ github.run_id }}.sh"
-          echo "POST_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+          curl -fsSL "${POST_BUILD_SCRIPT_URL}" > "${GITHUB_RUN_ID}.sh"
+          chmod +x "${GITHUB_RUN_ID}.sh"
+          echo "POST_BUILD=${GITHUB_RUN_ID}.sh" >> "$GITHUB_ENV"
         # yamllint enable rule:line-length
       - name: Run post-build
         if: ${{ env.POST_BUILD != '' }}

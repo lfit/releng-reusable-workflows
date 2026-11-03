@@ -21,7 +21,7 @@ jobs:
     name: 'Update Release Draft'
     permissions:
       # write permission is required to create releases
-      contents: write
+      contents: write  # create and update the draft release
     runs-on: 'ubuntu-latest'
     timeout-minutes: 3
     steps:

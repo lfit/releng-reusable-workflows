@@ -21,7 +21,7 @@ This workflow ensures that action and workflow calls use specific SHA commit val
 
 ### Jobs:
 
-- **Verify**: This job uses the `lfit/releng-reusable-workflows` repository to verify GitHub Actions. It reads the contents permission and uses the workflow at the specified SHA `ac846b1cfeaf3a7cac6f28413a5206afc9951464` (version 0.2.11).
+- **Verify**: This job calls the `action-pin-audit.yaml` workflow from `lfreleng-actions/security-workflows`, pinned to a release commit SHA, with the contents read permission. After validating its inputs, that workflow audits each `uses:` reference behind a block-mode harden-runner and fails on any that does not name a commit SHA. On pull requests it audits the workflow files the change touches.
 
 ..  # SPDX-License-Identifier: Apache-2.0
     # SPDX-FileCopyrightText: Copyright 2025 The Linux Foundation
