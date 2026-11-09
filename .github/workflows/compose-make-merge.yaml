@@ -65,7 +65,7 @@ jobs:
 
       - name: "Load project/repository credentials"
       # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/credential-load-action@2748d6e79cd70f8d3b7befee38468bd851eab51d # v2.1.0
+        uses: lfreleng-actions/credential-load-action@c4bf64f187865afb318669d8c9a95147c9e9d832 # v2.1.1
         with:
           vault_mapping_json: ${{ secrets.VAULT_MAPPING_JSON }}
           op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
