@@ -15,7 +15,7 @@ The workflow performs the following tasks:
 1. **Gerrit Checkout**: Checks out the specified Gerrit change and prepares the repository.
 2. **Python Version Extraction**: Extracts the Python version from the `tox.ini` file.
 3. **Python Setup**: Sets up the appropriate Python version based on the configuration.
-4. **Install Dependencies**: Installs necessary dependencies such as `lftools`, `niet`, `cryptography`, `yq`, and `tox`.
+4. **Install Dependencies**: Installs necessary dependencies such as `lftools-uv`, `niet`, and `tox`.
 5. **Verify ReadTheDocs Config**: Checks for the `readthedocs.yaml` configuration file.
 6. **Run Tox**: Executes `tox` to run tests and perform static checks.
 7. **Run RTDv3**: Triggers the RTD build process, managing RTD projects and subprojects, and updating version information.
@@ -78,7 +78,7 @@ The workflow performs the following tasks:
    The workflow sets up Python using the version extracted from `tox.ini` or defaults to `3.9` if unspecified.
 
 4. **Install Dependencies**:
-   Installs dependencies such as `lftools`, `niet`, `cryptography`, `yq`, and `tox` to ensure the necessary tools are available for the build.
+   Installs dependencies such as `lftools-uv`, `niet`, and `tox` to ensure the necessary tools are available for the build.
 
 5. **Verify ReadTheDocs Config**:
    Checks for the `readthedocs.yaml` configuration file. If absent, the process skips this step.

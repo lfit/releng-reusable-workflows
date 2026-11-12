@@ -82,12 +82,11 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         id: setup-python
         with:
-          # This interpreter only runs lftools/yq to drive the Read the
+          # This interpreter only runs lftools-uv to drive the Read the
           # Docs API; it never builds the project's documentation, so it
           # is unrelated to the Python version in the project's tox.ini
-          # or .readthedocs.yaml. It was pinned to 3.8, which reached
-          # end of life in October 2024 and consequently received a yq
-          # dependency that no longer imports on it.
+          # or .readthedocs.yaml. lftools-uv requires Python >=3.11, so
+          # this cannot drop back to the 3.8 it was once pinned to.
           python-version: "3.13"
       - name: Install graphviz
         # yamllint disable-line rule:line-length
@@ -105,9 +104,10 @@ jobs:
           python -m pip install --upgrade pip
           # Invoke pip via the interpreter rather than PATH so these
           # installs land in the interpreter configured above.
-          python -m pip install lftools 'niet~=1.4.2' yq tox
-          # urllib3 needs to be pinned to avoid timeouts
-          python -m pip install --upgrade urllib3~=1.26.15
+          # lftools-uv 0.9.0 is the first release to exit 3 when a read
+          # finds no project or version, which the steps below rely on to
+          # tell "not found" from an outage or a rejected token.
+          python -m pip install 'lftools-uv>=0.9.0' 'niet~=1.4.2' tox
       - name: Running rtdv3
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
@@ -115,7 +115,9 @@ jobs:
           echo "---> Running rtdv3"
           set -euo pipefail
 
-          # Creating lftools config file
+          # Creating the lftools-uv config file. lftools-uv reads the same
+          # ~/.config/lftools/lftools.ini path as lftools did, so the
+          # Jenkins-managed config for this token needs no change.
           mkdir -p "${HOME}/.config/lftools"
           cat << EOF > "${HOME}/.config/lftools/lftools.ini"
           [rtd]
@@ -123,19 +125,111 @@ jobs:
           token=${{ secrets.RTD_TOKEN }}
           EOF
 
+          # Print the JSON 'lftools-uv rtd ARGS... --json' reports. Exit 3
+          # means Read the Docs has no such project or version; return 2 for
+          # that and 1 for anything else, so an outage or a rejected token
+          # cannot pass for "not found".
+          rtd_json(){
+              local out rc=0
+              out="$(lftools-uv rtd "$@" --json)" || rc=$?
+              if (( rc == 0 )); then
+                  printf '%s\n' "$out"
+                  return 0
+              fi
+              if (( rc == 3 )); then
+                  return 2
+              fi
+              echo "ERROR: lftools-uv rtd $* failed with exit status $rc" >&2
+              return 1
+          }
+
+          # Return 0 when Read the Docs has project $1, and 1 when it reports
+          # the project missing. Stop the job when it cannot tell.
+          rtd_project_exists(){
+              local rc=0
+              rtd_json project-details "$1" > /dev/null || rc=$?
+              case $rc in
+                  0) return 0 ;;
+                  2) return 1 ;;
+                  *) exit 1 ;;
+              esac
+          }
+
+          # Print the Read the Docs version slug of branch $1. Read the Docs
+          # lowercases a branch name and replaces each run of characters
+          # outside [a-z0-9._-] with a hyphen, so branch stable/scandium is
+          # version stable-scandium. Requests pass the branch with
+          # --from-branch so lftools-uv applies the rule; this copy only
+          # names the version in messages.
+          rtd_version_slug(){
+              printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]' \
+                  | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//'
+          }
+
+          # Print "active" or "inactive" for the version of branch $2 in
+          # project $1, or "missing" when Read the Docs has not seen it.
+          rtd_version_state(){
+              local version details active rc=0
+              version="$(rtd_version_slug "$2")"
+              details="$(rtd_json project-version-details "$1" "$2" \
+                  --from-branch)" || rc=$?
+              case $rc in
+                  0) ;;
+                  2) echo missing; return 0 ;;
+                  *) exit 1 ;;
+              esac
+              active="$(jq -r '.active' <<< "$details")"
+              case $active in
+                  true) echo active ;;
+                  false) echo inactive ;;
+                  *)
+                      echo "ERROR: version $version of project $1 has no" \
+                          "active flag: $active" >&2
+                      exit 1
+                      ;;
+              esac
+          }
+
+          # Build branch $1 and wait for the build, polling every 10 seconds
+          # for up to an hour. Stop the job unless the build succeeds.
           watchbuild(){
               echo "INFO: Running build against branch $1"
-              local buildid
-              local result
-              buildid=$(lftools rtd project-build-trigger "$rtdproject" "$1" | jq '.build.id')
+              local trigger buildid details result
+              local -i polls=360
+              trigger="$(rtd_json project-build-trigger "$rtdproject" "$1" \
+                  --from-branch)"
+              buildid="$(jq -r '.build.id // empty' <<< "$trigger")"
+              if [[ ! $buildid =~ ^[0-9]+$ ]]; then
+                  echo "ERROR: Read the Docs returned no build id for $1:" \
+                      "$trigger" >&2
+                  exit 1
+              fi
 
-              result=null
-              while [[ "$result" == null ]]; do
+              # Read the Docs reports success as null until the build ends.
+              while true; do
                   sleep 10
-                  result=$(lftools rtd project-build-details "$rtdproject" "$buildid"  | jq '.success')
+                  details="$(rtd_json project-build-details "$rtdproject" \
+                      "$buildid")"
+                  result="$(jq -r '.success' <<< "$details")"
                   echo "INFO Current result of running build $result"
-                  if [[ $result == failed ]]; then
-                      echo "INFO: read the docs build completed with status: $result"
+                  case $result in
+                      true) break ;;
+                      false)
+                          echo "ERROR: read the docs build $buildid" \
+                              "failed" >&2
+                          exit 1
+                          ;;
+                      null) ;;
+                      *)
+                          echo "ERROR: read the docs build $buildid has no" \
+                              "success flag: $result" >&2
+                          exit 1
+                          ;;
+                  esac
+                  polls=$((polls - 1))
+                  if (( polls <= 0 )); then
+                      echo "ERROR: read the docs build $buildid did not" \
+                          "finish within an hour" >&2
                       exit 1
                   fi
               done
@@ -161,17 +255,17 @@ jobs:
 
           echo "INFO: Performing merge action"
 
-          # This returns null if project exists.
+          # rtd_project_exists reports whether Read the Docs has the project.
           project_exists=false
           project_created=false
 
           declare -i cnt=0
           while [[ $project_exists == "false" ]]; do
-              if [[ "$(lftools rtd project-details "$rtdproject" | yq -r '.detail')" == "No Project matches the given query." ]]; then
+              if ! rtd_project_exists "$rtdproject"; then
                   echo "INFO: Project not found"
                   if [[ $project_created == "false" ]]; then
                       echo "INFO: Creating project https://$rtdproject.readthedocs.io"
-                      lftools rtd project-create "$rtdproject" "${{ inputs.GERRIT_CHANGE_URL }}" \
+                      lftools-uv rtd project-create "$rtdproject" "${{ inputs.GERRIT_CHANGE_URL }}" \
                           git "https://$rtdproject.readthedocs.io" py en
                       project_created="true"
                   fi
@@ -189,19 +283,18 @@ jobs:
           done
 
           if [[ "$rtdproject" != "$masterproject" ]]; then
-              subproject_exists=false
-              while read -r subproject; do
-                  if [[ "$subproject" == "$rtdproject" ]]; then
-                      subproject_exists=true
-                      break
-                  fi
-              done < <(lftools rtd subproject-list "$masterproject")
+              subprojects="$(rtd_json subproject-list "$masterproject")"
+              if ! jq -e '.subprojects | type == "array"' <<< "$subprojects" > /dev/null; then
+                  echo "ERROR: no subproject list for $masterproject: $subprojects" >&2
+                  exit 1
+              fi
 
-              if $subproject_exists; then
+              if jq -e --arg p "$rtdproject" 'any(.subprojects[]; . == $p)' \
+                      <<< "$subprojects" > /dev/null; then
                   echo "INFO: subproject $rtdproject relationship already created"
               else
                   echo "INFO: Creating subproject relationship"
-                  lftools rtd subproject-create "$masterproject" "$rtdproject"
+                  lftools-uv rtd subproject-create "$masterproject" "$rtdproject"
                   echo "INFO sleeping for 10 seconds"
                   sleep 10
               fi
@@ -211,7 +304,8 @@ jobs:
           # Also, when we build anything other than master we want to trigger /stable/ as well.
           # allow projects to change their landing page from latest to branch_name
 
-          current_version="$(lftools rtd project-details "$rtdproject" | yq -r .default_version)"
+          project_details="$(rtd_json project-details "$rtdproject")"
+          current_version="$(jq -r .default_version <<< "$project_details")"
           if [[ -z ${{ env.DEFAULT_VERSION }} ]]; then
               echo "DEFAULT_VERSION (default-version) value cannot be empty"
               exit 1
@@ -221,7 +315,7 @@ jobs:
           echo "INFO: current default version $current_version"
           if [[ $current_version != "$default_version" ]]; then
               echo "INFO: Setting rtd landing page to $default_version"
-              lftools rtd project-update "$rtdproject" default_version="$default_version"
+              lftools-uv rtd project-update "$rtdproject" default_version="$default_version"
           fi
 
           if [[ ${{ inputs.GERRIT_BRANCH }} == "master" ]]; then
@@ -229,25 +323,26 @@ jobs:
               watchbuild latest
           else
 
-              #read the docs only understands lower case branch names
-              branch=$(echo "${{ inputs.GERRIT_BRANCH }}" | tr '[:upper:]' '[:lower:]')
-              echo "INFO: Checking if read the docs has seen branch $branch"
+              # Read the Docs addresses a branch by its version slug
+              branch="${{ inputs.GERRIT_BRANCH }}"
+              version="$(rtd_version_slug "$branch")"
+              echo "INFO: Checking if read the docs has seen branch $branch as version $version"
 
-              #if this is 200 "null" Then run discover branch
-              if [[ $(lftools rtd project-version-details "$rtdproject" "$branch" | jq '.active') == "null" ]]; then
-                  echo "INFO: read the docs has not seen branch $branch for project $rtdproject"
+              version_state="$(rtd_version_state "$rtdproject" "$branch")"
+              if [[ $version_state == missing ]]; then
+                  echo "INFO: read the docs has not seen version $version for project $rtdproject"
                   echo "INFO: triggering $rtdproject latest to instantiate new branch discovery"
                   watchbuild latest
               fi
 
-              echo "INFO: triggering $rtdproject $branch"
+              echo "INFO: triggering $rtdproject $version"
               watchbuild "$branch"
 
               #Make newly discovered branches visible in the u/i
-              isactive=$(lftools rtd project-version-details "$rtdproject" "$branch" | jq '.active')
-              if [[ "$isactive" == false ]]; then
-                  echo "INFO: Marking $branch as active for project $rtdproject"
-                  lftools rtd project-version-update "$rtdproject" "$branch" true
+              version_state="$(rtd_version_state "$rtdproject" "$branch")"
+              if [[ $version_state == inactive ]]; then
+                  echo "INFO: Marking $version as active for project $rtdproject"
+                  lftools-uv rtd project-version-update "$rtdproject" "$branch" true --from-branch
               fi
           fi
           echo "INFO: Merge job completed"
