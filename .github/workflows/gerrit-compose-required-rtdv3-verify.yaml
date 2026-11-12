@@ -233,6 +233,17 @@ jobs:
           } >> "$GITHUB_OUTPUT"
         # yamllint enable rule:line-length
 
+      # lftools-uv requires Python >=3.11, but the docs interpreter below
+      # follows the project's tox.ini or .readthedocs.yaml and may still be
+      # end of life. Give lftools-uv its own interpreter so neither
+      # constrains the other.
+      - name: Setup Python [lftools-uv]
+        # yamllint disable-line rule:line-length
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: lftools-py
+        with:
+          python-version: "3.13"
+
       - name: Setup Python [docs build]
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -253,21 +264,27 @@ jobs:
 
       - name: Installing dependencies
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
+        env:
+          LFTOOLS_UV_PYTHON: ${{ steps.lftools-py.outputs.python-path }}
         run: |
           python -m pip install --upgrade pip
           # This interpreter comes from the project's tox.ini or
           # .readthedocs.yaml, so a consumer can still select an
-          # end-of-life Python here. argcomplete 3.7.1 (a yq dependency)
-          # declares requires_python >=3.8 but its source uses PEP 585
-          # generics, so importing it raises TypeError on 3.8. Constrain
-          # it for those projects only; the marker applies nowhere else
-          # and retires itself as projects move off 3.8.
-          # Invoke pip via the interpreter, not PATH: the marker is
-          # evaluated against whichever interpreter runs pip.
-          python -m pip install lftools 'niet~=1.4.2' yq tox \
-            'argcomplete<3.7.1; python_version < "3.9"'
-          # urllib3 needs to be pinned to avoid timeouts
-          python -m pip install --upgrade urllib3~=1.26.15
+          # end-of-life Python here.
+          # Invoke pip via the interpreter, not PATH.
+          python -m pip install 'niet~=1.4.2' tox
+
+          # lftools-uv goes in its own virtualenv on the 3.13 interpreter
+          # above, so the docs interpreter's version never constrains it.
+          # 0.9.0 is the first release to exit 3 when a read finds no
+          # project, which the rtdv3 step below relies on.
+          "${LFTOOLS_UV_PYTHON}" -m venv "${RUNNER_TEMP}/lftools-uv"
+          "${RUNNER_TEMP}/lftools-uv/bin/python" -m pip install --quiet \
+            --upgrade pip
+          "${RUNNER_TEMP}/lftools-uv/bin/python" -m pip install --quiet \
+            'lftools-uv>=0.9.0'
+          echo "LFTOOLS_UV=${RUNNER_TEMP}/lftools-uv/bin/lftools-uv" \
+            >> "$GITHUB_ENV"
       - name: Running tox
         # yamllint disable rule:line-length
         if: ${{ env.READTHEDOCS_FOUND == 'true' }}
@@ -315,7 +332,9 @@ jobs:
           echo "---> Running rtdv3"
           set -euo pipefail
 
-          # Creating lftools config file
+          # Creating the lftools-uv config file. lftools-uv reads the same
+          # ~/.config/lftools/lftools.ini path as lftools did, so the
+          # Jenkins-managed config for this token needs no change.
           mkdir -p "${HOME}/.config/lftools"
           cat << EOF > "${HOME}/.config/lftools/lftools.ini"
           [rtd]
@@ -323,24 +342,24 @@ jobs:
           token=${{ secrets.RTD_TOKEN }}
           EOF
 
-          watchbuild(){
-              echo "INFO: Running build against branch $1"
-              local buildid
-              local result
-              buildid=$(lftools rtd project-build-trigger "$rtdproject" "$1" | jq '.build.id')
-
-              result=null
-              while [[ "$result" == null ]]; do
-                  sleep 10
-                  result=$(lftools rtd project-build-details "$rtdproject" "$buildid"  | jq '.success')
-                  echo "INFO Current result of running build $result"
-                  if [[ $result == failed ]]; then
-                      echo "INFO: read the docs build completed with status: $result"
+          # Return 0 when Read the Docs has project $1 and 1 when it reports
+          # the project missing. lftools-uv exits 3 for a read that finds
+          # nothing, so an outage or a rejected token cannot pass for
+          # "not found"; stop the job for those instead.
+          rtd_project_exists(){
+              local rc=0
+              "$LFTOOLS_UV" rtd project-details "$1" --json > /dev/null || rc=$?
+              case $rc in
+                  0) return 0 ;;
+                  3) return 1 ;;
+                  *)
+                      echo "ERROR: lftools-uv rtd project-details $1 failed" \
+                          "with exit status $rc" >&2
                       exit 1
-                  fi
-              done
-              echo "INFO: read the docs build completed with status: $result"
+                      ;;
+              esac
           }
+
           project_original=${{ inputs.GERRIT_PROJECT }}
           project_dashed="${project_original////-}"
           umbrella=$(echo ${{ inputs.GERRIT_CHANGE_URL }} | awk -F'.' '{print $2}')
@@ -357,7 +376,7 @@ jobs:
           echo "INFO: Project: ${{ inputs.GERRIT_PROJECT }}"
           echo "INFO: Read the Docs Sub Project: https://$rtdproject.readthedocs.io"
           echo "INFO: Read the Docs Master Project: https://$masterproject.readthedocs.io"
-          if [[ "$(lftools rtd project-details "$rtdproject" | yq -r '.detail')" == "Not found." ]]; then
+          if ! rtd_project_exists "$rtdproject"; then
               echo "INFO: Project not found, merge will create project https://$rtdproject.readthedocs.io"
           fi
           echo "INFO: Verify job completed"
