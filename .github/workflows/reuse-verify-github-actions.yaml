@@ -43,4 +43,4 @@ jobs:
 
       - name: 'Check Pinned Versions'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/pinned-versions-action@ca3c12b9e46211479351a5497140a20d4e627561 # v0.3.2
+        uses: lfreleng-actions/pinned-versions-action@786894d1abac1a22a6034978037852a06afcb7f5 # v0.3.4
