@@ -14,7 +14,7 @@ It also handles the creation and management of RTD projects and subprojects, ens
 The workflow performs the following tasks:
 
 1. **Checkout Gerrit Change**: Checks out the specified Gerrit change and prepares the repository.
-2. **Install Dependencies**: Installs necessary dependencies like `lftools`, `niet`, `cryptography`, `yq`, and `tox`.
+2. **Install Dependencies**: Installs necessary dependencies like `lftools-uv`, `niet`, and `tox`.
 3. **Verify ReadTheDocs Config**: Checks for the `readthedocs.yaml` configuration file in the repository.
 4. **Run RTDv3**: Triggers the RTD build process, including managing RTD projects and subprojects, and updating version information.
 5. **Merge Action**: Performs the merge operation if everything is valid and proceeds to trigger the appropriate RTD build for the specified branch.
@@ -69,13 +69,13 @@ The workflow performs the following tasks:
    The workflow checks out the change from the specified Gerrit repository and branch, ensuring the latest changes are available.
 
 2. **Install Dependencies**:
-   Installs dependencies like `lftools`, `niet`, `cryptography`, `yq`, and `tox`. This ensures the necessary tools are available for building and managing the RTD project.
+   Installs dependencies like `lftools-uv`, `niet`, and `tox`. This ensures the necessary tools are available for building and managing the RTD project.
 
 3. **Verify ReadTheDocs Config**:
    Checks for the `readthedocs.yaml` configuration file. If absent, the process skips this step.
 
 4. **Run RTDv3**:
-   Triggers the RTD build using the `lftools` tool. This includes creating or updating the RTD project and ensuring the correct version of the documentation builds.
+   Triggers the RTD build using the `lftools-uv` tool. This includes creating or updating the RTD project and ensuring the correct version of the documentation builds.
 
 5. **Merge Action**:
    If the RTD project and subproject exist, the workflow performs the merge action. It updates the RTD version information and triggers the appropriate build.

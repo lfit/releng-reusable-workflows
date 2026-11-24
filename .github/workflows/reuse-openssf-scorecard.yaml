@@ -103,7 +103,7 @@ jobs:
       # unreachable from workflows triggered by PRs raised from
       # forks, which previously forced a fallback to audit mode).
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/harden-runner-block-action@d01dcdad980f826d4099289e2014126465580807  # v0.14.1
+      - uses: lfreleng-actions/harden-runner-block-action@f5a475661142cd2f1611ae6fbf8af2be0f36a9a7  # v0.16.3
         with:
           # yamllint disable-line rule:line-length
           config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@f0f76ac22f342c9a788ebcabe584e68a79cc2e83'  # v0.16.0
@@ -121,4 +121,4 @@ jobs:
         # The upstream action does not provide any useful summary output
         # the action below adds a hyperlink to the OpenSSF Scorecard/report
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/openssf-scorecard-summary-action@1fd4f9d4d7818b583ab687e1dee28e7d245c89e5 # v0.1.4
+        uses: lfreleng-actions/openssf-scorecard-summary-action@50cb4f06d8beafb574db05548a99414ace785c4a # v0.1.6

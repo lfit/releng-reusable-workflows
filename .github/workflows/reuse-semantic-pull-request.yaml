@@ -75,7 +75,7 @@ jobs:
       # immutable commit; the explicit path keeps the source independent of
       # the consuming repository's org.
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/harden-runner-block-action@d01dcdad980f826d4099289e2014126465580807  # v0.14.1
+      - uses: lfreleng-actions/harden-runner-block-action@f5a475661142cd2f1611ae6fbf8af2be0f36a9a7  # v0.16.3
         with:
           # yamllint disable-line rule:line-length
           config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@f0f76ac22f342c9a788ebcabe584e68a79cc2e83'  # v0.16.0
@@ -205,7 +205,7 @@ jobs:
 
       - name: 'Validate pull request title'
         # yamllint disable-line rule:line-length
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

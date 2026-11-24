@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
+        uses: lfreleng-actions/checkout-gerrit-change-action@8721c15dacdd703064df5ade1416f7e5590b65f3  # v1.4.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-project: ${{ inputs.GERRIT_PROJECT }}
@@ -95,7 +95,7 @@ jobs:
         with:
           python-version: "3.11"
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/nexus-docker-login-action@efffe369f3ce14572e9b6dc5b61d485568b69e24 # v0.5.0
+      - uses: lfreleng-actions/nexus-docker-login-action@d974c4a9834d940810f2b5a1e9503e68fdb7b841 # v0.5.1
         with:
           nexus3-registry: ${{ vars.NEXUS3_REGISTRY }}
           nexus3-user: ${{ vars.NEXUS3_USER }}

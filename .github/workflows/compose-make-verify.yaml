@@ -79,7 +79,7 @@ jobs:
       contents: read
     steps:
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/checkout-gerrit-change-action@f0dd3d4dd4fceff1f56348152ecf0e040594f16a  # v1.2.1
+      - uses: lfreleng-actions/checkout-gerrit-change-action@8721c15dacdd703064df5ade1416f7e5590b65f3  # v1.4.1
         with:
           gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
           gerrit-url: ${{ vars.GERRIT_URL }}
@@ -87,7 +87,7 @@ jobs:
           delay: "0s"
       - name: Run Make
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/maven-make-build-action@37510791fdee5e4d881dc42a9c1cec4906df9a70 # v0.4.3
+        uses: lfreleng-actions/maven-make-build-action@c7132931eb62fe28aea2de0a372de58a1ab0631f # v0.4.4
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           mvn-version: ${{ inputs.MVN_VERSION }}
