@@ -45,7 +45,8 @@ on:
         description: "Gerrit refspec of change"
         required: true
         type: string
-      # Inputs passed to lfreleng-actions/tox-run-action@v0.1.0.
+      # Inputs passed to lfreleng-actions/tox-run-action (held at v0.2.0:
+      # v1.0 needs Python 3.11 or newer, and callers pass 3.10).
       # These should be defined by the calling workflow ("with:"), not listed
       # as inputs.
       TARGET_REPO:

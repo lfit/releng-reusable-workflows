@@ -56,4 +56,4 @@ jobs:
       pull-requests: write  # apply labels to the pull request
       contents: read  # read the autolabeler config from the repo
     # yamllint disable-line rule:line-length
-    uses: lfreleng-actions/generic-workflows/.github/workflows/autolabeler.yaml@04672a980550ff9bd89d24bacd39fb03e25b0b0b # v0.6.1
+    uses: lfreleng-actions/generic-workflows/.github/workflows/autolabeler.yaml@7b5720020b61b6aead324badce794089cc2ae208 # v0.8.2

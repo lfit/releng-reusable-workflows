@@ -48,6 +48,6 @@ jobs:
       security-events: write  # lane upload job publishes SARIF
       actions: read  # upload-sarif reads run info on private repos
     # yamllint disable-line rule:line-length
-    uses: lfreleng-actions/security-workflows/.github/workflows/zizmor.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
+    uses: lfreleng-actions/security-workflows/.github/workflows/zizmor.yaml@6edd9018efda10b7a429d0bb4658b5aa4bb2cd3f # v0.10.1
     with:
       upload_sarif: true

@@ -118,13 +118,13 @@ jobs:
       - name: Export env variables
         id: export-env-variables
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
+        uses: lfreleng-actions/vars-to-env-action@963c7fcc2a9054f325f43a60ac898b05a99ce5f5  # v1.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
         id: export-env-secrets
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/vars-to-env-action@72cd8dd1bf83e9861a111f59e1e02f04ba82a5dc  # v0.0.1
+        uses: lfreleng-actions/vars-to-env-action@963c7fcc2a9054f325f43a60ac898b05a99ce5f5  # v1.0.0
         with:
           secrets: ${{ inputs.ENV_SECRETS }}
           mask: "true"
@@ -137,6 +137,6 @@ jobs:
         run: ${PRE_BUILD_SCRIPT}
       - name: Run Sonar Cloud scan
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonarqube-cloud-scan-action@0c705d88d2ac6a170b43eeae0d7d1bde4103bce0 # v1.6.2
+        uses: lfreleng-actions/sonarqube-cloud-scan-action@7dc588697cad4d3e2c8f4e7444fa4891dbf7eb54 # v1.6.3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

@@ -28,7 +28,7 @@ jobs:
       # unreachable from workflows triggered by PRs raised from
       # forks, which previously forced a fallback to audit mode).
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/harden-runner-block-action@f5a475661142cd2f1611ae6fbf8af2be0f36a9a7  # v0.16.3
+      - uses: lfreleng-actions/harden-runner-block-action@65ff87957e1cac2de3203a85dbb07c31810321cb  # v0.16.4
         with:
           # yamllint disable-line rule:line-length
           config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@f0f76ac22f342c9a788ebcabe584e68a79cc2e83'  # v0.16.0
@@ -43,6 +43,6 @@ jobs:
             ${{ env.CONNECTION_ALLOW_LIST }}
 
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/inject-issue-id-action@e8356394c01db286d57ad03ebe59ccefc16a2ca3  # v0.1.4
+      - uses: lfreleng-actions/inject-issue-id-action@5fa376c11b307c3e72219526ffeb0bdfa27d41a6  # v0.1.5
         with:
           issue_id_lookup_json: ${{ vars.ISSUE_ID_LOOKUP_JSON }}

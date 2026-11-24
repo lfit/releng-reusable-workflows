@@ -91,7 +91,7 @@ jobs:
           submodules: "true"
       - name: Run gradle build and CLM scan
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gradle-build-action@62e164ecb3db615191f718067a09efca6f2b3057 # v0.7.0
+        uses: lfreleng-actions/gradle-build-action@2c976bb2b5e116f5ae339de015634af605affdbc # v0.7.1
         with:
           jdk-version: ${{ inputs.JDK_VERSION }}
           distribution: ${{ inputs.DISTRIBUTION }}
@@ -113,6 +113,6 @@ jobs:
     permissions:
       contents: read
     # yamllint disable-line rule:line-length
-    uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
+    uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@6edd9018efda10b7a429d0bb4658b5aa4bb2cd3f # v0.10.1
     secrets:
       nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}

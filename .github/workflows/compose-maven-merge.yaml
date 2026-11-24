@@ -282,7 +282,7 @@ jobs:
           env-vars: ${{ inputs.ENV_VARS }}
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sigul-sign-action@997f9d803faea69dc912421d799a5cd439c5c6cc # v0.1.1
+        uses: lfreleng-actions/sigul-sign-action@1d1be8923ad5a9b0db94c83d45984b2d9744904d # v0.2.1
         # Typed workflow_call booleans arrive as real booleans, so
         # compare truthiness directly. Casting a boolean against the
         # string yields NaN, so the old comparison never matched.
@@ -385,7 +385,7 @@ jobs:
         if: ${{ always() && steps.log-path.outcome == 'success' }}
         continue-on-error: true
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/log-publish-action@f9dcb75646938a12517ec8a85dac0acba9f96eca # v0.2.1
+        uses: lfreleng-actions/log-publish-action@809652a05200dd20df4e87ae21acfada0deaea60 # v0.2.2
         with:
           # yamllint disable-line rule:line-length
           destination: ${{ steps.log-aws.outcome == 'success' && (vars.LOG_PUBLISH_DESTINATION || 's3') || 'artifact' }}
@@ -411,7 +411,7 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Nexus
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/nexus-publish-action@d929e9053da8383d47c1ae857e8aa4e47f6b1bd9 # v1.3.2
+        uses: lfreleng-actions/nexus-publish-action@c178e9293ae0f62244f33e70c689d2a8df739c16 # v1.4.1
         with:
           nexus_server: ${{ vars.NEXUS_SERVER }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
@@ -480,7 +480,7 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Publish to Maven Central
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/nexus-publish-action@d929e9053da8383d47c1ae857e8aa4e47f6b1bd9 # v1.3.2
+        uses: lfreleng-actions/nexus-publish-action@c178e9293ae0f62244f33e70c689d2a8df739c16 # v1.4.1
         with:
           nexus_server: ${{ vars.CENTRAL_SERVER }}
           nexus_username: ${{ secrets.CENTRAL_USERNAME }}

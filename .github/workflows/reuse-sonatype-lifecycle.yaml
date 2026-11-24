@@ -315,7 +315,7 @@ jobs:
       # unreachable from workflows triggered by PRs raised from
       # forks, which previously forced a fallback to audit mode).
       # yamllint disable-line rule:line-length
-      - uses: lfreleng-actions/harden-runner-block-action@f5a475661142cd2f1611ae6fbf8af2be0f36a9a7  # v0.16.3
+      - uses: lfreleng-actions/harden-runner-block-action@65ff87957e1cac2de3203a85dbb07c31810321cb  # v0.16.4
         with:
           # yamllint disable-line rule:line-length
           config: 'lfreleng-actions//.github/harden-runner/lfreleng-actions/allow_list.txt@f0f76ac22f342c9a788ebcabe584e68a79cc2e83'  # v0.16.0
@@ -421,7 +421,7 @@ jobs:
 
       - name: "Sonatype Lifecycle Scan"
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/sonatype-lifecycle-scan-action@71c04eb6a4fb17c2f7a966b996d64e2cacdfac02  # v0.2.2
+        uses: lfreleng-actions/sonatype-lifecycle-scan-action@df7ed1b8e9a9fa59e5b11feb3aba566c27fda1cc  # v0.2.3
         with:
           nexus_iq_server: ${{ vars.NEXUS_IQ_SERVER }}
           nexus_iq_username: ${{ vars.NEXUS_IQ_USERNAME }}

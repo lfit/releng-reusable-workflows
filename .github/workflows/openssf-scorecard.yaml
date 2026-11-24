@@ -29,7 +29,7 @@ jobs:
   openssf-scorecard:
     name: "OpenSSF Scorecard"
     # yamllint disable-line rule:line-length
-    uses: lfreleng-actions/security-workflows/.github/workflows/openssf-scorecard.yaml@378fcc19ebdf37f17fde4888d4b71c83b21d6cf3 # v0.9.7
+    uses: lfreleng-actions/security-workflows/.github/workflows/openssf-scorecard.yaml@6edd9018efda10b7a429d0bb4658b5aa4bb2cd3f # v0.10.1
     # The lane's scan job requests all four scopes, and a called job
     # cannot hold more than its caller grants. Keep id-token: write off
     # every other job: the Scorecard API rejects the results otherwise.
