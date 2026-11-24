@@ -45,7 +45,8 @@ on:
         description: "Gerrit refspec of change"
         required: true
         type: string
-      # Inputs passed to lfreleng-actions/tox-run-action@v0.1.0.
+      # Inputs passed to lfreleng-actions/tox-run-action (held at v0.2.0:
+      # v1.0 needs Python 3.11 or newer, and callers pass 3.10).
       # These should be defined by the calling workflow ("with:"), not listed
       # as inputs.
       TARGET_REPO:
@@ -137,7 +138,7 @@ jobs:
           echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
       - name: Run tox
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/tox-run-action@4d7042009e20f30c7f26a7ba9c8b3985c2f25c45 # v1.0.1
+        uses: lfreleng-actions/tox-run-action@2820cd45d9bc61216e8cddb84158c55c7781d321 # v0.2.0
         with:
           path_prefix: ${{ inputs.TOX_DIR }}
           python-version: ${{ inputs.PYTHON_VERSION }}
