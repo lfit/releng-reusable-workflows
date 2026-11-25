@@ -91,20 +91,29 @@ publishing failure never changes the build result.
 
 :Expected variables - Sigul signing:
 
+    Signing uses `lfreleng-actions/sigul-sign-action
+    <https://github.com/lfreleng-actions/sigul-sign-action>`_ with its
+    modern client (Sigul 1.4), which the containerised Sigul instances
+    require. That client cannot talk to the older bridges
+    (``sigul-bridge-*.linuxfoundation.org``).
+
     :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the signing key to
         use (the project's identifier on the Sigul server).
-    :secrets.GHA_TOKEN: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
-    :secrets.SIGUL_IP: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
-    :secrets.SIGUL_URI: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
-    :secrets.SIGUL_CONF: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
-    :secrets.SIGUL_PASS: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
-    :secrets.SIGUL_PKI: See `sigul-sign-action docs
-        <https://github.com/lfit/sigul-sign-action>`_.
+    :secrets.SIGUL_CONF: The Sigul client configuration (``client.conf``). It
+        names the bridge, the server and the Sigul user the job signs as.
+    :secrets.SIGUL_PASS: That user's passphrase for the key, which also
+        decrypts SIGUL_PKI.
+    :secrets.SIGUL_PKI: The user's client certificates: a ``tar.xz`` archive of
+        the NSS database, GPG-encrypted with SIGUL_PASS, then ASCII-armoured
+        or base64-encoded. The action refuses an archive encrypted without
+        integrity protection (an MDC or AEAD), as old GnuPG releases
+        produced; re-encrypt such an archive with a current GnuPG.
+    :secrets.SIGUL_IP: Not used by the modern client, which needs no fixed
+        address for a load-balanced bridge.
+    :secrets.SIGUL_URI: Not used by the modern client; the bridge is the one
+        SIGUL_CONF names.
+    :secrets.GHA_TOKEN: Not used when signing artifacts; the action needs it
+        to push a signed tag.
 
 :Expected variables - Nexus upload:
 
