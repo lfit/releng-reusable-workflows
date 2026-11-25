@@ -112,8 +112,8 @@ publishing failure never changes the build result.
         address for a load-balanced bridge.
     :secrets.SIGUL_URI: Not used by the modern client; the bridge is the one
         SIGUL_CONF names.
-    :secrets.GHA_TOKEN: Not used when signing artifacts; the action needs it
-        to push a signed tag.
+    :secrets.GHA_TOKEN: Unused. The workflow accepts it so that existing
+        callers stay valid, and passes it to no step.
 
 :Expected variables - Nexus upload:
 
