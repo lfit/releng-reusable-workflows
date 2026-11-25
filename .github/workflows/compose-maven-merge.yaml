@@ -141,10 +141,10 @@ on:
         description: "Sigul signing key name, used when SIGUL_SIGN is true"
         required: false
       SIGUL_IP:
-        description: "Sigul bridge address, used when SIGUL_SIGN is true"
+        description: "Sigul bridge address; the modern client ignores it"
         required: false
       SIGUL_URI:
-        description: "Sigul bridge URI, used when SIGUL_SIGN is true"
+        description: "Sigul bridge host name; the modern client ignores it"
         required: false
       SIGUL_CONF:
         description: "Sigul client config, used when SIGUL_SIGN is true"
@@ -270,14 +270,20 @@ jobs:
           mvn-profiles: ${{ inputs.MVN_PROFILES }}
           global-settings: ${{ vars.GLOBAL_SETTINGS }}
           env-vars: ${{ inputs.ENV_VARS }}
+      # The modern Sigul client (1.4), which the containerised Sigul
+      # instances require; the client lfit/sigul-sign-action carried
+      # (0.207) cannot talk to them. The bridge is the one the client
+      # config in SIGUL_CONF names. This client connects to a bridge
+      # name with several addresses, so SIGUL_IP adds no hosts entry.
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
-        uses: lfit/sigul-sign-action@afafdf0100b93be60b6ae11c7f5718a0ad587580 # v2.0.1
+        uses: lfreleng-actions/sigul-sign-action@1d1be8923ad5a9b0db94c83d45984b2d9744904d # v0.2.1
         # Typed workflow_call booleans arrive as real booleans, so
         # compare truthiness directly. Casting a boolean against the
         # string yields NaN, so the old comparison never matched.
         if: ${{ inputs.SIGUL_SIGN }}
         with:
+          container: "modern"
           sign-type: "sign-data"
           sign-object: ${{ inputs.ARTIFACT_DIR }}
           sigul-key-name: ${{ secrets.SIGUL_KEY }}
