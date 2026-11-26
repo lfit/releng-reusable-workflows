@@ -156,7 +156,7 @@ on:
         description: "Sigul PKI material, used when SIGUL_SIGN is true"
         required: false
       GHA_TOKEN:
-        description: "GitHub token used by the Sigul signing action"
+        description: "Unused; accepted so existing callers stay valid"
         required: false
 
 concurrency:
@@ -287,7 +287,6 @@ jobs:
           sign-type: "sign-data"
           sign-object: ${{ inputs.ARTIFACT_DIR }}
           sigul-key-name: ${{ secrets.SIGUL_KEY }}
-          gh-key: ${{ secrets.GHA_TOKEN }}
           sigul-ip: ${{ secrets.SIGUL_IP }}
           sigul-uri: ${{ secrets.SIGUL_URI }}
           sigul-conf: ${{ secrets.SIGUL_CONF }}
