@@ -59,9 +59,14 @@ concurrency:
   group: compose-required-info-test-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   info-validation:
+    name: info-validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/checkout-gerrit-change-action@8721c15dacdd703064df5ade1416f7e5590b65f3  # v1.4.1
@@ -103,10 +108,11 @@ jobs:
           https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
       - name: Info File Validation
         if: env.SCAN == 'true'
+        env:
+          PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
         run: |
           set -e -o pipefail
           pip install jsonschema yq
-          PROJECT_INPUT=${{ inputs.GERRIT_PROJECT }}
           yamllint INFO.yaml
           python yaml-verify-schema.py \
               -s info-schema.yaml \

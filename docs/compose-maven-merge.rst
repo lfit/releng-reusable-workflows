@@ -96,6 +96,10 @@ publishing failure never changes the build result.
     modern client (Sigul 1.4), which the containerised Sigul instances
     require. That client cannot talk to the older bridges
     (``sigul-bridge-*.linuxfoundation.org``).
+    It signs every file under ARTIFACT_DIR except the action's default
+    exclusions (``*.md5``, ``*.sha1``, existing ``*.asc`` and Maven
+    metadata), and writes each signature beside its file with ``.asc``
+    appended.
 
     :secrets.SIGUL_KEY: If SIGUL_SIGN is true, the name of the signing key to
         use (the project's identifier on the Sigul server).
@@ -117,8 +121,8 @@ publishing failure never changes the build result.
 
 :Expected variables - Nexus upload:
 
-    :env.NEXUS_REPO: Environment variable that defines what repo to push to
-        (e.g. snapshosts, releases, staging, etc.).
+    :vars.NEXUS_REPO: Variable that defines what repo to push to
+        (e.g. snapshots, releases, staging, etc.).
     :vars.NEXUS_SERVER: Nexus server to upload to.
     :secrets.NEXUS_USERNAME: Username for push to Nexus.
     :secrets.NEXUS_PASSWORD: Password or token for push to Nexus.
@@ -131,9 +135,9 @@ publishing failure never changes the build result.
 
 :Expected variables - Central upload:
 
-    :env.NEXUS_REPO: Environment variable that defines what repo to push to
-        (e.g. snapshosts, releases, staging, etc.).
-    :vars.CENTRAL_URL: Repo URL to push to.
+    :vars.NEXUS_REPO: Variable that defines what repo to push to
+        (e.g. snapshots, releases, staging, etc.).
+    :vars.CENTRAL_SERVER: Server to push to.
     :secrets.CENTRAL_USERNAME: Username for push to Maven Central.
     :secrets.CENTRAL_PASSWORD: Password or token for push to Maven Central.
 

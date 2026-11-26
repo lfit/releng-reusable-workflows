@@ -69,9 +69,14 @@ concurrency:
   group: compose-make-verify-${{ github.workflow }}-${{ inputs.GERRIT_BRANCH }}-${{ inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   make-verify:
+    name: make-verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       # yamllint disable-line rule:line-length
       - uses: lfreleng-actions/checkout-gerrit-change-action@8721c15dacdd703064df5ade1416f7e5590b65f3  # v1.4.1
@@ -92,6 +97,6 @@ jobs:
       - name: Save Artifacts
         if: ${{ inputs.SAVE_DOCKER_ARTIFACTS }}
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/docker-save-images-action@b0d9fa6318d0ff08779b0487749fc784fa073969 # v0.2.2
+        uses: lfreleng-actions/docker-save-images-action@bcf3df3bbce43b347b2a968934016683fe794f99 # v0.2.4
         with:
           docker-artifacts-to-save: ${{ inputs.DOCKER_ARTIFACTS_TO_SAVE }}

@@ -98,9 +98,14 @@ concurrency:
   group: compose-tox-verify-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
-  run-tox:
+  # Matrix job: left unnamed so its generated check names stay unchanged
+  run-tox:  # zizmor: ignore[anonymous-definition]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         tox-env: ${{ fromJSON(inputs.TOX_ENVS) }}
@@ -121,21 +126,27 @@ jobs:
 
       - name: Pre-build path
         if: ${{ inputs.PRE_BUILD_SCRIPT_PATH != '' }}
+        env:
+          PRE_BUILD_SCRIPT_PATH: ${{ inputs.PRE_BUILD_SCRIPT_PATH }}
         # yamllint disable-line rule:line-length
         run: |
-          echo "PRE_BUILD=${{ inputs.PRE_BUILD_SCRIPT_PATH }}" >> "$GITHUB_ENV"
+          echo "PRE_BUILD=${PRE_BUILD_SCRIPT_PATH}" >> "$GITHUB_ENV"
       - name: Pre-build script
         if: ${{ inputs.PRE_BUILD_SCRIPT != '' }}
+        env:
+          PRE_BUILD_SCRIPT: ${{ inputs.PRE_BUILD_SCRIPT }}
         run: |
-          echo "${{ inputs.PRE_BUILD_SCRIPT }}" > "${{ github.run_id }}.sh"
-          chmod +x "${{ github.run_id }}.sh"
-          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+          echo "${PRE_BUILD_SCRIPT}" > "${GITHUB_RUN_ID}.sh"
+          chmod +x "${GITHUB_RUN_ID}.sh"
+          echo "PRE_BUILD=${GITHUB_RUN_ID}.sh" >> "$GITHUB_ENV"
       - name: Pre-build URL
         if: ${{ inputs.PRE_BUILD_SCRIPT_URL != '' }}
+        env:
+          PRE_BUILD_SCRIPT_URL: ${{ inputs.PRE_BUILD_SCRIPT_URL }}
         run: |
-          curl "${{ inputs.PRE_BUILD_SCRIPT_URL }}" > "${{ github.run_id }}.sh"
-          chmod +x "${{ github.run_id }}.sh"
-          echo "PRE_BUILD=${{ github.run_id }}.sh" >> "$GITHUB_ENV"
+          curl "${PRE_BUILD_SCRIPT_URL}" > "${GITHUB_RUN_ID}.sh"
+          chmod +x "${GITHUB_RUN_ID}.sh"
+          echo "PRE_BUILD=${GITHUB_RUN_ID}.sh" >> "$GITHUB_ENV"
       - name: Run tox
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/tox-run-action@2820cd45d9bc61216e8cddb84158c55c7781d321 # v0.2.0

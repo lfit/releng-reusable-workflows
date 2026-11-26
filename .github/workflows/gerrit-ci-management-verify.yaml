@@ -4,8 +4,9 @@
 
 name: Gerrit ci-management Verify
 
+# vote inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -56,7 +57,9 @@ concurrency:
 
 jobs:
   prepare:
+    name: prepare
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Clear votes
         # yamllint disable-line rule:line-length
@@ -73,8 +76,11 @@ jobs:
         run: sleep 10s
 
   actionlint:
+    name: actionlint
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -90,13 +96,19 @@ jobs:
         run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
         shell: bash
       - name: Check workflow files
-        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        env:
+          ACTIONLINT_EXECUTABLE: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          "${ACTIONLINT_EXECUTABLE}" -color
         shell: bash
 
   # run pre-commit tox env separately to get use of more parallel processing
   pre-commit:
+    name: pre-commit
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -114,8 +126,11 @@ jobs:
         run: pipx run pre-commit run --all-files --show-diff-on-failure
 
   jjb-validation:
+    name: jjb-validation
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -151,7 +166,10 @@ jobs:
           EOF
           jenkins-jobs test -o archives/job-configs jjb/
 
-  vote:
+  # The caller decides: requesting actions: read (workflow-conclusion) fails
+  # callers granting only contents: read; narrowing it breaks the vote.
+  vote:  # zizmor: ignore[excessive-permissions]
+    name: vote
     if: ${{ always() }}
     needs: [prepare, actionlint, pre-commit, jjb-validation]
     runs-on: ubuntu-latest

@@ -4,8 +4,9 @@
 
 name: Gerrit Composed ci-management Verify
 
+# vote inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -77,7 +78,9 @@ concurrency:
 
 jobs:
   prepare:
+    name: prepare
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Clear votes
         # yamllint disable-line rule:line-length
@@ -100,6 +103,8 @@ jobs:
     # use compose-repo-linting from the v0.4 series of releng-reusable-workflows
     # yamllint disable-line rule:line-length
     uses: lfit/releng-reusable-workflows/.github/workflows/compose-repo-linting.yaml@fc3aea6f1ec56737c3cdd8fe1c46cbbb7209394b # v0.11.1
+    permissions:
+      contents: read
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
@@ -116,6 +121,8 @@ jobs:
     # use compose-jjb-verify from the v0.4 series of releng-reusable-workflows
     # yamllint disable-line rule:line-length
     uses: lfit/releng-reusable-workflows/.github/workflows/compose-jjb-verify.yaml@fc3aea6f1ec56737c3cdd8fe1c46cbbb7209394b # v0.11.1
+    permissions:
+      contents: read
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
@@ -133,6 +140,8 @@ jobs:
     # releng-reusable-workflows
     # yamllint disable-line rule:line-length
     uses: lfit/releng-reusable-workflows/.github/workflows/compose-packer-verify.yaml@fc3aea6f1ec56737c3cdd8fe1c46cbbb7209394b # v0.11.1
+    permissions:
+      contents: read
     with:
       GERRIT_BRANCH: ${{ inputs.GERRIT_BRANCH }}
       GERRIT_CHANGE_ID: ${{ inputs.GERRIT_CHANGE_ID }}
@@ -149,7 +158,10 @@ jobs:
         CLOUDS_ENV_2XB64: ${{ secrets.CLOUDS_ENV_2XB64 }}
         CLOUDS_YAML_2XB64: ${{ secrets.CLOUDS_YAML_2XB64 }}
 
-  vote:
+  # The caller decides: requesting actions: read (workflow-conclusion) fails
+  # callers granting only contents: read; narrowing it breaks the vote.
+  vote:  # zizmor: ignore[excessive-permissions]
+    name: vote
     if: ${{ always() }}
     # yamllint enable rule:line-length
     needs: [prepare, repo-lint, jjb-verify, packer-verify]

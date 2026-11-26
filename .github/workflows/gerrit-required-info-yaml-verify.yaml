@@ -4,8 +4,9 @@
 
 name: Gerrit Required INFO Yaml Verify
 
+# vote inherits the caller's grant (see the job), so no permissions: {}
 # yamllint disable-line rule:truthy
-on:
+on:  # zizmor: ignore[excessive-permissions]
   workflow_call:
     inputs:
       GERRIT_BRANCH:
@@ -66,7 +67,9 @@ concurrency:
 
 jobs:
   prepare:
+    name: prepare
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Clear votes
         # yamllint disable-line rule:line-length
@@ -84,8 +87,11 @@ jobs:
         run: sleep 10s
 
   info-validation:
+    name: info-validation
     needs: prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -128,10 +134,11 @@ jobs:
           https://raw.githubusercontent.com/lfit/releng-global-jjb/master/yaml-verify-schema.py
       - name: Info File Validation
         if: env.SCAN == 'true'
+        env:
+          PROJECT_INPUT: ${{ inputs.GERRIT_PROJECT }}
         run: |
           set -e -o pipefail
           pip install jsonschema yq
-          PROJECT_INPUT=${{ inputs.GERRIT_PROJECT }}
           yamllint INFO.yaml
           python yaml-verify-schema.py \
               -s info-schema.yaml \
@@ -151,7 +158,10 @@ jobs:
               fi
           done <<< "$REPO_LIST"
 
-  vote:
+  # The caller decides: requesting actions: read (workflow-conclusion) fails
+  # callers granting only contents: read; narrowing it breaks the vote.
+  vote:  # zizmor: ignore[excessive-permissions]
+    name: vote
     if: ${{ always() }}
     # yamllint enable rule:line-length
     needs: [prepare, info-validation]

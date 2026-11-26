@@ -54,9 +54,14 @@ concurrency:
   group: compose-ci-management-${{ github.workflow }}-${{ github.event.inputs.GERRIT_BRANCH}}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   actionlint:
+    name: actionlint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -72,12 +77,18 @@ jobs:
         run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
         shell: bash
       - name: Check workflow files
-        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        env:
+          ACTIONLINT_EXECUTABLE: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          "${ACTIONLINT_EXECUTABLE}" -color
         shell: bash
 
   # run pre-commit tox env separately to get use of more parallel processing
   pre-commit:
+    name: pre-commit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length
@@ -95,7 +106,10 @@ jobs:
         run: pipx run pre-commit run --all-files --show-diff-on-failure
 
   jjb-validation:
+    name: jjb-validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Gerrit Checkout
         # yamllint disable-line rule:line-length

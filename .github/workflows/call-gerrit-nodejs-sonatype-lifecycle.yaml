@@ -45,14 +45,19 @@ on:
         required: true
         type: string
 
+permissions: {}
+
 concurrency:
   # yamllint disable-line rule:line-length
   group: gerrit-merge-${{ github.workflow }}-${{ github.event.inputs.GERRIT_CHANGE_ID || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  notify:
+  # Needs GitHub deployment environments configured outside the code
+  notify:  # zizmor: ignore[secrets-outside-env]
+    name: notify
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Notify job start
         # yamllint disable-line rule:line-length
@@ -69,8 +74,10 @@ jobs:
         run: sleep 10s
 
   build-nodejs:
+    name: build-nodejs
     needs: [notify]
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: "Build Node.js project"
         # yamllint disable-line rule:line-length
@@ -80,14 +87,20 @@ jobs:
     name: "Sonatype Lifecycle Scan"
     needs: [notify, build-nodejs]
     # yamllint disable-line rule:line-length
-    uses: lfit/releng-reusable-workflows/.github/workflows/reuse-sonatype-lifecycle.yaml@fc3aea6f1ec56737c3cdd8fe1c46cbbb7209394b # v0.11.1
+    uses: lfreleng-actions/security-workflows/.github/workflows/sonatype-lifecycle.yaml@6edd9018efda10b7a429d0bb4658b5aa4bb2cd3f # v0.10.1
+    permissions:
+      contents: read  # the called workflow's scan job checks out the repo
     secrets:
-      NEXUS_IQ_PASSWORD: ${{ secrets.NEXUS_IQ_PASSWORD }}
+      nexus_iq_password: ${{ secrets.NEXUS_IQ_PASSWORD }}
 
-  report-status:
+  # Needs GitHub deployment environments configured outside the code
+  report-status:  # zizmor: ignore[secrets-outside-env]
+    name: report-status
     if: ${{ always() }}
     needs: [notify, build-nodejs, sonartype-lifecycle]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read  # workflow-conclusion lists this run's jobs via the API
     steps:
       - name: Get conclusion
         # yamllint disable-line rule:line-length

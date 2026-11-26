@@ -43,7 +43,7 @@ The main components of this workflow include:
 
 3. **Build Node.js Project**: Use a reusable action (`node-build-action`) to build the Node.js project. This step ensures integration of the latest changes into the build process.
 
-4. **Sonatype Lifecycle Scan**: After building the project, trigger a Sonatype Lifecycle scan using the `reuse-sonatype-lifecycle.yaml` workflow. This step analyzes the project for security vulnerabilities, licensing issues, and other quality concerns. Use the `NEXUS_IQ_PASSWORD` secret for authentication.
+4. **Sonatype Lifecycle Scan**: After building the project, trigger a Sonatype Lifecycle scan using the `sonatype-lifecycle.yaml` workflow from `lfreleng-actions/security-workflows`. This step analyzes the project for security vulnerabilities, licensing issues, and other quality concerns. Use the `NEXUS_IQ_PASSWORD` secret for authentication.
 
 5. **Report Workflow Conclusion**: Report the workflow's conclusion back to Gerrit using the `gerrit-review-action`. Report the conclusion (success, failure, etc.) based on the workflow's execution results.
 
