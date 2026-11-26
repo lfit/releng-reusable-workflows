@@ -97,6 +97,6 @@ jobs:
       - name: Save Artifacts
         if: ${{ inputs.SAVE_DOCKER_ARTIFACTS }}
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/docker-save-images-action@b0d9fa6318d0ff08779b0487749fc784fa073969 # v0.2.2
+        uses: lfreleng-actions/docker-save-images-action@bcf3df3bbce43b347b2a968934016683fe794f99 # v0.2.4
         with:
           docker-artifacts-to-save: ${{ inputs.DOCKER_ARTIFACTS_TO_SAVE }}
