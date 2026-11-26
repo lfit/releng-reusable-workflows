@@ -13,3 +13,10 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 15
+    ignore:
+      # Held at v0.2.x: v1 refuses Python older than 3.11, and O-RAN-SC
+      # projects still pass PYTHON_VERSION 3.10 to
+      # gerrit-compose-required-tox-verify at @main. Remove once they
+      # have moved to 3.11 or newer.
+      - dependency-name: "lfreleng-actions/tox-run-action"
+        update-types: ["version-update:semver-major"]

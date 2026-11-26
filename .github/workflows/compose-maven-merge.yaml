@@ -142,10 +142,10 @@ on:  # zizmor: ignore[excessive-permissions]
         description: "Sigul signing key name, used when SIGUL_SIGN is true"
         required: false
       SIGUL_IP:
-        description: "Sigul bridge address, used when SIGUL_SIGN is true"
+        description: "Sigul bridge address; the modern client ignores it"
         required: false
       SIGUL_URI:
-        description: "Sigul bridge URI, used when SIGUL_SIGN is true"
+        description: "Sigul bridge host name; the modern client ignores it"
         required: false
       SIGUL_CONF:
         description: "Sigul client config, used when SIGUL_SIGN is true"
@@ -157,9 +157,7 @@ on:  # zizmor: ignore[excessive-permissions]
         description: "Sigul PKI material, used when SIGUL_SIGN is true"
         required: false
       GHA_TOKEN:
-        description: >
-          No longer used: the Sigul action needs a token only to push a
-          signed git tag. Kept so callers still passing it do not fail.
+        description: "Unused; accepted so existing callers stay valid"
         required: false
 
 concurrency:
@@ -280,6 +278,11 @@ jobs:
           mvn-profiles: ${{ inputs.MVN_PROFILES }}
           global-settings: ${{ vars.GLOBAL_SETTINGS }}
           env-vars: ${{ inputs.ENV_VARS }}
+      # The modern Sigul client (1.4), which the containerised Sigul
+      # instances require; the client lfit/sigul-sign-action carried
+      # (0.207) cannot talk to them. The bridge is the one the client
+      # config in SIGUL_CONF names. This client connects to a bridge
+      # name with several addresses, so SIGUL_IP adds no hosts entry.
       - name: Sign artifacts
         # yamllint disable-line rule:line-length
         uses: lfreleng-actions/sigul-sign-action@1d1be8923ad5a9b0db94c83d45984b2d9744904d # v0.2.1
@@ -288,10 +291,7 @@ jobs:
         # string yields NaN, so the old comparison never matched.
         if: ${{ inputs.SIGUL_SIGN }}
         with:
-          # The legacy (CentOS 7, sigul 0.207) client, chosen deliberately
-          # until the signing keys move to the modern Sigul stack.
-          container: legacy
-          allow-legacy: "true"
+          container: "modern"
           sign-type: "sign-data"
           # A directory signs every file beneath it except the default
           # exclude-globs (*.md5, *.sha1, maven-metadata.xml and the like),
@@ -439,7 +439,7 @@ jobs:
           path: "${{ inputs.ARTIFACT_DIR }}"
       - name: Install jfrog cli
         # yamllint disable-line rule:line-length
-        uses: jfrog/setup-jfrog-cli@ae385c7164244e984cd20a58674e5b57f53596d7 # v5.3.4
+        uses: jfrog/setup-jfrog-cli@4c2f06da03095113100534a16d58d8a252680949 # v5.3.5
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}

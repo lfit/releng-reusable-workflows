@@ -120,7 +120,7 @@ jobs:
       # scanner CLI reach arbitrary endpoints that vary per project.
       - name: "Harden runner (audit)"
         # yamllint disable-line rule:line-length
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
         with:
           egress-policy: "audit"
 
@@ -140,14 +140,14 @@ jobs:
       - name: "Setup Go (explicit version)"
         if: ${{ inputs.GO_VERSION != '' }}
         # yamllint disable-line rule:line-length
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: ${{ inputs.GO_VERSION }}
 
       - name: "Setup Go (from go.mod)"
         if: ${{ inputs.GO_VERSION == '' }}
         # yamllint disable-line rule:line-length
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           # Resolve go.mod relative to the scan base directory so Go
           # modules in subdirectories (monorepos) work without an

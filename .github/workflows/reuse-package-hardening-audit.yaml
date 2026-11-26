@@ -84,7 +84,7 @@ jobs:
       # Harden the runner with the just-loaded allow-list.
       - name: 'Harden runner (block)'
         # yamllint disable-line rule:line-length
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43  # v2.22.3
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c  # v2.23.0
         with:
           egress-policy: 'block'
           allowed-endpoints: >
@@ -100,7 +100,7 @@ jobs:
       # tag object). Bump via the release tag's commit SHA.
       - name: 'Run package manager hardening audit'
         # yamllint disable-line rule:line-length
-        uses: jordanconway/package-manager-hardening@e8e3fe3a0b3826d4b42bf11536ad0e730cf98309  # v0.4.3
+        uses: jordanconway/package-manager-hardening@2de565e907bf371b9a77fed178a2512a4f54cd53  # v0.5.0
         with:
           path: '${{ inputs.path }}'
           warn-only: '${{ inputs.warn_only }}'
